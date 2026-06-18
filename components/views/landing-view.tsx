@@ -53,7 +53,7 @@ const declinedOffset = pendingOffset + (pending / total) * CIRCUMFERENCE
 // Main component
 // ─────────────────────────────────────────────
 
-export default function Home() {
+export function LandingView() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const heroRef = useRef<HTMLElement>(null)

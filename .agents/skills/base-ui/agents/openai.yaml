@@ -1,0 +1,7 @@
+interface:
+  display_name: "Base UI"
+  short_description: "Use official Base UI React docs"
+  default_prompt: "Use $base-ui to build or modify React UI with @base-ui/react."
+
+policy:
+  allow_implicit_invocation: true
