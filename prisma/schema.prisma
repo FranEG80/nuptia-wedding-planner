@@ -1,0 +1,438 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@index([expiresAt])
+  @@map("verification")
+}
+
+model AppUser {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  name           String
+  imageUrl       String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  identities     AuthIdentity[]
+  memberships    WeddingMember[]
+  guestProfiles  Guest[]
+  ownedWeddings  Wedding[]      @relation("WeddingOwner")
+
+  @@map("app_users")
+}
+
+model AuthIdentity {
+  id             String   @id @default(cuid())
+  appUserId      String
+  provider       String
+  providerUserId String
+  email          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  appUser        AppUser  @relation(fields: [appUserId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([appUserId])
+  @@map("auth_identities")
+}
+
+model Wedding {
+  id               String                   @id @default(cuid())
+  ownerId          String
+  slug             String                   @unique
+  date             DateTime
+  status           String                   @default("draft")
+  partnerInviteCode  String?                @unique
+  partnerInviteEmail String?
+  restaurantId     String?
+  menuId           String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  owner            AppUser                  @relation("WeddingOwner", fields: [ownerId], references: [id])
+  restaurant       Restaurant?              @relation(fields: [restaurantId], references: [id])
+  menu             RestaurantMenu?          @relation(fields: [menuId], references: [id])
+  ceremonyLocation WeddingCeremonyLocation?
+  members          WeddingMember[]
+  guestParties     GuestParty[]
+  guests           Guest[]
+  invitationDesign InvitationDesign?
+  siteModules      WeddingSiteModule[]
+  mediaAssets      MediaAsset[]
+  tables           WeddingTable[]
+
+  @@index([ownerId])
+  @@index([restaurantId])
+  @@index([menuId])
+  @@map("weddings")
+}
+
+model WeddingCeremonyLocation {
+  id        String   @id @default(cuid())
+  weddingId String   @unique
+  name      String
+  address   String?
+  city      String
+  mapsUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@map("wedding_ceremony_locations")
+}
+
+model WeddingMemberRole {
+  id        String          @id @default(cuid())
+  code      String          @unique
+  label     String
+  sortOrder Int             @default(0)
+  members   WeddingMember[]
+
+  @@map("wedding_member_roles")
+}
+
+model WeddingMember {
+  id              String           @id @default(cuid())
+  weddingId       String
+  appUserId       String?
+  roleId          String
+  displayName     String?
+  sortOrder       Int              @default(0)
+  createdAt       DateTime         @default(now())
+  wedding         Wedding          @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  appUser         AppUser?         @relation(fields: [appUserId], references: [id], onDelete: Cascade)
+  role            WeddingMemberRole @relation(fields: [roleId], references: [id])
+  invitedGuests   GuestInvitedBy[]
+
+  @@unique([weddingId, appUserId])
+  @@index([weddingId])
+  @@index([appUserId])
+  @@index([roleId])
+  @@map("wedding_members")
+}
+
+model GuestParty {
+  id           String   @id @default(cuid())
+  weddingId    String
+  inviteToken  String   @unique @default(cuid())
+  groupName    String?
+  inviteStatus String   @default("pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  wedding      Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  guests       Guest[]
+
+  @@index([weddingId])
+  @@map("guest_parties")
+}
+
+model Guest {
+  id           String               @id @default(cuid())
+  partyId      String
+  weddingId    String
+  appUserId    String?
+  role         String               @default("primary")
+  name         String
+  email        String?
+  phone        String?
+  rsvpStatus   String               @default("no_response")
+  notes        String?
+  uploadToken  String?              @unique
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  party        GuestParty           @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  wedding      Wedding              @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  appUser      AppUser?             @relation(fields: [appUserId], references: [id], onDelete: SetNull)
+  invitedBy      GuestInvitedBy[]
+  menuSelections GuestMenuSelection[]
+  messages       GuestMessage[]
+  photos         GuestPhoto[]
+  seat           WeddingSeat?
+
+  @@index([weddingId])
+  @@index([partyId])
+  @@index([appUserId])
+  @@map("guests")
+}
+
+model GuestInvitedBy {
+  id              String        @id @default(cuid())
+  guestId         String
+  weddingMemberId String
+  guest           Guest         @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  weddingMember   WeddingMember @relation(fields: [weddingMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([guestId, weddingMemberId])
+  @@index([weddingMemberId])
+  @@map("guest_invited_by")
+}
+
+model InvitationDesign {
+  id            String      @id @default(cuid())
+  weddingId     String      @unique
+  templateId    String      @default("bouquet")
+  titleFont     String      @default("serif")
+  palette       String      @default("sage")
+  content       String      @default("{}")
+  heroAssetId   String?
+  musicAssetId  String?
+  musicEnabled  Boolean     @default(false)
+  openingEffect String      @default("envelope")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  wedding       Wedding     @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  heroAsset     MediaAsset? @relation("HeroAsset", fields: [heroAssetId], references: [id])
+  musicAsset    MediaAsset? @relation("MusicAsset", fields: [musicAssetId], references: [id])
+
+  @@map("invitation_designs")
+}
+
+model WeddingSiteModule {
+  id        String   @id @default(cuid())
+  weddingId String
+  type      String
+  title     String
+  desc      String
+  enabled   Boolean  @default(true)
+  sortOrder Int      @default(0)
+  config    String   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@unique([weddingId, type])
+  @@index([weddingId])
+  @@map("wedding_site_modules")
+}
+
+model MediaAsset {
+  id              String             @id @default(cuid())
+  weddingId       String
+  type            String
+  provider        String             @default("local")
+  key             String
+  url             String
+  alt             String?
+  metadata        String?
+  createdAt       DateTime           @default(now())
+  wedding         Wedding            @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  heroForDesigns  InvitationDesign[] @relation("HeroAsset")
+  musicForDesigns InvitationDesign[] @relation("MusicAsset")
+
+  @@index([weddingId])
+  @@map("media_assets")
+}
+
+model GuestMessage {
+  id           String   @id @default(cuid())
+  weddingId    String
+  guestId      String
+  message      String
+  signatureUrl String?
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  guest        Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId])
+  @@index([guestId])
+  @@map("guest_messages")
+}
+
+model GuestPhoto {
+  id        String   @id @default(cuid())
+  weddingId String
+  guestId   String
+  assetId   String?
+  url       String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  guest     Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId])
+  @@index([guestId])
+  @@map("guest_photos")
+}
+
+// ---------------------------------------------------------------------------
+// Restaurantes, menús y seating
+// ---------------------------------------------------------------------------
+
+model Restaurant {
+  id          String           @id @default(cuid())
+  name        String
+  address     String?
+  city        String
+  mapsUrl     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  weddings    Wedding[]
+  menus       RestaurantMenu[]
+  dishes      Dish[]
+
+  @@map("restaurants")
+}
+
+model RestaurantMenu {
+  id           String               @id @default(cuid())
+  restaurantId String
+  name         String
+  description  String?
+  active       Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  restaurant   Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuDishes   RestaurantMenuDish[]
+  weddings     Wedding[]
+
+  @@index([restaurantId])
+  @@map("restaurant_menus")
+}
+
+model Dish {
+  id           String               @id @default(cuid())
+  restaurantId String
+  name         String
+  description  String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  restaurant   Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  options      DishOption[]
+  menuDishes   RestaurantMenuDish[]
+
+  @@index([restaurantId])
+  @@map("dishes")
+}
+
+model DishOption {
+  id          String               @id @default(cuid())
+  dishId      String
+  name        String
+  description String?
+  sortOrder   Int                  @default(0)
+  createdAt   DateTime             @default(now())
+  dish        Dish                 @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  selections  GuestMenuSelection[]
+
+  @@index([dishId])
+  @@map("dish_options")
+}
+
+model RestaurantMenuDish {
+  id         String               @id @default(cuid())
+  menuId     String
+  dishId     String
+  sortOrder  Int                  @default(0)
+  menu       RestaurantMenu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  dish       Dish                 @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  selections GuestMenuSelection[]
+
+  @@unique([menuId, dishId])
+  @@index([dishId])
+  @@map("restaurant_menu_dishes")
+}
+
+model GuestMenuSelection {
+  id           String             @id @default(cuid())
+  guestId      String
+  menuDishId   String
+  dishOptionId String
+  guest        Guest              @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  menuDish     RestaurantMenuDish @relation(fields: [menuDishId], references: [id], onDelete: Cascade)
+  dishOption   DishOption         @relation(fields: [dishOptionId], references: [id], onDelete: Cascade)
+
+  @@unique([guestId, menuDishId])
+  @@index([menuDishId])
+  @@index([dishOptionId])
+  @@map("guest_menu_selections")
+}
+
+model WeddingTable {
+  id        String        @id @default(cuid())
+  weddingId String
+  name      String
+  sortOrder Int           @default(0)
+  capacity  Int?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  wedding   Wedding       @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  seats     WeddingSeat[]
+
+  @@index([weddingId])
+  @@map("wedding_tables")
+}
+
+model WeddingSeat {
+  id        String       @id @default(cuid())
+  tableId   String
+  position  Int
+  guestId   String?      @unique
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  table     WeddingTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  guest     Guest?       @relation(fields: [guestId], references: [id], onDelete: SetNull)
+
+  @@unique([tableId, position])
+  @@map("wedding_seats")
+}
