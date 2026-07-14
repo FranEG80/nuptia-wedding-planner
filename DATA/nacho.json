@@ -1,0 +1,88 @@
+{
+    "wife": {
+        "name": "Maria Daniela",
+        "email": "maria.daniela@example.com",
+        "phone": "+34 600 654 321"
+    },
+    "husband": {
+        "name": "Nacho",
+        "email": "nacho@example.com",
+        "phone": "+34 600 123 456"
+    },
+    "history": [
+        "Dicen que cuando dos personas están destinadas a encontrarse, Dios prepara el momento perfecto.",
+        "Y así fue como comenzó nuestra historia… Nacho, de Motril. María Daniela, de Valencia, pero la de Venezuela… Dos lugares separados por miles de kilómetros, dos vidas diferentes y un mismo destino.",
+        "Fue en Granada donde nuestros caminos se cruzaron por primera vez, de la forma más casual, sin imaginar que aquel encuentro cambiaría nuestras vidas para siempre. Bastó una mirada, una conversación y un flechazo para dar comienzo a la historia de amor más bonita que jamás hubiéramos podido soñar.",
+        "Juntos, aprendimos que el verdadero amor no entiende de fronteras, culturas ni distancias. Solo necesita dos corazones dispuestos a caminar de la mano y a confiar en el plan perfecto de Dios.",
+        "Desde aquel día, cada paso, cada sonrisa y cada desafío nos unió aún más, enseñándonos que el amor verdadero se construye con paciencia y confianza.",
+        "Este próximo 16 de octubre , ese sueño se hará realidad. Ante Dios, nuestras familias y cada uno de vosotros, uniremos nuestras vidas para comenzar una nueva etapa como esposos. Sabemos que esta historia no termina aquí; al contrario, ese día no hará más que comenzar el capítulo más hermoso de nuestras vidas.",
+        "Gracias por acompañarnos en este día tan especial para nosotros. Vuestra presencia llenará de alegría nuestros corazones y convertirá ese momento en un recuerdo que guardaremos para siempre.",
+        "Porque las mejores historias de amor no son las que terminan con un ‘sí, quiero’, sino las que comienzan con él",
+        "Con todo nuestro amor,",
+        "Ignacio & María Daniela"
+    ],
+    "wedding": {
+        "date": "2026-10-14",
+        "location": {
+            "city": "Motril",
+            "venue": "Santuario de Nuestra Señora de la Cabeza",
+            "address": {
+                "street": "Av. Ntra. Sra. de la Cabeza",
+                "number": "13",
+                "postal_code": "18600",
+                "city": "Motril",
+                "province": "Granada",
+                "country": "España"
+            }
+        },
+        "time": "18:30"
+    },
+    "cocktail": {
+        "location": {
+            "city": "Motril",
+            "venue": "Hotel Impressive Playa Granada Golf",
+            "address": {
+                "street": "C. Rector Pascual Rivas Carrera",
+                "number": "1",
+                "postal_code": "18613",
+                "city": "Playa Granada",
+                "province": "Granada",
+                "country": "España"
+            }
+        },
+        "time": "20:30"
+    },
+    "banquet": {
+        "location": {
+            "city": "Motril",
+            "venue": "Hotel Impressive Playa Granada Golf",
+            "address": {
+                "street": "C. Rector Pascual Rivas Carrera",
+                "number": "1",
+                "postal_code": "18613",
+                "city": "Playa Granada",
+                "province": "Granada",
+                "country": "España"
+            }
+        },
+        "time": "21:30"
+    },
+    "party": {
+        "location": {
+            "city": "Motril",
+            "venue": "Hotel Impressive Playa Granada Golf",
+            "address": {
+                "street": "C. Rector Pascual Rivas Carrera",
+                "number": "1",
+                "postal_code": "18613",
+                "city": "Playa Granada",
+                "province": "Granada",
+                "country": "España"
+            }
+        },
+        "time": "00:00"
+    },
+    "rsvp": {
+        "deadline": "2026-09-30"
+    }
+}

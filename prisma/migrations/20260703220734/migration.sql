@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `invitation_designs` MODIFY `content` TEXT NOT NULL DEFAULT '{}';

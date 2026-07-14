@@ -1,14 +1,24 @@
+import 'dotenv/config'
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
 import { PrismaClient } from "../generated/prisma/client"
 import { sqliteDriverUrlFromDatabaseUrl } from "../src/core/db/sqlite-url"
 import { DEFAULT_INVITATION_CONTENT } from "../src/domains/invitations/domain/invitation-design"
+import { PrismaMariaDb } from "@prisma/adapter-mariadb"
 
 const databaseUrl = process.env.DATABASE_URL ?? "file:./prisma/dev.db"
+const [user, password, host, port, database] =  databaseUrl.replace(/^(mysql|mariadb):\/\//, "").split(/[:@/]/)
 
 const prisma = new PrismaClient({
-  adapter: new PrismaBetterSqlite3({
-    url: sqliteDriverUrlFromDatabaseUrl(databaseUrl),
-  }),
+  adapter: databaseUrl.startsWith("file:") 
+  ? new PrismaBetterSqlite3({ url: sqliteDriverUrlFromDatabaseUrl(databaseUrl)}) 
+  : new PrismaMariaDb({
+    host,
+    port: Number(port),
+    user,
+    password,
+    database,
+    connectionLimit: 5,
+  })
 })
 
 const demoAppUserId = "demo-app-user"

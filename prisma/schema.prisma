@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
 }
 
 model User {
@@ -235,7 +235,7 @@ model InvitationDesign {
   templateId    String      @default("bouquet")
   titleFont     String      @default("serif")
   palette       String      @default("sage")
-  content       String      @default("{}")
+  content       String      @db.Text @default("{}")
   heroAssetId   String?
   musicAssetId  String?
   musicEnabled  Boolean     @default(false)

@@ -9,7 +9,7 @@ const envSchema = z.object({
     .string()
     .default("false")
     .transform((value) => value === "true"),
-  DATABASE_URL: z.string().default("file:./prisma/dev.db"),
+  DATABASE_URL: z.string(),
   BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
   BETTER_AUTH_SECRET: z.string().min(32).default("local-development-secret-change-before-production"),
   BETTER_AUTH_DATABASE_PROVIDER: z.enum(["sqlite", "postgresql"]).default("sqlite"),

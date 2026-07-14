@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import Database from "better-sqlite3"
 import { createHash, randomUUID } from "node:crypto"
 import fs from "node:fs"
