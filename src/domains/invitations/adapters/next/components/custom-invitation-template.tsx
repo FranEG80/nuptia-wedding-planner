@@ -111,9 +111,11 @@ export function CustomInvitationTemplate({
               <h2 className="text-center text-5xl leading-none text-[var(--invite-heading)] [font-family:var(--invite-title-font)]">
                 {content.storyTitle}
               </h2>
-              <p className="mx-auto mt-8 max-w-3xl text-pretty text-lg leading-8 text-[var(--invite-muted)]">
-                {content.story}
-              </p>
+              <div className="mx-auto mt-8 max-w-3xl space-y-5 text-pretty text-lg leading-8 text-[var(--invite-muted)]">
+                {content.story.map((paragraph, index) => (
+                  <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
+                ))}
+              </div>
             </section>
             ) : null}
 
@@ -242,14 +244,16 @@ export function CustomInvitationTemplate({
               </div> */}
               <div className="mx-auto max-w-md space-y-4 border-y border-[color-mix(in_srgb,var(--invite-accent)_30%,transparent)] px-5 py-8 text-center">
                 <Gift className="mx-auto h-8 w-8 text-[var(--invite-accent-dark)]" strokeWidth={1.5} />
-                <h4 className="text-3xl text-[var(--invite-heading)] [font-family:var(--invite-title-font)]">Mesa de Regalos</h4>
+                <h4 className="text-3xl text-[var(--invite-heading)] [font-family:var(--invite-title-font)]">{content.registryTitle}</h4>
                 <p className="mx-auto max-w-xs text-sm leading-relaxed text-[var(--invite-muted)]">
-                    Vuestra presencia es nuestro mejor regalo. Si aun así queréis tener un detalle, os dejamos
-                    nuestra cuenta.
+                  {content.registryIntro}
                 </p>
-                <div className="rounded-[6px] border border-dashed border-[var(--invite-border)] bg-[var(--invite-section)] px-4 py-3 font-mono text-xs text-[var(--invite-text)]">
-                    ES12 3456 7890 1234 5678 9012
-                </div>
+                {content.registry.map((item) => (
+                  <div key={item.id} className="rounded-[6px] border border-dashed border-[var(--invite-border)] bg-[var(--invite-section)] px-4 py-3 font-mono text-xs text-[var(--invite-text)]">
+                    {item.title}
+                  </div>
+                ))}
+                <p className="text-xs leading-relaxed text-[var(--invite-muted)]">{content.registryNote}</p>
             </div>
             </section>
             ) : null}

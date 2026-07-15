@@ -107,9 +107,11 @@ export function BouquetInvitationTemplate({
               <h2 className="text-center text-4xl text-[var(--invite-heading)] [font-family:var(--invite-title-font)]">
                 {content.storyTitle}
               </h2>
-              <p className="mx-auto mt-7 max-w-3xl text-pretty text-lg leading-8 text-[var(--invite-muted)]">
-                {content.story}
-              </p>
+              <div className="mx-auto mt-7 max-w-3xl space-y-5 text-pretty text-lg leading-8 text-[var(--invite-muted)]">
+                {content.story.map((paragraph, index) => (
+                  <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
+                ))}
+              </div>
             </section>
             ) : null}
 
@@ -238,14 +240,16 @@ export function BouquetInvitationTemplate({
               </div> */}
               <div className="space-y-4 p-5 text-center">
                 <Gift className="mx-auto size-12 text-accent" strokeWidth={1.5} />
-                <h4 className="text-4xl text-[var(--invite-heading)] [font-family:var(--invite-title-font)]">Mesa de Regalos</h4>
+                <h4 className="text-4xl text-[var(--invite-heading)] [font-family:var(--invite-title-font)]">{content.registryTitle}</h4>
                 <p className="mx-auto max-w-lg  text-muted-foreground mt-1 leading-7">
-                    Vuestra presencia es nuestro mejor regalo. Si aun así queréis tener un detalle, os dejamos
-                    nuestra cuenta.
+                  {content.registryIntro}
                 </p>
-                <div className="rounded-xl border border-dashed border-border bg-secondary/40 px-4 py-3 font-mono text-xl text-foreground">
-                    ES12 3456 7890 1234 5678 9012
-                </div>
+                {content.registry.map((item) => (
+                  <div key={item.id} className="rounded-xl border border-dashed border-border bg-secondary/40 px-4 py-3 font-mono text-xl text-foreground">
+                    {item.title}
+                  </div>
+                ))}
+                <p className="text-sm text-muted-foreground">{content.registryNote}</p>
               </div>
             </section>
             ) : null}

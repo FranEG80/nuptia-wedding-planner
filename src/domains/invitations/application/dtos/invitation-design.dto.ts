@@ -53,6 +53,10 @@ const rsvpPanelMotionSchema = z
   .enum(["slide-up", "slide-left"])
   .optional()
 
+const storySchema = z
+  .union([z.string(), z.array(z.string())])
+  .transform((story) => (typeof story === "string" ? [story] : story))
+
 export const invitationContentSchema = z.object({
   fontPairId: z.string().optional(),
   colorPresetId: z.string().optional(),
@@ -61,7 +65,7 @@ export const invitationContentSchema = z.object({
   eyebrow: z.string(),
   heroWord: z.string(),
   storyTitle: z.string(),
-  story: z.string(),
+  story: storySchema,
   scheduleTitle: z.string(),
   schedule: z.array(scheduleItemSchema).min(1),
   venueTitle: z.string(),

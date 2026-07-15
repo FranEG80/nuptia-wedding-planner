@@ -6,7 +6,7 @@ import { redirect } from "next/navigation"
 import { env } from "@/core/config/env"
 import type { AppSession, AuthSession } from "@/core/auth/types"
 import { resolveAppUserForAuthSession } from "@/core/auth/app-user"
-import { auth } from "@/core/auth/better-auth"
+import { getAuth } from "@/core/auth/better-auth"
 import { createSupabaseServerClient } from "@/core/auth/supabase/server"
 
 const demoSession: AuthSession = {
@@ -21,6 +21,7 @@ const demoSession: AuthSession = {
 
 async function getBetterAuthSession(): Promise<AuthSession | null> {
   try {
+    const auth = await getAuth()
     const session = await auth.api.getSession({
       headers: await headers(),
     })

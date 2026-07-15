@@ -1,4 +1,4 @@
-import { repositories } from "@/composition/repositories"
+import { getRepositories } from "@/composition/repositories"
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/core/trpc/init"
 import { getPublicWeddingSiteUseCase } from "@/domains/wedding-sites/application/use-cases/get-public-wedding-site.use-case"
 import { listWeddingSiteModulesUseCase } from "@/domains/wedding-sites/application/use-cases/list-wedding-site-modules.use-case"
@@ -7,6 +7,7 @@ import { z } from "zod"
 
 export const weddingSiteRouter = createTRPCRouter({
   modules: protectedProcedure.query(async ({ ctx }) => {
+    const repositories = await getRepositories()
     const wedding = await getCurrentWeddingUseCase({
       weddingRepository: repositories.wedding,
       appUserId: ctx.appUser.id,
@@ -23,10 +24,11 @@ export const weddingSiteRouter = createTRPCRouter({
   }),
   publicBySlug: publicProcedure
     .input(z.string().min(1).default("demo"))
-    .query(({ input }) =>
-      getPublicWeddingSiteUseCase({
+    .query(async ({ input }) => {
+      const repositories = await getRepositories()
+      return getPublicWeddingSiteUseCase({
         weddingSiteRepository: repositories.weddingSite,
         slug: input,
-      }),
-    ),
+      })
+    }),
 })

@@ -1,5 +1,5 @@
 import { requireAppSession } from "@/core/auth"
-import { repositories } from "@/composition/repositories"
+import { getRepositories } from "@/composition/repositories"
 import { DEFAULT_INVITATION_CONTENT } from "@/domains/invitations/domain/invitation-design"
 import { getCurrentInvitationDesignUseCase } from "@/domains/invitations/application/use-cases/get-current-invitation-design.use-case"
 import { listGuestsUseCase } from "@/domains/guests/application/use-cases/list-guests.use-case"
@@ -7,6 +7,7 @@ import { GuestsView } from "@/domains/guests/adapters/next/components/guests-vie
 import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
 
 export async function GuestsPage() {
+  const repositories = await getRepositories()
   const session = await requireAppSession()
   const wedding = await getCurrentWeddingUseCase({
     weddingRepository: repositories.wedding,

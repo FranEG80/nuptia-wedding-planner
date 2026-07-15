@@ -2,7 +2,7 @@ import Image from "next/image"
 import { notFound } from "next/navigation"
 import { Camera, Clock, Gift, MapPin, Music2, PenLine, UtensilsCrossed } from "lucide-react"
 
-import { repositories } from "@/composition/repositories"
+import { getRepositories } from "@/composition/repositories"
 import { getPublicWeddingSiteUseCase } from "@/domains/wedding-sites/application/use-cases/get-public-wedding-site.use-case"
 
 const moduleIcons = {
@@ -16,6 +16,7 @@ const moduleIcons = {
 } as const
 
 export async function PublicWeddingSitePage({ slug }: { slug: string }) {
+  const repositories = await getRepositories()
   const site = await getPublicWeddingSiteUseCase({
     weddingSiteRepository: repositories.weddingSite,
     slug,

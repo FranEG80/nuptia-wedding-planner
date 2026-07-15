@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 
-import { repositories } from "@/composition/repositories"
+import { getRepositories } from "@/composition/repositories"
 import { requireAppSession } from "@/core/auth"
 import { ResolvedInvitationTemplate } from "@/domains/invitations/adapters/next/components/resolve-invitation-template"
 import { RsvpExperience } from "@/domains/invitations/adapters/next/components/rsvp-experience"
@@ -14,6 +14,7 @@ export default async function InvitationPreviewRoutePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
+  const repositories = await getRepositories()
   const session = await requireAppSession()
   const wedding = await getCurrentWeddingUseCase({
     weddingRepository: repositories.wedding,

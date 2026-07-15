@@ -47,7 +47,7 @@ export interface InvitationContent {
   eyebrow: string
   heroWord: string
   storyTitle: string
-  story: string
+  story: string[]
   scheduleTitle: string
   schedule: InvitationScheduleItem[]
   venueTitle: string
@@ -76,8 +76,10 @@ export const DEFAULT_INVITATION_CONTENT: InvitationContent = {
   eyebrow: "ACOMPAÑADNOS A CELEBRAR",
   heroWord: "SÍ",
   storyTitle: "Nuestra historia",
-  story:
-    "Nos conocimos casi por casualidad y desde entonces hemos construido una historia llena de viajes, sobremesas y planes compartidos. Nos hace mucha ilusión celebrar este paso con las personas que más queremos.",
+  story: [
+    "Nos conocimos casi por casualidad y desde entonces hemos construido una historia llena de viajes, sobremesas y planes compartidos.",
+    "Nos hace mucha ilusión celebrar este paso con las personas que más queremos.",
+  ],
   scheduleTitle: "El itinerario",
   schedule: [
     {

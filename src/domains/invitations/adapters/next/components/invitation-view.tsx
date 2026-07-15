@@ -129,6 +129,20 @@ export function InvitationView({
     }))
   }
 
+  function updateRegistry(
+    index: number,
+    key: keyof InvitationContentDto["registry"][number],
+    value: string,
+  ) {
+    setSaved(false)
+    setContent((current) => ({
+      ...current,
+      registry: current.registry.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [key]: value } : item,
+      ),
+    }))
+  }
+
   function saveDesign() {
     startTransition(async () => {
       const nextDesign = await updateInvitationDesignAction({
@@ -326,7 +340,19 @@ export function InvitationView({
             <TextField label="Título RSVP" value={content.rsvpTitle} onChange={(value) => updateContent("rsvpTitle", value)} />
             <TextField label="Email de contacto" value={content.contactEmail} onChange={(value) => updateContent("contactEmail", value)} />
           </div>
-          <TextArea label="Historia" value={content.story} onChange={(value) => updateContent("story", value)} />
+          <TextArea
+            label="Historia (separa los párrafos con una línea en blanco)"
+            value={content.story.join("\n\n")}
+            onChange={(value) =>
+              updateContent(
+                "story",
+                value
+                  .split(/\n\s*\n/)
+                  .map((paragraph) => paragraph.trim())
+                  .filter(Boolean),
+              )
+            }
+          />
           <TextArea label="Subtítulo RSVP" value={content.rsvpSubtitle} onChange={(value) => updateContent("rsvpSubtitle", value)} />
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
@@ -387,9 +413,15 @@ export function InvitationView({
               </div>
             ))}
 
-            <div key={content.registry[0].id} className="rounded-lg border border-border p-3">
-                <TextField label="Numero de Cuenta IBAN" value="ES12 3456 7890 1234 5678 9012" onChange={() => undefined} />
-            </div>
+            {content.registry[0] ? (
+              <div key={content.registry[0].id} className="rounded-lg border border-border p-3">
+                <TextField
+                  label="Número de cuenta IBAN"
+                  value={content.registry[0].title}
+                  onChange={(value) => updateRegistry(0, "title", value)}
+                />
+              </div>
+            ) : null}
             
             {/* <div className="grid gap-3 sm:grid-cols-3">
               {content.registry.map((item, index) => (

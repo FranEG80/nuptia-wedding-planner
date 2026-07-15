@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { repositories } from "@/composition/repositories"
+import { getRepositories } from "@/composition/repositories"
 import { requireAppSession } from "@/core/auth"
 import {
   parseInvitationContent,
@@ -71,6 +71,7 @@ const publicResponseSchema = z.object({
 export async function updateInvitationDesignAction(
   input: UpdateInvitationDesignDto,
 ) {
+  const repositories = await getRepositories()
   const session = await requireAppSession()
   const parsed = updateInvitationDesignSchema.parse(input)
   const wedding = await getCurrentWeddingUseCase({
@@ -122,6 +123,7 @@ export async function respondToInvitationAction(input: {
   }>
   message?: string | null
 }) {
+  const repositories = await getRepositories()
   const parsed = publicResponseSchema.parse(input)
   const party = await respondToPublicInvitationUseCase({
     guestRepository: repositories.guest,

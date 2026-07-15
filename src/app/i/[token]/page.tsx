@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 
-import { repositories } from "@/composition/repositories"
+import { getRepositories } from "@/composition/repositories"
 import { ResolvedInvitationTemplate } from "@/domains/invitations/adapters/next/components/resolve-invitation-template"
 import { PublicRsvpPanel } from "@/domains/invitations/adapters/next/components/public-rsvp-panel"
 import { getPublicInvitationByTokenUseCase } from "@/domains/invitations/application/use-cases/get-public-invitation-by-token.use-case"
@@ -11,6 +11,7 @@ export default async function PublicInvitationRoutePage({
 }: {
   params: Promise<{ token: string }>
 }) {
+  const repositories = await getRepositories()
   const { token } = await params
   const invitation = await getPublicInvitationByTokenUseCase({
     guestRepository: repositories.guest,

@@ -1,25 +1,91 @@
-import 'dotenv/config'
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
-import { PrismaClient } from "../generated/prisma/client"
-import { sqliteDriverUrlFromDatabaseUrl } from "../src/core/db/sqlite-url"
+import { readFile } from "node:fs/promises"
+
+import { PrismaD1 } from "@prisma/adapter-d1"
+import { getPlatformProxy } from "wrangler"
+import { z } from "zod"
+
+import { PrismaClient } from "../generated/prisma-seed/client"
 import { DEFAULT_INVITATION_CONTENT } from "../src/domains/invitations/domain/invitation-design"
-import { PrismaMariaDb } from "@prisma/adapter-mariadb"
 
-const databaseUrl = process.env.DATABASE_URL ?? "file:./prisma/dev.db"
-const [user, password, host, port, database] =  databaseUrl.replace(/^(mysql|mariadb):\/\//, "").split(/[:@/]/)
-
-const prisma = new PrismaClient({
-  adapter: databaseUrl.startsWith("file:") 
-  ? new PrismaBetterSqlite3({ url: sqliteDriverUrlFromDatabaseUrl(databaseUrl)}) 
-  : new PrismaMariaDb({
-    host,
-    port: Number(port),
-    user,
-    password,
-    database,
-    connectionLimit: 5,
-  })
+const personSchema = z.object({
+  name: z.string().min(1),
+  email: z.email(),
+  phone: z.string().min(1),
 })
+
+const addressSchema = z.object({
+  street: z.string().min(1),
+  number: z.string().min(1),
+  postal_code: z.string().min(1),
+  city: z.string().min(1),
+  province: z.string().min(1),
+  country: z.string().min(1),
+})
+
+const locationSchema = z.object({
+  city: z.string().min(1),
+  venue: z.string().min(1),
+  address: addressSchema,
+})
+
+const eventSchema = z.object({
+  location: locationSchema,
+  time: z.string().regex(/^\d{2}:\d{2}$/),
+})
+
+const nachoWeddingSchema = z.object({
+  wife: personSchema,
+  husband: personSchema,
+  history: z.array(z.string().min(1)).min(1),
+  wedding: eventSchema.extend({
+    date: z.iso.date(),
+  }),
+  cocktail: eventSchema,
+  banquet: eventSchema,
+  party: eventSchema,
+  rsvp: z.object({
+    deadline: z.iso.date(),
+  }),
+  gifts: z.object({
+    bank_account: z.object({
+      iban: z.string().min(1),
+      bic: z.string().min(1),
+      bank_name: z.string().min(1),
+      account_holder: z.string().min(1),
+    }),
+  }),
+})
+
+type NachoWeddingSeed = z.infer<typeof nachoWeddingSchema>
+
+async function loadNachoWeddingSeed() {
+  const json = await readFile(new URL("../DATA/nacho.json", import.meta.url), "utf8")
+  return nachoWeddingSchema.parse(JSON.parse(json))
+}
+
+function formatAddress(location: NachoWeddingSeed["wedding"]["location"]) {
+  const { address } = location
+  return `${address.street}, ${address.number}, ${address.postal_code} ${address.city}, ${address.province}, ${address.country}`
+}
+
+function mapsUrl(location: NachoWeddingSeed["wedding"]["location"]) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `${location.venue}, ${formatAddress(location)}`,
+  )}`
+}
+
+function displayDate(date: string) {
+  return new Date(`${date}T12:00:00.000Z`).toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  })
+}
+
+function weddingDate(seed: NachoWeddingSeed) {
+  return new Date(`${seed.wedding.date}T${seed.wedding.time}:00.000+02:00`)
+}
 
 const demoAppUserId = "demo-app-user"
 const demoWeddingId = "demo-wedding"
@@ -97,67 +163,83 @@ const guests = [
   },
 ]
 
-const modules = [
-  {
-    id: "module-location",
-    type: "location",
-    title: "Lugar",
-    desc: "Mapa, horarios y detalles de llegada.",
-    enabled: true,
-    sortOrder: 1,
-  },
-  {
-    id: "module-timeline",
-    type: "timeline",
-    title: "Programa",
-    desc: "Ceremonia, cóctel, cena y fiesta.",
-    enabled: true,
-    sortOrder: 2,
-  },
-  {
-    id: "module-menu",
-    type: "menu",
-    title: "Menú",
-    desc: "Platos y opciones especiales.",
-    enabled: true,
-    sortOrder: 3,
-  },
-  {
-    id: "module-spotify",
-    type: "spotify",
-    title: "Lista de Spotify",
-    desc: "Canciones propuestas por los invitados.",
-    enabled: true,
-    sortOrder: 4,
-    config: JSON.stringify({ playlistUrl: "" }),
-  },
-  {
-    id: "module-gallery",
-    type: "gallery",
-    title: "Galería live",
-    desc: "Fotos compartidas durante la celebración.",
-    enabled: true,
-    sortOrder: 5,
-  },
-  {
-    id: "module-guestbook",
-    type: "guestbook",
-    title: "Firmas y felicitaciones",
-    desc: "Mensajes, dedicatorias y firmas digitales.",
-    enabled: true,
-    sortOrder: 6,
-  },
-  {
-    id: "module-gifts",
-    type: "gifts",
-    title: "Regalos",
-    desc: "Información útil para regalos y aportaciones.",
-    enabled: false,
-    sortOrder: 7,
-  },
-]
+function siteModules(seed: NachoWeddingSeed) {
+  return [
+    {
+      id: "module-location",
+      type: "location",
+      title: "Lugar",
+      desc: "Mapa, horarios y detalles de llegada.",
+      enabled: true,
+      sortOrder: 1,
+      config: JSON.stringify({
+        contacts: { wife: seed.wife, husband: seed.husband },
+        ceremony: seed.wedding,
+        cocktail: seed.cocktail,
+        banquet: seed.banquet,
+        party: seed.party,
+      }),
+    },
+    {
+      id: "module-timeline",
+      type: "timeline",
+      title: "Programa",
+      desc: "Ceremonia, cóctel, cena y fiesta.",
+      enabled: true,
+      sortOrder: 2,
+      config: JSON.stringify({
+        events: [seed.wedding, seed.cocktail, seed.banquet, seed.party],
+      }),
+    },
+    {
+      id: "module-menu",
+      type: "menu",
+      title: "Menú",
+      desc: "Platos y opciones especiales.",
+      enabled: true,
+      sortOrder: 3,
+      config: "{}",
+    },
+    {
+      id: "module-spotify",
+      type: "spotify",
+      title: "Lista de Spotify",
+      desc: "Canciones propuestas por los invitados.",
+      enabled: true,
+      sortOrder: 4,
+      config: JSON.stringify({ playlistUrl: "" }),
+    },
+    {
+      id: "module-gallery",
+      type: "gallery",
+      title: "Galería live",
+      desc: "Fotos compartidas durante la celebración.",
+      enabled: true,
+      sortOrder: 5,
+      config: "{}",
+    },
+    {
+      id: "module-guestbook",
+      type: "guestbook",
+      title: "Firmas y felicitaciones",
+      desc: "Mensajes, dedicatorias y firmas digitales.",
+      enabled: true,
+      sortOrder: 6,
+      config: "{}",
+    },
+    {
+      id: "module-gifts",
+      type: "gifts",
+      title: "Regalos",
+      desc: "Información útil para regalos y aportaciones.",
+      enabled: true,
+      sortOrder: 7,
+      config: JSON.stringify(seed.gifts),
+    },
+  ]
+}
 
-async function seedRoles() {
+async function seedRoles(prisma: PrismaClient) {
   for (const role of roles) {
     await prisma.weddingMemberRole.upsert({
       where: { id: role.id },
@@ -171,19 +253,21 @@ async function seedRoles() {
   }
 }
 
-async function seedRestaurantMenu() {
+async function seedRestaurantMenu(prisma: PrismaClient, seed: NachoWeddingSeed) {
   await prisma.restaurant.upsert({
     where: { id: demoRestaurantId },
     update: {
-      name: "Impressive Playa Granada",
-      city: "Motril (Granada)",
-      address: "C. Rector Pascual Rivas Carrera, 1, 18613 Playa Granada, Motril",
+      name: seed.banquet.location.venue,
+      city: seed.banquet.location.city,
+      address: formatAddress(seed.banquet.location),
+      mapsUrl: mapsUrl(seed.banquet.location),
     },
     create: {
       id: demoRestaurantId,
-      name: "Impressive Playa Granada",
-      city: "Motril (Granada)",
-      address: "C. Rector Pascual Rivas Carrera, 1, 18613 Playa Granada, Motril",
+      name: seed.banquet.location.venue,
+      city: seed.banquet.location.city,
+      address: formatAddress(seed.banquet.location),
+      mapsUrl: mapsUrl(seed.banquet.location),
     },
   })
 
@@ -252,20 +336,74 @@ async function seedRestaurantMenu() {
   }
 }
 
-async function main() {
-  await seedRoles()
-  await seedRestaurantMenu()
+function invitationContent(seed: NachoWeddingSeed) {
+  const date = displayDate(seed.wedding.date)
+  const account = seed.gifts.bank_account
+
+  return {
+    ...DEFAULT_INVITATION_CONTENT,
+    story: seed.history,
+    schedule: [
+      {
+        id: "ceremony",
+        title: "Ceremonia",
+        date,
+        time: seed.wedding.time,
+        location: seed.wedding.location.venue,
+        mapsUrl: mapsUrl(seed.wedding.location),
+        description: "Ceremonia religiosa y comienzo de nuestra celebración.",
+      },
+      {
+        id: "cocktail",
+        title: "Cóctel",
+        date,
+        time: seed.cocktail.time,
+        location: seed.cocktail.location.venue,
+        mapsUrl: mapsUrl(seed.cocktail.location),
+        description: "Recepción y cóctel de bienvenida.",
+      },
+      {
+        id: "banquet",
+        title: "Banquete",
+        date,
+        time: seed.banquet.time,
+        location: seed.banquet.location.venue,
+        mapsUrl: mapsUrl(seed.banquet.location),
+        description: "Cena, brindis y celebración junto a nuestros invitados.",
+      },
+      {
+        id: "party",
+        title: "Fiesta",
+        date,
+        time: seed.party.time,
+        location: seed.party.location.venue,
+        mapsUrl: mapsUrl(seed.party.location),
+        description: "Baile y fiesta para terminar la noche.",
+      },
+    ],
+    venueNote: `La ceremonia será a las ${seed.wedding.time}. Después continuaremos la celebración en ${seed.banquet.location.venue}.`,
+    registryIntro: "Vuestra presencia es nuestro mejor regalo.",
+    registryNote: `${account.bank_name} · BIC ${account.bic} · Titular: ${account.account_holder}`,
+    registry: [{ id: "IBAN", title: account.iban, url: "" }],
+    contactEmail: seed.husband.email,
+    rsvpSubtitle: `Confirma tu asistencia antes del ${displayDate(seed.rsvp.deadline)} para ayudarnos a organizarlo todo.`,
+  }
+}
+
+async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
+  await seedRoles(prisma)
+  await seedRestaurantMenu(prisma, seed)
 
   const appUser = await prisma.appUser.upsert({
     where: { email: "demo@nuptia.local" },
     update: {
-      name: "Maria e Ignacio",
+      name: seed.husband.name,
       imageUrl: null,
     },
     create: {
       id: demoAppUserId,
       email: "demo@nuptia.local",
-      name: "Maria e Ignacio",
+      name: seed.husband.name,
       imageUrl: null,
     },
   })
@@ -294,8 +432,9 @@ async function main() {
     where: { slug: "demo" },
     update: {
       ownerId: appUser.id,
-      date: new Date("2026-09-12T17:00:00.000Z"),
+      date: weddingDate(seed),
       status: "published",
+      partnerInviteEmail: seed.wife.email,
       restaurantId: demoRestaurantId,
       menuId: demoMenuId,
     },
@@ -303,8 +442,9 @@ async function main() {
       id: demoWeddingId,
       ownerId: appUser.id,
       slug: "demo",
-      date: new Date("2026-09-12T17:00:00.000Z"),
+      date: weddingDate(seed),
       status: "published",
+      partnerInviteEmail: seed.wife.email,
       restaurantId: demoRestaurantId,
       menuId: demoMenuId,
     },
@@ -313,16 +453,18 @@ async function main() {
   await prisma.weddingCeremonyLocation.upsert({
     where: { weddingId: wedding.id },
     update: {
-      name: "Santuario de Nuestra Señora de la Virgen de la Cabeza",
-      city: "Motril (Granada)",
-      address: "Av. Ntra. Sra. de la Cabeza, 13, 18600 Motril",
+      name: seed.wedding.location.venue,
+      city: seed.wedding.location.city,
+      address: formatAddress(seed.wedding.location),
+      mapsUrl: mapsUrl(seed.wedding.location),
     },
     create: {
       id: "demo-ceremony-location",
       weddingId: wedding.id,
-      name: "Santuario de Nuestra Señora de la Virgen de la Cabeza",
-      city: "Motril (Granada)",
-      address: "Av. Ntra. Sra. de la Cabeza, 13, 18600 Motril",
+      name: seed.wedding.location.venue,
+      city: seed.wedding.location.city,
+      address: formatAddress(seed.wedding.location),
+      mapsUrl: mapsUrl(seed.wedding.location),
     },
   })
 
@@ -338,14 +480,14 @@ async function main() {
       id: "demo-wedding-bride-member",
       appUserId: null,
       roleId: "role-bride",
-      displayName: "Maria",
+      displayName: seed.wife.name,
       sortOrder: 1,
     },
     {
       id: "demo-wedding-groom-member",
       appUserId: null,
       roleId: "role-groom",
-      displayName: "Ignacio",
+      displayName: seed.husband.name,
       sortOrder: 2,
     },
   ]) {
@@ -371,7 +513,7 @@ async function main() {
       templateId: "bouquet",
       titleFont: "serif",
       palette: "sage",
-      content: JSON.stringify(DEFAULT_INVITATION_CONTENT),
+      content: JSON.stringify(invitationContent(seed)),
       openingEffect: "envelope",
       musicEnabled: false,
     },
@@ -381,7 +523,7 @@ async function main() {
       templateId: "bouquet",
       titleFont: "serif",
       palette: "sage",
-      content: JSON.stringify(DEFAULT_INVITATION_CONTENT),
+      content: JSON.stringify(invitationContent(seed)),
       openingEffect: "envelope",
       musicEnabled: false,
     },
@@ -464,7 +606,7 @@ async function main() {
     }
   }
 
-  for (const siteModule of modules) {
+  for (const siteModule of siteModules(seed)) {
     await prisma.weddingSiteModule.upsert({
       where: {
         weddingId_type: {
@@ -477,23 +619,37 @@ async function main() {
         desc: siteModule.desc,
         enabled: siteModule.enabled,
         sortOrder: siteModule.sortOrder,
-        config: "config" in siteModule ? siteModule.config : "{}",
+        config: siteModule.config,
       },
       create: {
         ...siteModule,
         weddingId: wedding.id,
-        config: "config" in siteModule ? siteModule.config : "{}",
       },
     })
   }
 }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect()
+async function run() {
+  const platform = await getPlatformProxy<Pick<CloudflareEnv, "DB">>({
+    configPath: "wrangler.jsonc",
+    persist: true,
+    remoteBindings: false,
   })
-  .catch(async (error) => {
-    console.error(error)
-    await prisma.$disconnect()
-    process.exit(1)
+  const prisma = new PrismaClient({
+    adapter: new PrismaD1(platform.env.DB),
   })
+
+  try {
+    const seed = await loadNachoWeddingSeed()
+    await main(prisma, seed)
+    console.info(`Seed D1 local aplicado: ${seed.husband.name} & ${seed.wife.name}`)
+  } finally {
+    await prisma.$disconnect()
+    await platform.dispose()
+  }
+}
+
+run().catch((error: unknown) => {
+  console.error(error)
+  process.exitCode = 1
+})

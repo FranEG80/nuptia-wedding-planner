@@ -9,14 +9,14 @@ const envSchema = z.object({
     .string()
     .default("false")
     .transform((value) => value === "true"),
-  DATABASE_URL: z.string(),
   BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
   BETTER_AUTH_SECRET: z.string().min(32).default("local-development-secret-change-before-production"),
   BETTER_AUTH_DATABASE_PROVIDER: z.enum(["sqlite", "postgresql"]).default("sqlite"),
   NEXT_PUBLIC_SUPABASE_URL: z.string().optional().default(""),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional().default(""),
   SUPABASE_SECRET_KEY: z.string().optional().default(""),
-  STORAGE_PROVIDER: z.enum(["local", "supabase"]).default("local"),
+  STORAGE_PROVIDER: z.enum(["local", "supabase", "r2"]).default("r2"),
+  R2_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(10 * 1024 * 1024),
   LOCAL_UPLOAD_DIR: z.string().default("./storage/uploads"),
   SUPABASE_STORAGE_BUCKET: z.string().default("wedding-media"),
   RESEND_API_KEY: z.string().optional().default(""),

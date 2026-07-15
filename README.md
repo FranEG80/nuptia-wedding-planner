@@ -100,10 +100,10 @@ Rutas principales de la app (`src/app/`):
 ## 🛠️ Stack tecnológico
 
 - **[Next.js 16](https://nextjs.org)** (App Router) + **React 19**
-- **[Prisma 7](https://www.prisma.io)** con adaptadores para SQLite (desarrollo) y MariaDB (producción)
+- **[Prisma 7](https://www.prisma.io)** con Cloudflare D1
 - **[tRPC](https://trpc.io)** + **TanStack Query** para la capa de datos tipada
 - **[Better Auth](https://www.better-auth.com)** para autenticación
-- **[Supabase](https://supabase.com)** para almacenamiento de media
+- **[Cloudflare R2](https://developers.cloudflare.com/r2/)** para almacenamiento de fotos
 - **[Tailwind CSS v4](https://tailwindcss.com)** + **[Base UI](https://base-ui.com)** para el sistema de diseño
 - **TypeScript** en modo estricto
 
@@ -113,6 +113,8 @@ Este proyecto usa `pnpm` como gestor de paquetes.
 
 ```bash
 pnpm install
+pnpm db:migrate
+pnpm db:seed
 pnpm dev
 ```
 
@@ -124,15 +126,29 @@ Abre [http://localhost:3000](http://localhost:3000) para ver la demo pública, y
 | --- | --- |
 | `pnpm dev` | Servidor de desarrollo |
 | `pnpm build` | Build de producción |
+| `pnpm preview` | Build y vista previa en el runtime local de Cloudflare Workers |
+| `pnpm deploy` | Build y despliegue en Cloudflare Workers |
+| `pnpm cf:typegen` | Regenera los tipos de los bindings de Cloudflare |
 | `pnpm start` | Sirve el build de producción |
 | `pnpm lint` | ESLint (reglas de Next.js + TypeScript) |
 | `pnpm typecheck` | Generación de tipos de Next.js + `tsc --noEmit` |
 | `pnpm db:generate` | Genera el cliente de Prisma |
-| `pnpm db:migrate:sqlite` | Migraciones locales sobre SQLite |
-| `pnpm db:migrate` | Migraciones con Prisma (`prisma migrate dev`) |
-| `pnpm db:seed` | Siembra la base de datos con datos de ejemplo |
+| `pnpm db:migrate` | Aplica las migraciones a D1 local |
+| `pnpm db:migrate:remote` | Aplica las migraciones a D1 remoto |
+| `pnpm db:seed` | Siembra D1 local con la boda definida en `DATA/nacho.json` |
 | `pnpm db:studio` | Abre Prisma Studio |
 | `pnpm db:diagram` | Regenera el diagrama entidad-relación ([diagram.md](diagram.md)) |
+
+### Cloudflare D1 y R2
+
+La aplicación usa los bindings `DB` (D1) y `MEDIA_BUCKET` (R2), definidos en `wrangler.jsonc`. Antes del primer despliegue:
+
+1. Crea la base D1 `nuptia-db` y el bucket R2 `nuptia-media` en Cloudflare.
+2. Sustituye `<CLOUDFLARE_D1_DATABASE_ID>` por el identificador real de D1.
+3. Ejecuta `pnpm cf:typegen` y `pnpm db:migrate:remote`.
+4. Configura los secretos de Better Auth y el resto de variables del `.env.example` en Cloudflare.
+
+Las fotos se suben como `multipart/form-data` al endpoint autenticado `POST /api/media/upload`, usando el campo `file` y, opcionalmente, `alt`. Se guardan en R2 y se sirven desde `/api/media/files/...`.
 
 ## 📄 Licencia
 

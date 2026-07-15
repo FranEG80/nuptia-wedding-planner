@@ -1,6 +1,6 @@
 import "server-only"
 
-import { prisma } from "@/core/db/prisma"
+import { getPrisma } from "@/core/db/prisma"
 import type { AppUser, AuthSession } from "@/core/auth/types"
 
 type AppUserRecord = {
@@ -29,6 +29,7 @@ function toAppUser(record: AppUserRecord): AppUser {
 export async function resolveAppUserForAuthSession(
   session: AuthSession,
 ): Promise<AppUser> {
+  const prisma = await getPrisma()
   const provider = session.provider
   const providerUserId = session.user.id
   const email = normalizedEmail(session)

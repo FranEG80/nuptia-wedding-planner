@@ -24,7 +24,11 @@ function assetTypeFromDb(value: string): MediaAsset["type"] {
 }
 
 function providerFromDb(value: string): MediaAsset["provider"] {
-  return value === "supabase" ? "supabase" : "local"
+  if (value === "supabase" || value === "r2") {
+    return value
+  }
+
+  return "local"
 }
 
 function toMediaAsset(record: PrismaMediaAssetRecord): MediaAsset {

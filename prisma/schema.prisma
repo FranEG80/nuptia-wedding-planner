@@ -1,10 +1,17 @@
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
+  runtime  = "cloudflare"
+}
+
+generator seedClient {
+  provider = "prisma-client"
+  output   = "../generated/prisma-seed"
+  runtime  = "nodejs"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
 }
 
 model User {
@@ -70,16 +77,16 @@ model Verification {
 }
 
 model AppUser {
-  id             String         @id @default(cuid())
-  email          String         @unique
-  name           String
-  imageUrl       String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  identities     AuthIdentity[]
-  memberships    WeddingMember[]
-  guestProfiles  Guest[]
-  ownedWeddings  Wedding[]      @relation("WeddingOwner")
+  id            String          @id @default(cuid())
+  email         String          @unique
+  name          String
+  imageUrl      String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  identities    AuthIdentity[]
+  memberships   WeddingMember[]
+  guestProfiles Guest[]
+  ownedWeddings Wedding[]       @relation("WeddingOwner")
 
   @@map("app_users")
 }
@@ -100,28 +107,28 @@ model AuthIdentity {
 }
 
 model Wedding {
-  id               String                   @id @default(cuid())
-  ownerId          String
-  slug             String                   @unique
-  date             DateTime
-  status           String                   @default("draft")
-  partnerInviteCode  String?                @unique
+  id                 String                   @id @default(cuid())
+  ownerId            String
+  slug               String                   @unique
+  date               DateTime
+  status             String                   @default("draft")
+  partnerInviteCode  String?                  @unique
   partnerInviteEmail String?
-  restaurantId     String?
-  menuId           String?
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
-  owner            AppUser                  @relation("WeddingOwner", fields: [ownerId], references: [id])
-  restaurant       Restaurant?              @relation(fields: [restaurantId], references: [id])
-  menu             RestaurantMenu?          @relation(fields: [menuId], references: [id])
-  ceremonyLocation WeddingCeremonyLocation?
-  members          WeddingMember[]
-  guestParties     GuestParty[]
-  guests           Guest[]
-  invitationDesign InvitationDesign?
-  siteModules      WeddingSiteModule[]
-  mediaAssets      MediaAsset[]
-  tables           WeddingTable[]
+  restaurantId       String?
+  menuId             String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  owner              AppUser                  @relation("WeddingOwner", fields: [ownerId], references: [id])
+  restaurant         Restaurant?              @relation(fields: [restaurantId], references: [id])
+  menu               RestaurantMenu?          @relation(fields: [menuId], references: [id])
+  ceremonyLocation   WeddingCeremonyLocation?
+  members            WeddingMember[]
+  guestParties       GuestParty[]
+  guests             Guest[]
+  invitationDesign   InvitationDesign?
+  siteModules        WeddingSiteModule[]
+  mediaAssets        MediaAsset[]
+  tables             WeddingTable[]
 
   @@index([ownerId])
   @@index([restaurantId])
@@ -154,17 +161,17 @@ model WeddingMemberRole {
 }
 
 model WeddingMember {
-  id              String           @id @default(cuid())
-  weddingId       String
-  appUserId       String?
-  roleId          String
-  displayName     String?
-  sortOrder       Int              @default(0)
-  createdAt       DateTime         @default(now())
-  wedding         Wedding          @relation(fields: [weddingId], references: [id], onDelete: Cascade)
-  appUser         AppUser?         @relation(fields: [appUserId], references: [id], onDelete: Cascade)
-  role            WeddingMemberRole @relation(fields: [roleId], references: [id])
-  invitedGuests   GuestInvitedBy[]
+  id            String            @id @default(cuid())
+  weddingId     String
+  appUserId     String?
+  roleId        String
+  displayName   String?
+  sortOrder     Int               @default(0)
+  createdAt     DateTime          @default(now())
+  wedding       Wedding           @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  appUser       AppUser?          @relation(fields: [appUserId], references: [id], onDelete: Cascade)
+  role          WeddingMemberRole @relation(fields: [roleId], references: [id])
+  invitedGuests GuestInvitedBy[]
 
   @@unique([weddingId, appUserId])
   @@index([weddingId])
@@ -189,22 +196,22 @@ model GuestParty {
 }
 
 model Guest {
-  id           String               @id @default(cuid())
-  partyId      String
-  weddingId    String
-  appUserId    String?
-  role         String               @default("primary")
-  name         String
-  email        String?
-  phone        String?
-  rsvpStatus   String               @default("no_response")
-  notes        String?
-  uploadToken  String?              @unique
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  party        GuestParty           @relation(fields: [partyId], references: [id], onDelete: Cascade)
-  wedding      Wedding              @relation(fields: [weddingId], references: [id], onDelete: Cascade)
-  appUser      AppUser?             @relation(fields: [appUserId], references: [id], onDelete: SetNull)
+  id             String               @id @default(cuid())
+  partyId        String
+  weddingId      String
+  appUserId      String?
+  role           String               @default("primary")
+  name           String
+  email          String?
+  phone          String?
+  rsvpStatus     String               @default("no_response")
+  notes          String?
+  uploadToken    String?              @unique
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  party          GuestParty           @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  wedding        Wedding              @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  appUser        AppUser?             @relation(fields: [appUserId], references: [id], onDelete: SetNull)
   invitedBy      GuestInvitedBy[]
   menuSelections GuestMenuSelection[]
   messages       GuestMessage[]
@@ -235,7 +242,7 @@ model InvitationDesign {
   templateId    String      @default("bouquet")
   titleFont     String      @default("serif")
   palette       String      @default("sage")
-  content       String      @db.Text @default("{}")
+  content       String      @default("{}")
   heroAssetId   String?
   musicAssetId  String?
   musicEnabled  Boolean     @default(false)
@@ -320,16 +327,16 @@ model GuestPhoto {
 // ---------------------------------------------------------------------------
 
 model Restaurant {
-  id          String           @id @default(cuid())
-  name        String
-  address     String?
-  city        String
-  mapsUrl     String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  weddings    Wedding[]
-  menus       RestaurantMenu[]
-  dishes      Dish[]
+  id        String           @id @default(cuid())
+  name      String
+  address   String?
+  city      String
+  mapsUrl   String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  weddings  Wedding[]
+  menus     RestaurantMenu[]
+  dishes    Dish[]
 
   @@map("restaurants")
 }
