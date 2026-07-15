@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import {
+  Allura,
   Bodoni_Moda,
   Cinzel,
   Cormorant_Garamond,
@@ -19,6 +20,12 @@ import {
   Work_Sans,
 } from 'next/font/google'
 import './globals.css'
+
+const allura = Allura({
+  variable: '--font-allura',
+  subsets: ['latin'],
+  weight: '400',
+})
 
 const playfair = Playfair_Display({
   variable: '--font-playfair',
@@ -112,7 +119,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`light ${playfair.variable} ${inter.variable} ${cormorant.variable} ${lato.variable} ${libreBaskerville.variable} ${manrope.variable} ${marcellus.variable} ${mulish.variable} ${fraunces.variable} ${sourceSans.variable} ${cinzel.variable} ${montserrat.variable} ${bodoni.variable} ${nunito.variable} ${prata.variable} ${workSans.variable} ${geistMono.variable} bg-background`}
+      className={`light ${allura.variable} ${playfair.variable} ${inter.variable} ${cormorant.variable} ${lato.variable} ${libreBaskerville.variable} ${manrope.variable} ${marcellus.variable} ${mulish.variable} ${fraunces.variable} ${sourceSans.variable} ${cinzel.variable} ${montserrat.variable} ${bodoni.variable} ${nunito.variable} ${prata.variable} ${workSans.variable} ${geistMono.variable} bg-background`}
     >
       <body className="font-sans antialiased">
         {children}

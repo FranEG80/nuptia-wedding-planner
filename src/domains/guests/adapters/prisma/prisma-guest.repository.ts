@@ -1,9 +1,12 @@
 import type { Prisma, PrismaClient } from "@generated/prisma/client"
 import type {
   CreateGuestInput,
+  CreateInvitationPartyInput,
   GuestInviteParty,
   GuestRepository,
+  InvitationPartyGuestInput,
   RespondToPartyGuestInput,
+  UpdateInvitationPartyInput,
   UpdateGuestInput,
 } from "@/domains/guests/domain/ports/guest.repository"
 import type {
@@ -12,6 +15,7 @@ import type {
   GuestRole,
   GuestRsvpStatus,
 } from "@/domains/guests/domain/guest"
+import { assertExactPartyResponses } from "@/domains/guests/domain/invitation-party-rules"
 
 const guestInclude = {
   party: true,
@@ -30,11 +34,22 @@ const guestInclude = {
     },
   },
   menuSelections: true,
-}
+} as const satisfies Prisma.GuestInclude
+
+const partyInclude = {
+  guests: {
+    include: guestInclude,
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  },
+} as const satisfies Prisma.GuestPartyInclude
 
 type PrismaGuestRecord = NonNullable<
   Awaited<ReturnType<PrismaGuestRepository["findRecordById"]>>
 >
+
+type PrismaGuestPartyRecord = Prisma.GuestPartyGetPayload<{
+  include: typeof partyInclude
+}>
 
 const inviteFromDb: Record<string, GuestInviteStatus> = {
   sent: "Enviada",
@@ -103,8 +118,51 @@ function toGuest(record: PrismaGuestRecord): Guest {
   }
 }
 
+function toGuestParty(record: PrismaGuestPartyRecord): GuestInviteParty {
+  return {
+    id: record.id,
+    weddingId: record.weddingId,
+    inviteToken: record.inviteToken,
+    groupName: record.groupName ?? "",
+    invite: inviteFromDb[record.inviteStatus] ?? "Pendiente",
+    guests: record.guests.map(toGuest),
+  }
+}
+
+function normalizeContact(value: string | null | undefined) {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
+}
+
+function assertValidPartyMembers(guests: InvitationPartyGuestInput[]) {
+  if (guests.length < 1 || guests.length > 2) {
+    throw new Error("Una invitación debe contener uno o dos invitados")
+  }
+
+  const recipients = guests.filter((guest) => guest.isRecipient)
+
+  if (recipients.length !== 1) {
+    throw new Error("Una invitación debe tener exactamente un destinatario")
+  }
+
+  const recipient = recipients[0]
+
+  if (!normalizeContact(recipient.email) && !normalizeContact(recipient.phone)) {
+    throw new Error("El destinatario debe tener teléfono o email")
+  }
+
+  const ids = guests.flatMap((guest) => (guest.id ? [guest.id] : []))
+
+  if (new Set(ids).size !== ids.length) {
+    throw new Error("Una invitación no puede repetir al mismo invitado")
+  }
+}
+
 export class PrismaGuestRepository implements GuestRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly d1: D1Database,
+  ) {}
 
   async findRecordById(id: string) {
     return this.prisma.guest.findUnique({
@@ -123,30 +181,31 @@ export class PrismaGuestRepository implements GuestRepository {
     return guests.map(toGuest)
   }
 
+  async listPartiesByWeddingId(
+    weddingId: string,
+  ): Promise<GuestInviteParty[]> {
+    const parties = await this.prisma.guestParty.findMany({
+      where: { weddingId },
+      include: partyInclude,
+      orderBy: [{ groupName: "asc" }, { createdAt: "asc" }],
+    })
+
+    return parties.map(toGuestParty)
+  }
+
   async findPartyByInviteToken(
     inviteToken: string,
   ): Promise<GuestInviteParty | null> {
     const party = await this.prisma.guestParty.findUnique({
       where: { inviteToken },
-      include: {
-        guests: {
-          include: guestInclude,
-          orderBy: [{ role: "asc" }, { name: "asc" }],
-        },
-      },
+      include: partyInclude,
     })
 
     if (!party) {
       return null
     }
 
-    return {
-      id: party.id,
-      weddingId: party.weddingId,
-      inviteToken: party.inviteToken,
-      groupName: party.groupName ?? "",
-      guests: party.guests.map(toGuest),
-    }
+    return toGuestParty(party)
   }
 
   async findById(id: string): Promise<Guest | null> {
@@ -226,6 +285,216 @@ export class PrismaGuestRepository implements GuestRepository {
     return guest ? toGuest(guest) : null
   }
 
+  async createInvitationParty(
+    input: CreateInvitationPartyInput,
+  ): Promise<GuestInviteParty> {
+    assertValidPartyMembers(input.guests)
+
+    if (input.guests.some((guest) => guest.id)) {
+      throw new Error("Los invitados nuevos no pueden tener un ID previo")
+    }
+
+    const partyId = crypto.randomUUID()
+    const inviteToken = crypto.randomUUID()
+    const now = new Date().toISOString()
+    const statements: D1PreparedStatement[] = [
+      this.d1
+        .prepare(
+          `INSERT INTO guest_parties
+            (id, weddingId, inviteToken, groupName, inviteStatus, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
+        )
+        .bind(
+          partyId,
+          input.weddingId,
+          inviteToken,
+          input.groupName?.trim() || null,
+          now,
+          now,
+        ),
+    ]
+
+    for (const [index, guest] of input.guests.entries()) {
+      const createdAt = new Date(Date.now() + index).toISOString()
+
+      statements.push(
+        this.d1
+          .prepare(
+            `INSERT INTO guests
+              (id, partyId, weddingId, role, name, email, phone, rsvpStatus,
+               notes, uploadToken, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'no_response', '', ?, ?, ?)`,
+          )
+          .bind(
+            crypto.randomUUID(),
+            partyId,
+            input.weddingId,
+            guest.isRecipient ? "primary" : "companion",
+            guest.name.trim(),
+            normalizeContact(guest.email),
+            normalizeContact(guest.phone),
+            crypto.randomUUID(),
+            createdAt,
+            now,
+          ),
+      )
+    }
+
+    await this.d1.batch(statements)
+
+    const party = await this.prisma.guestParty.findUnique({
+      where: { inviteToken },
+      include: partyInclude,
+    })
+
+    if (!party) {
+      throw new Error("No se pudo recuperar la invitación recién creada")
+    }
+
+    return toGuestParty(party)
+  }
+
+  async updateInvitationParty(
+    partyId: string,
+    input: UpdateInvitationPartyInput,
+  ): Promise<GuestInviteParty | null> {
+    assertValidPartyMembers(input.guests)
+
+    const current = await this.prisma.guestParty.findFirst({
+      where: { id: partyId, weddingId: input.weddingId },
+      include: partyInclude,
+    })
+
+    if (!current) {
+      return null
+    }
+
+    const currentGuestIds = new Set(current.guests.map((guest) => guest.id))
+    const submittedIds = new Set(
+      input.guests.flatMap((guest) => (guest.id ? [guest.id] : [])),
+    )
+
+    if (
+      input.guests.some(
+        (guest) => guest.id && !currentGuestIds.has(guest.id),
+      )
+    ) {
+      throw new Error("Uno de los invitados no pertenece a esta invitación")
+    }
+
+    const compositionLocked =
+      current.inviteStatus === "sent" ||
+      current.guests.some((guest) =>
+        ["confirmed", "declined"].includes(guest.rsvpStatus),
+      )
+
+    if (
+      compositionLocked &&
+      (submittedIds.size !== currentGuestIds.size ||
+        input.guests.some((guest) => !guest.id) ||
+        [...currentGuestIds].some((id) => !submittedIds.has(id)))
+    ) {
+      throw new Error(
+        "No se puede cambiar la composición de una invitación enviada o respondida",
+      )
+    }
+
+    const now = new Date().toISOString()
+    const statements: D1PreparedStatement[] = [
+      this.d1
+        .prepare(
+          `UPDATE guest_parties
+           SET groupName = ?, updatedAt = ?
+           WHERE id = ? AND weddingId = ?`,
+        )
+        .bind(
+          input.groupName?.trim() || null,
+          now,
+          partyId,
+          input.weddingId,
+        ),
+    ]
+
+    for (const guest of current.guests) {
+      if (!submittedIds.has(guest.id)) {
+        statements.push(
+          this.d1
+            .prepare(
+              "DELETE FROM guests WHERE id = ? AND partyId = ? AND weddingId = ?",
+            )
+            .bind(guest.id, partyId, input.weddingId),
+        )
+      }
+    }
+
+    // Demote first so changing the recipient cannot transiently violate the
+    // partial unique index that allows only one primary per invitation.
+    statements.push(
+      this.d1
+        .prepare(
+          "UPDATE guests SET role = 'companion', updatedAt = ? WHERE partyId = ?",
+        )
+        .bind(now, partyId),
+    )
+
+    for (const guest of input.guests) {
+      const role = guest.isRecipient ? "primary" : "companion"
+
+      if (guest.id) {
+        statements.push(
+          this.d1
+            .prepare(
+              `UPDATE guests
+               SET role = ?, name = ?, email = ?, phone = ?, updatedAt = ?
+               WHERE id = ? AND partyId = ? AND weddingId = ?`,
+            )
+            .bind(
+              role,
+              guest.name.trim(),
+              normalizeContact(guest.email),
+              normalizeContact(guest.phone),
+              now,
+              guest.id,
+              partyId,
+              input.weddingId,
+            ),
+        )
+        continue
+      }
+
+      statements.push(
+        this.d1
+          .prepare(
+            `INSERT INTO guests
+              (id, partyId, weddingId, role, name, email, phone, rsvpStatus,
+               notes, uploadToken, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'no_response', '', ?, ?, ?)`,
+          )
+          .bind(
+            crypto.randomUUID(),
+            partyId,
+            input.weddingId,
+            role,
+            guest.name.trim(),
+            normalizeContact(guest.email),
+            normalizeContact(guest.phone),
+            crypto.randomUUID(),
+            now,
+            now,
+          ),
+      )
+    }
+
+    await this.d1.batch(statements)
+
+    const updated = await this.prisma.guestParty.findFirst({
+      where: { id: partyId, weddingId: input.weddingId },
+      include: partyInclude,
+    })
+
+    return updated ? toGuestParty(updated) : null
+  }
+
   async markPartiesInvited(
     weddingId: string,
     partyIds: string[],
@@ -275,7 +544,11 @@ export class PrismaGuestRepository implements GuestRepository {
           select: {
             id: true,
             role: true,
+            email: true,
+            phone: true,
+            notes: true,
           },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         },
       },
     })
@@ -284,149 +557,157 @@ export class PrismaGuestRepository implements GuestRepository {
       return null
     }
 
-    const partyGuestIds = new Set(party.guests.map((guest) => guest.id))
-    const submittedExistingIds = new Set(
-      input.guests
-        .map((guest) => guest.id)
-        .filter((id): id is string => Boolean(id)),
-    )
-    const confirmedGuests = input.guests.filter(
-      (guest) => guest.rsvp === "Confirmado",
-    )
-    const confirmedExistingIds = new Set(
-      confirmedGuests
-        .map((guest) => guest.id)
-        .filter((id): id is string => Boolean(id)),
-    )
-    let messageGuestId =
-      confirmedGuests.find((guest) => guest.id && partyGuestIds.has(guest.id))
-        ?.id ?? party.guests[0]?.id
+    if (party.guests.length < 1 || party.guests.length > 2) {
+      throw new Error("La invitación no contiene uno o dos invitados válidos")
+    }
 
-    await this.prisma.$transaction(async (tx) => {
-      for (const existingGuest of party.guests) {
-        if (
-          !submittedExistingIds.has(existingGuest.id) ||
-          !confirmedExistingIds.has(existingGuest.id)
-        ) {
-          await tx.guest.update({
-            where: { id: existingGuest.id },
-            data: { rsvpStatus: "declined" },
-          })
-        }
+    const submittedIds = input.guests.map((guest) => guest.guestId)
+    assertExactPartyResponses(
+      party.guests.map((guest) => guest.id),
+      submittedIds,
+    )
+
+    for (const response of input.guests) {
+      const menuDishIds = (response.menuSelections ?? []).map(
+        (selection) => selection.menuDishId,
+      )
+
+      if (new Set(menuDishIds).size !== menuDishIds.length) {
+        throw new Error("No se puede elegir dos opciones para el mismo plato")
       }
+    }
 
-      for (const guest of input.guests) {
-        if (guest.id && partyGuestIds.has(guest.id)) {
-          await tx.guest.update({
-            where: { id: guest.id },
-            data: {
-              name: guest.name,
-              email: guest.email ?? null,
-              phone: guest.phone ?? null,
-              notes: guest.notes ?? "",
-              rsvpStatus: rsvpToDb[guest.rsvp],
-            },
-          })
-
-          await replaceMenuSelections(tx, guest.id, guest.menuSelections)
-          continue
-        }
-
-        if (guest.rsvp !== "Confirmado") {
-          continue
-        }
-
-        const created = await tx.guest.create({
-          data: {
-            partyId: party.id,
-            weddingId: party.weddingId,
-            role: guest.role ?? "companion",
-            name: guest.name,
-            email: guest.email ?? null,
-            phone: guest.phone ?? null,
-            notes: guest.notes ?? "",
-            rsvpStatus: "confirmed",
+    const requestedSelections = input.guests
+      .filter((guest) => guest.attending)
+      .flatMap((guest) => guest.menuSelections ?? [])
+    const requestedMenuDishIds = [
+      ...new Set(requestedSelections.map((selection) => selection.menuDishId)),
+    ]
+    const menuDishes = requestedMenuDishIds.length
+      ? await this.prisma.restaurantMenuDish.findMany({
+          where: {
+            id: { in: requestedMenuDishIds },
+            menu: { weddings: { some: { id: party.weddingId } } },
           },
-          select: { id: true },
+          select: {
+            id: true,
+            dish: { select: { options: { select: { id: true } } } },
+          },
         })
+      : []
+    const validMenuPairs = new Set(
+      menuDishes.flatMap((menuDish) =>
+        menuDish.dish.options.map(
+          (option) => `${menuDish.id}:${option.id}`,
+        ),
+      ),
+    )
 
-        messageGuestId =
-          messageGuestId && messageGuestId !== party.guests[0]?.id
-            ? messageGuestId
-            : created.id
+    if (
+      requestedSelections.some(
+        (selection) =>
+          !validMenuPairs.has(
+            `${selection.menuDishId}:${selection.dishOptionId}`,
+          ),
+      )
+    ) {
+      throw new Error("La selección de menú no pertenece a esta boda")
+    }
 
-        await replaceMenuSelections(tx, created.id, guest.menuSelections)
+    const responsesByGuestId = new Map(
+      input.guests.map((guest) => [guest.guestId, guest]),
+    )
+    const now = new Date().toISOString()
+    const statements: D1PreparedStatement[] = []
+
+    for (const guest of party.guests) {
+      const response = responsesByGuestId.get(guest.id)
+
+      if (!response) {
+        throw new Error("Falta la respuesta de uno de los invitados")
       }
 
-      const message = input.message?.trim()
+      const notes = response.attending
+        ? response.notes === undefined
+          ? guest.notes ?? ""
+          : response.notes.trim()
+        : ""
 
-      if (message && messageGuestId) {
-        await tx.guestMessage.create({
-          data: {
-            weddingId: party.weddingId,
-            guestId: messageGuestId,
+      statements.push(
+        this.d1
+          .prepare(
+            `UPDATE guests
+             SET email = ?, phone = ?, notes = ?, rsvpStatus = ?, updatedAt = ?
+             WHERE id = ? AND partyId = ?`,
+          )
+          .bind(
+            response.email === undefined
+              ? guest.email
+              : normalizeContact(response.email),
+            response.phone === undefined
+              ? guest.phone
+              : normalizeContact(response.phone),
+            notes,
+            response.attending ? "confirmed" : "declined",
+            now,
+            guest.id,
+            party.id,
+          ),
+        this.d1
+          .prepare("DELETE FROM guest_menu_selections WHERE guestId = ?")
+          .bind(guest.id),
+      )
+
+      if (!response.attending) {
+        continue
+      }
+
+      for (const selection of response.menuSelections ?? []) {
+        statements.push(
+          this.d1
+            .prepare(
+              `INSERT INTO guest_menu_selections
+                (id, guestId, menuDishId, dishOptionId)
+               VALUES (?, ?, ?, ?)`,
+            )
+            .bind(
+              crypto.randomUUID(),
+              guest.id,
+              selection.menuDishId,
+              selection.dishOptionId,
+            ),
+        )
+      }
+    }
+
+    const recipient = party.guests.find((guest) => guest.role === "primary")
+
+    if (!recipient) {
+      throw new Error("La invitación no tiene un destinatario configurado")
+    }
+
+    const message = input.message?.trim()
+
+    if (message) {
+      statements.push(
+        this.d1
+          .prepare(
+            `INSERT INTO guest_messages
+              (id, weddingId, guestId, message, status, createdAt)
+             VALUES (?, ?, ?, ?, 'pending', ?)`,
+          )
+          .bind(
+            crypto.randomUUID(),
+            party.weddingId,
+            recipient.id,
             message,
-          },
-        })
-      }
-    })
+            now,
+          ),
+      )
+    }
+
+    await this.d1.batch(statements)
 
     return this.findPartyByInviteToken(inviteToken)
   }
-}
-
-async function replaceMenuSelections(
-  tx: Prisma.TransactionClient,
-  guestId: string,
-  selections: Array<{ menuDishId: string; dishOptionId: string }> | undefined,
-) {
-  await tx.guestMenuSelection.deleteMany({
-    where: { guestId },
-  })
-
-  const validSelections = (selections ?? []).filter(
-    (selection) => selection.menuDishId && selection.dishOptionId,
-  )
-
-  if (!validSelections.length) {
-    return
-  }
-
-  const menuDishes = await tx.restaurantMenuDish.findMany({
-    where: {
-      id: {
-        in: validSelections.map((selection) => selection.menuDishId),
-      },
-    },
-    select: {
-      id: true,
-      dish: {
-        select: {
-          options: {
-            select: { id: true },
-          },
-        },
-      },
-    },
-  })
-  const validPairs = new Set(
-    menuDishes.flatMap((menuDish) =>
-      menuDish.dish.options.map((option) => `${menuDish.id}:${option.id}`),
-    ),
-  )
-  const safeSelections = validSelections.filter((selection) =>
-    validPairs.has(`${selection.menuDishId}:${selection.dishOptionId}`),
-  )
-
-  if (!safeSelections.length) {
-    return
-  }
-
-  await tx.guestMenuSelection.createMany({
-    data: safeSelections.map((selection) => ({
-      guestId,
-      menuDishId: selection.menuDishId,
-      dishOptionId: selection.dishOptionId,
-    })),
-  })
 }

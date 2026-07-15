@@ -192,7 +192,7 @@ export function MarketingView({ guests }: { guests: GuestDto[] }) {
         ref={heroRef}
         className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden"
       >
-        <Image
+        <Image draggable="false"
           src="/images/couple-hero.png"
           alt="Pareja en su boda"
           fill
@@ -381,7 +381,7 @@ export function MarketingView({ guests }: { guests: GuestDto[] }) {
                 {/* Phone */}
                 <div className="relative rounded-[2.5rem] border-[10px] border-foreground/90 shadow-2xl overflow-hidden bg-foreground aspect-[9/19]">
                   {/* Background image */}
-                  <Image
+                  <Image draggable="false"
                     src="/images/invite-floral.png"
                     alt="Vista previa de invitación"
                     fill
@@ -440,7 +440,7 @@ export function MarketingView({ guests }: { guests: GuestDto[] }) {
                 </div>
                 {/* Site header */}
                 <div className="relative h-24 overflow-hidden">
-                  <Image src="/images/venue.png" alt="Lugar de la boda" fill className="object-cover" sizes="400px" />
+                  <Image draggable="false" src="/images/venue.png" alt="Lugar de la boda" fill className="object-cover" sizes="400px" />
                   <div className="absolute inset-0 bg-primary/60" />
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
                     <Heart className="h-3.5 w-3.5 fill-accent text-accent mb-1" />
@@ -671,7 +671,7 @@ export function MarketingView({ guests }: { guests: GuestDto[] }) {
           <div className="grid grid-cols-2 md:grid-cols-4 grid-rows-2 gap-3 h-[360px] md:h-[440px]">
             {/* Large left */}
             <div className="relative col-span-2 row-span-2 rounded-3xl overflow-hidden">
-              <Image src="/images/couple-hero.png" alt="Pareja" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="50vw" />
+              <Image draggable="false" src="/images/couple-hero.png" alt="Pareja" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="50vw" />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/50 to-transparent" />
               <div className="absolute bottom-4 left-4 text-primary-foreground">
                 <p className="font-serif text-lg leading-tight">Ana &amp; Carlos</p>
@@ -680,19 +680,19 @@ export function MarketingView({ guests }: { guests: GuestDto[] }) {
             </div>
             {/* Top right */}
             <div className="relative rounded-2xl overflow-hidden">
-              <Image src="/images/gallery-1.png" alt="Galería 1" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="25vw" />
+              <Image draggable="false" src="/images/gallery-1.png" alt="Galería 1" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="25vw" />
             </div>
             {/* Top far right */}
             <div className="relative rounded-2xl overflow-hidden">
-              <Image src="/images/invite-floral.png" alt="Floral" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="25vw" />
+              <Image draggable="false" src="/images/invite-floral.png" alt="Floral" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="25vw" />
             </div>
             {/* Bottom right */}
             <div className="relative rounded-2xl overflow-hidden">
-              <Image src="/images/gallery-2.png" alt="Galería 2" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="25vw" />
+              <Image draggable="false" src="/images/gallery-2.png" alt="Galería 2" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="25vw" />
             </div>
             {/* Bottom far right */}
             <div className="relative rounded-2xl overflow-hidden">
-              <Image src="/images/venue.png" alt="Lugar" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="25vw" />
+              <Image draggable="false" src="/images/venue.png" alt="Lugar" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="25vw" />
             </div>
           </div>
         </div>
@@ -719,7 +719,7 @@ export function MarketingView({ guests }: { guests: GuestDto[] }) {
             ].map(({ img, course, name, allergens }) => (
               <div key={name} className="group rounded-2xl border border-border bg-card shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                 <div className="relative h-40 overflow-hidden">
-                  <Image src={img} alt={name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(min-width: 640px) 33vw, 100vw" />
+                  <Image draggable="false" src={img} alt={name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(min-width: 640px) 33vw, 100vw" />
                 </div>
                 <div className="p-4">
                   <p className="text-[10px] uppercase tracking-widest text-accent mb-1">{course}</p>
@@ -853,7 +853,7 @@ export function MarketingView({ guests }: { guests: GuestDto[] }) {
 
       {/* ── CTA FINAL ────────────────────────────────────── */}
       <section className="relative overflow-hidden py-24">
-        <Image
+        <Image draggable="false"
           src="/images/couple-hero.png"
           alt=""
           fill

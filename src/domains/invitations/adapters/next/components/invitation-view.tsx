@@ -37,11 +37,13 @@ type PreviewMode = "desktop" | "mobile"
 
 export function InvitationView({
   initialDesign,
+  bespoke = false,
 }: {
   initialDesign: InvitationDesignDto
+  bespoke?: boolean
 }) {
   const [templateId, setTemplateId] = useState(() =>
-    normalizeInvitationTemplateId(initialDesign.templateId),
+    bespoke ? "maria-daniela" as const : normalizeInvitationTemplateId(initialDesign.templateId),
   )
   const [content, setContent] = useState<InvitationContentDto>(() => ({
     ...initialDesign.content,
@@ -177,9 +179,11 @@ export function InvitationView({
               <h1 className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Template de invitación
               </h1>
-              <h2 className="mt-1 font-serif text-3xl text-foreground">Bouquet</h2>
+              <h2 className="mt-1 font-serif text-3xl text-foreground">{bespoke ? "Demo" : "Invitación"}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Inspirado en una composición floral editorial, con textos y assets propios de Nuptia.
+                {bespoke
+                  ? "Diseño editorial creado a medida para vuestra boda, con acuarelas y RSVP por pasos."
+                  : "Elige una plantilla y personaliza su contenido para vuestra celebración."}
               </p>
             </div>
             <button
@@ -196,7 +200,7 @@ export function InvitationView({
 
         <Section icon={Layers} title="Selector de template">
           <div className="grid gap-3">
-            {INVITATION_TEMPLATES.map((template) => {
+            {INVITATION_TEMPLATES.filter((template) => !bespoke || template.id === "maria-daniela").map((template) => {
               const isActive = templateId === template.id
               return (
                 <button
@@ -300,7 +304,7 @@ export function InvitationView({
                 )}
               >
                 <span className="relative block aspect-[4/3] bg-secondary">
-                  <Image
+                  <Image draggable="false"
                     src={getInvitationPhotoAsset(asset.id).src}
                     alt=""
                     fill

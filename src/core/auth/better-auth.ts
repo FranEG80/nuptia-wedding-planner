@@ -3,6 +3,7 @@ import "server-only"
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { nextCookies } from "better-auth/next-js"
+import { admin } from "better-auth/plugins"
 import { cache } from "react"
 
 import { env } from "@/core/config/env"
@@ -17,7 +18,9 @@ export const getAuth = cache(async () =>
     }),
     emailAndPassword: {
       enabled: true,
+      disableSignUp: true,
+      minPasswordLength: 7,
     },
-    plugins: [nextCookies()],
+    plugins: [admin(), nextCookies()],
   }),
 )

@@ -10,6 +10,8 @@ Use pnpm for dependency management; `pnpm-lock.yaml` is the lockfile.
 
 - `pnpm dev`: start the Next.js development server.
 - `pnpm build`: create a production build.
+- `pnpm test`: run the invitation/domain unit tests.
+- `pnpm test:d1`: run the local D1 atomicity integration test after migration and seed.
 - `pnpm start`: run the built production app.
 - `pnpm lint`: run ESLint with Next.js core web vitals and TypeScript rules.
 
@@ -19,7 +21,7 @@ Write TypeScript and React using strict types from `tsconfig.json`. Prefer App R
 
 ## Testing Guidelines
 
-No test framework is configured yet. When adding tests, document the new command in `package.json` and this guide. Place tests near the feature they cover or in a clearly named test directory, and prefer names such as `*.test.ts` or `*.test.tsx`.
+Tests use Node's test runner through `tsx`. Unit tests live in `tests/`; D1 integration tests live in `tests/d1/` and expect the local database to be migrated and seeded. Prefer names such as `*.test.ts` or `*.test.tsx`.
 
 ## Commit & Pull Request Guidelines
 

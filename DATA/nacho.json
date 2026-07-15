@@ -22,7 +22,7 @@
         "Ignacio & María Daniela"
     ],
     "wedding": {
-        "date": "2026-10-14",
+    "date": "2026-10-16",
         "location": {
             "city": "Motril",
             "venue": "Santuario de Nuestra Señora de la Cabeza",
@@ -84,5 +84,13 @@
     },
     "rsvp": {
         "deadline": "2026-09-30"
+    },
+    "gifts": {
+        "bank_account": {
+            "iban": "ES76 2100 1234 5678 9012 3456",
+            "bic": "CAIXESBBXXX",
+            "bank_name": "CaixaBank",
+            "account_holder": "Ignacio & María Daniela"
+        }
     }
 }

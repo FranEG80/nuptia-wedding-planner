@@ -37,9 +37,11 @@ function useCountdown(target: string) {
 export function DashboardView({
   summary,
   wedding,
+  userName,
 }: {
   summary: DashboardSummaryDto
   wedding: WeddingDto
+  userName: string
 }) {
   const cd = useCountdown(wedding.date)
   const { confirmed, pending, declined, total } = summary
@@ -48,7 +50,6 @@ export function DashboardView({
   const pendingPct = Math.round((pending / safeTotal) * 100)
   const declinedPct = Math.max(0, 100 - confirmedPct - pendingPct)
   const pendingTasks = DEFAULT_WEDDING_TASKS.filter((t) => !t.done).length
-  const welcomeName = wedding.displayName.replace(" & ", " y ")
 
   const cdItems = [
     { v: cd.days, l: "días" },
@@ -68,7 +69,7 @@ export function DashboardView({
     <div className="space-y-8">
       {/* Hero / welcome */}
       <section className="relative h-72 overflow-hidden rounded-3xl border border-border shadow-sm sm:h-80">
-        <Image
+        <Image draggable="false"
           src="/images/couple-hero.png"
           alt="Pareja de novios en un entorno natural"
           fill
@@ -83,7 +84,7 @@ export function DashboardView({
             {formattedDate}
           </span>
           <h1 className="max-w-lg text-balance font-serif text-3xl leading-tight sm:text-4xl">
-            ¡Bienvenidos, {welcomeName}!
+            ¡Bienvenidos, {userName}!
           </h1>
           <p className="max-w-md text-sm text-primary-foreground/80">
             Vuestra historia se celebra en {wedding.primaryCity}. Aquí tenéis todo

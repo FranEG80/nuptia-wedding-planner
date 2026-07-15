@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react"
 
+import { signOutAction } from "@/core/auth/actions"
 import { cn } from "@/shared/lib/utils"
 
 const navItems = [
@@ -93,14 +94,16 @@ export function PrivateNav({
             </nav>
             <div className="space-y-1 px-4 pb-4">
               <div className="my-3 h-px bg-sidebar-border" />
-              <Link
-                href="/login"
-                onClick={() => onMobileOpenChange?.(false)}
-                className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent"
-              >
-                <LogOut className="h-4.5 w-4.5" strokeWidth={1.75} />
-                Cerrar sesión
-              </Link>
+              <form action={signOutAction}>
+                <button
+                  type="submit"
+                  onClick={() => onMobileOpenChange?.(false)}
+                  className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent"
+                >
+                  <LogOut className="h-4.5 w-4.5" strokeWidth={1.75} />
+                  Cerrar sesión
+                </button>
+              </form>
             </div>
             <div className="flex items-center gap-3 border-t border-sidebar-border px-6 py-4">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-accent text-xs font-medium text-sidebar-accent-foreground">
@@ -187,17 +190,19 @@ export function PrivateNav({
 
       <div className={cn("space-y-1 px-4 pb-4", collapsed && "px-3")}>
         <div className="my-3 h-px bg-sidebar-border" />
-        <Link
-          href="/login"
-          className={cn(
-            "flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent",
-            collapsed && "justify-center px-0",
-          )}
-          title="Cerrar sesión"
-        >
-          <LogOut className="h-4.5 w-4.5" strokeWidth={1.75} />
-          <span className={cn(collapsed && "sr-only")}>Cerrar sesión</span>
-        </Link>
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent",
+              collapsed && "justify-center px-0",
+            )}
+            title="Cerrar sesión"
+          >
+            <LogOut className="h-4.5 w-4.5" strokeWidth={1.75} />
+            <span className={cn(collapsed && "sr-only")}>Cerrar sesión</span>
+          </button>
+        </form>
       </div>
 
       <div

@@ -47,7 +47,7 @@ export function AuthCard({
         aria-hidden="true"
         className="relative hidden min-h-screen overflow-hidden bg-primary lg:block"
       >
-        <Image
+        <Image draggable="false"
           src="/images/invite-floral.png"
           alt=""
           fill

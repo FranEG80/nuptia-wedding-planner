@@ -8,10 +8,8 @@ import {
   CheckCircle2,
   Loader2,
   Mail,
-  Minus,
   Pencil,
   Phone,
-  Plus,
   X,
 } from "lucide-react"
 
@@ -22,19 +20,15 @@ import type {
 import type { InvitationContentDto } from "@/domains/invitations/application/dtos/invitation-design.dto"
 import { cn } from "@/shared/lib/utils"
 
-type RsvpStatus = "Confirmado" | "Declinado"
 type ContactPreference = "email" | "phone"
 type Step = "attendance" | "details" | "menu" | "allergies" | "message" | "summary"
 
 export interface RsvpSubmitGuest {
-  id?: string
-  clientId?: string
-  role?: PublicInvitationGuestDto["role"]
-  name: string
+  guestId: string
+  attending: boolean
   email: string | null
   phone: string | null
   notes: string
-  rsvp: RsvpStatus
   menuSelections: Array<{
     menuDishId: string
     dishOptionId: string
@@ -52,8 +46,7 @@ export type RsvpSubmitResult = {
 
 interface EditableGuest {
   localId: string
-  id?: string
-  clientId?: string
+  id: string
   role: PublicInvitationGuestDto["role"]
   firstName: string
   lastName: string
@@ -61,7 +54,7 @@ interface EditableGuest {
   phone: string
   contactPreference: ContactPreference
   notes: string
-  rsvp: string
+  attending: boolean | null
   menuSelections: Record<string, string>
 }
 
@@ -87,9 +80,6 @@ export function RsvpExperience({
   const [desktopOpen, setDesktopOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [formGuests, setFormGuests] = useState(() => normalizeGuests(guests))
-  const [attendingCount, setAttendingCount] = useState(() =>
-    initialAttendingCount(guests),
-  )
   const [step, setStep] = useState<Step>("attendance")
   const [message, setMessage] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -100,13 +90,12 @@ export function RsvpExperience({
   const hasMenu = Boolean(menu?.dishes.some((dish) => dish.options.length > 0))
 
   useEffect(() => {
-    const normalized = normalizeGuests(guests)
-    setFormGuests((current) => {
-      const companionDrafts = current.filter((guest) => !guest.id)
-      return [...normalized, ...companionDrafts]
-    })
-    setAttendingCount(initialAttendingCount(guests))
+    setFormGuests(normalizeGuests(guests))
   }, [guests])
+
+  const attendingGuests = formGuests.filter((guest) => guest.attending === true)
+  const attendingCount = attendingGuests.length
+  const attendanceChoice = getAttendanceChoice(formGuests)
 
   const steps = useMemo<Step[]>(() => {
     if (attendingCount === 0) {
@@ -125,50 +114,44 @@ export function RsvpExperience({
 
   const stepIndex = Math.max(steps.indexOf(step), 0)
   const progress = steps.length > 1 ? (stepIndex + 1) / steps.length : 1
-  const attendingGuests = formGuests.slice(0, attendingCount)
   const confirmationCode = getConfirmationCode(
     confirmationSeed ?? formGuests.map((guest) => guest.localId).join("-"),
   )
   const attendeeNames = (submittedPayload?.guests ?? buildPayload().guests)
-    .filter((guest) => guest.rsvp === "Confirmado")
-    .map((guest) => guest.name)
-
-  function ensureGuestCount(count: number) {
-    setFormGuests((current) => {
-      if (current.length >= count) {
-        return current
-      }
-
-      const additions = Array.from({ length: count - current.length }, (_, index) =>
-        createCompanionDraft(current.length + index + 1),
-      )
-
-      return [...current, ...additions]
+    .filter((guest) => guest.attending)
+    .flatMap((response) => {
+      const guest = formGuests.find((item) => item.id === response.guestId)
+      return guest ? [normalizeName(guest, 0)] : []
     })
-  }
 
-  function changeAttendingCount(nextCount: number) {
-    const boundedCount = Math.max(nextCount, 0)
-    ensureGuestCount(boundedCount)
-    setAttendingCount(boundedCount)
+  function changeAttendance(choice: string) {
+    setFormGuests((current) =>
+      current.map((guest) => ({
+        ...guest,
+        attending:
+          choice === "all" || choice === `guest:${guest.id}`
+            ? true
+            : false,
+      })),
+    )
 
-    if (boundedCount === 0 && (step === "details" || step === "menu" || step === "allergies")) {
+    if (choice === "none" && (step === "details" || step === "menu" || step === "allergies")) {
       setStep("message")
     }
   }
 
-  function updateGuest(index: number, patch: Partial<EditableGuest>) {
+  function updateGuest(guestId: string, patch: Partial<EditableGuest>) {
     setFormGuests((current) =>
-      current.map((guest, guestIndex) =>
-        guestIndex === index ? { ...guest, ...patch } : guest,
+      current.map((guest) =>
+        guest.id === guestId ? { ...guest, ...patch } : guest,
       ),
     )
   }
 
-  function updateMenuSelection(index: number, menuDishId: string, dishOptionId: string) {
+  function updateMenuSelection(guestId: string, menuDishId: string, dishOptionId: string) {
     setFormGuests((current) =>
-      current.map((guest, guestIndex) =>
-        guestIndex === index
+      current.map((guest) =>
+        guest.id === guestId
           ? {
               ...guest,
               menuSelections: {
@@ -182,40 +165,21 @@ export function RsvpExperience({
   }
 
   function buildPayload(): RsvpSubmitPayload {
-    if (attendingCount === 0) {
-      const primary = formGuests[0] ?? createCompanionDraft(1)
-
-      return {
-        guests: [
-          {
-            id: primary.id,
-            clientId: primary.clientId,
-            role: "primary",
-            name: normalizeName(primary, 0),
-            email: primary.email.trim() || null,
-            phone: primary.phone.trim() || null,
-            notes: primary.notes.trim(),
-            rsvp: "Declinado",
-            menuSelections: [],
-          },
-        ],
-        message: message.trim() ? message.trim() : null,
-      }
-    }
-
     return {
-      guests: attendingGuests.map((guest, index) => ({
-        id: guest.id,
-        clientId: guest.clientId,
-        role: guest.role,
-        name: normalizeName(guest, index),
+      guests: formGuests.map((guest) => ({
+        guestId: guest.id,
+        attending: guest.attending === true,
         email: guest.email.trim() || null,
         phone: guest.phone.trim() || null,
-        notes: guest.notes.trim(),
-        rsvp: "Confirmado",
-        menuSelections: Object.entries(guest.menuSelections)
-          .filter(([, dishOptionId]) => Boolean(dishOptionId))
-          .map(([menuDishId, dishOptionId]) => ({ menuDishId, dishOptionId })),
+        notes: guest.attending ? guest.notes.trim() : "",
+        menuSelections: guest.attending
+          ? Object.entries(guest.menuSelections)
+              .filter(([, dishOptionId]) => Boolean(dishOptionId))
+              .map(([menuDishId, dishOptionId]) => ({
+                menuDishId,
+                dishOptionId,
+              }))
+          : [],
       })),
       message: message.trim() ? message.trim() : null,
     }
@@ -224,21 +188,16 @@ export function RsvpExperience({
   function validateCurrentStep() {
     setError(null)
 
+    if (step === "attendance" && attendanceChoice === null) {
+      setError("Elige quién asistirá antes de continuar.")
+      return false
+    }
+
     if (step !== "details") {
       return true
     }
 
     for (const [index, guest] of attendingGuests.entries()) {
-      if (!guest.firstName.trim()) {
-        setError(`Añade el nombre del asistente ${index + 1}.`)
-        return false
-      }
-
-      if (guest.role === "companion" && !guest.lastName.trim()) {
-        setError(`Añade los apellidos de ${guest.firstName || `acompañante ${index + 1}`}.`)
-        return false
-      }
-
       if (guest.email.trim() && !isEmail(guest.email.trim())) {
         setError(`Revisa el email de ${guest.firstName || `asistente ${index + 1}`}.`)
         return false
@@ -392,8 +351,9 @@ export function RsvpExperience({
           >
             {step === "attendance" ? (
               <AttendanceStep
-                attendingCount={attendingCount}
-                onChange={changeAttendingCount}
+                guests={formGuests}
+                value={attendanceChoice}
+                onChange={changeAttendance}
               />
             ) : null}
 
@@ -557,58 +517,48 @@ export function RsvpExperience({
 }
 
 function AttendanceStep({
-  attendingCount,
+  guests,
+  value,
   onChange,
 }: {
-  attendingCount: number
-  onChange: (count: number) => void
+  guests: EditableGuest[]
+  value: string | null
+  onChange: (choice: string) => void
 }) {
+  const options = attendanceOptions(guests)
+
   return (
-    <div className="grid gap-10">
-      <div className="grid gap-8 sm:grid-cols-[1fr_auto] sm:items-center">
-        <div>
-          <p className="text-3xl font-bold text-[var(--invite-accent)]">
-            Asistirán
-          </p>
-          <p className="mt-2 text-sm uppercase tracking-[0.18em] text-[#6a695f]">
-            Puedes añadir los acompañantes que necesites
-          </p>
-        </div>
-
-        <div className="flex items-center justify-end gap-4">
-          <button
-            type="button"
-            onClick={() => onChange(attendingCount - 1)}
-            disabled={attendingCount === 0}
-            className="grid h-11 w-11 place-items-center rounded-full border-2 border-[#55564d] text-[#55564d] transition-colors hover:bg-white disabled:opacity-35"
+    <fieldset className="grid gap-4">
+      <legend className="text-3xl font-bold text-[var(--invite-accent)]">
+        ¿Quién asistirá?
+      </legend>
+      <p className="text-sm uppercase tracking-[0.18em] text-[#6a695f]">
+        Responde por todas las personas incluidas en esta invitación
+      </p>
+      <div className="mt-2 grid gap-3">
+        {options.map((option) => (
+          <label
+            key={option.value}
+            className={cn(
+              "flex cursor-pointer items-center gap-4 rounded-[8px] border-2 px-5 py-4 text-xl font-bold transition-colors",
+              value === option.value
+                ? "border-[var(--invite-accent)] bg-white/60 text-[var(--invite-accent)]"
+                : "border-[#55564d]/45 bg-white/20 text-[#55564d] hover:bg-white/40",
+            )}
           >
-            <Minus className="h-6 w-6" aria-hidden="true" />
-            <span className="sr-only">Restar asistente</span>
-          </button>
-          <output className="grid h-20 w-28 place-items-center rounded-[8px] border-2 border-[#55564d] text-5xl font-bold text-[var(--invite-accent)]">
-            {attendingCount}
-          </output>
-          <button
-            type="button"
-            onClick={() => onChange(attendingCount + 1)}
-            className="grid h-11 w-11 place-items-center rounded-full border-2 border-[#55564d] text-[#55564d] transition-colors hover:bg-white"
-          >
-            <Plus className="h-6 w-6" aria-hidden="true" />
-            <span className="sr-only">Sumar asistente</span>
-          </button>
-        </div>
+            <input
+              type="radio"
+              name="attendance-choice"
+              value={option.value}
+              checked={value === option.value}
+              onChange={() => onChange(option.value)}
+              className="h-5 w-5 accent-[var(--invite-accent)]"
+            />
+            {option.label}
+          </label>
+        ))}
       </div>
-
-      <label className="flex cursor-pointer items-center justify-between gap-6 text-2xl font-bold text-[var(--invite-accent)]">
-        No podremos asistir
-        <input
-          type="checkbox"
-          checked={attendingCount === 0}
-          onChange={(event) => onChange(event.target.checked ? 0 : 1)}
-          className="h-11 w-11 appearance-none rounded-[8px] border-4 border-[#55564d] bg-transparent transition-colors checked:bg-[var(--invite-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#55564d]"
-        />
-      </label>
-    </div>
+    </fieldset>
   )
 }
 
@@ -617,7 +567,7 @@ function DetailsStep({
   onUpdate,
 }: {
   guests: EditableGuest[]
-  onUpdate: (index: number, patch: Partial<EditableGuest>) => void
+  onUpdate: (guestId: string, patch: Partial<EditableGuest>) => void
 }) {
   return (
     <div>
@@ -628,22 +578,8 @@ function DetailsStep({
         {guests.map((guest, index) => (
           <fieldset key={guest.localId} className="grid gap-4">
             <legend className="text-xl font-bold text-[var(--invite-accent)]">
-              {guest.role === "primary" ? "Invitado" : `Acompañante ${index}`}
+              {normalizeName(guest, index)}
             </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextInput
-                label="Nombre"
-                value={guest.firstName}
-                autoComplete="given-name"
-                onChange={(value) => onUpdate(index, { firstName: value })}
-              />
-              <TextInput
-                label="Apellidos"
-                value={guest.lastName}
-                autoComplete="family-name"
-                onChange={(value) => onUpdate(index, { lastName: value })}
-              />
-            </div>
 
             {guest.role === "primary" ? (
               <div className="grid gap-3">
@@ -652,7 +588,9 @@ function DetailsStep({
                     <button
                       key={mode}
                       type="button"
-                      onClick={() => onUpdate(index, { contactPreference: mode })}
+                      onClick={() =>
+                        onUpdate(guest.id, { contactPreference: mode })
+                      }
                       className={cn(
                         "inline-flex min-h-10 items-center gap-2 rounded-[6px] px-4 text-sm font-bold uppercase tracking-[0.08em]",
                         guest.contactPreference === mode
@@ -672,7 +610,7 @@ function DetailsStep({
                     value={guest.email}
                     autoComplete="email"
                     icon={<Mail className="h-7 w-7" aria-hidden="true" />}
-                    onChange={(value) => onUpdate(index, { email: value })}
+                    onChange={(value) => onUpdate(guest.id, { email: value })}
                   />
                 ) : (
                   <TextInput
@@ -681,7 +619,7 @@ function DetailsStep({
                     value={guest.phone}
                     autoComplete="tel"
                     icon={<Phone className="h-7 w-7" aria-hidden="true" />}
-                    onChange={(value) => onUpdate(index, { phone: value })}
+                    onChange={(value) => onUpdate(guest.id, { phone: value })}
                   />
                 )}
               </div>
@@ -693,7 +631,7 @@ function DetailsStep({
                   value={guest.email}
                   autoComplete="email"
                   icon={<Mail className="h-7 w-7" aria-hidden="true" />}
-                  onChange={(value) => onUpdate(index, { email: value })}
+                  onChange={(value) => onUpdate(guest.id, { email: value })}
                 />
                 <p className="mt-2 text-sm leading-5 text-[#6a695f]">
                   Opcional. Lo usaremos para que pueda subir fotos de la boda.
@@ -714,7 +652,7 @@ function MenuStep({
 }: {
   guests: EditableGuest[]
   menu: PublicInvitationMenuDto
-  onUpdate: (index: number, menuDishId: string, dishOptionId: string) => void
+  onUpdate: (guestId: string, menuDishId: string, dishOptionId: string) => void
 }) {
   return (
     <div>
@@ -742,7 +680,7 @@ function MenuStep({
                         type="radio"
                         name={`${guest.localId}-${dish.id}`}
                         checked={guest.menuSelections[dish.id] === option.id}
-                        onChange={() => onUpdate(index, dish.id, option.id)}
+                        onChange={() => onUpdate(guest.id, dish.id, option.id)}
                         className="mt-1 h-5 w-5 accent-[var(--invite-accent)]"
                       />
                       <span>
@@ -772,7 +710,7 @@ function AllergiesStep({
   onUpdate,
 }: {
   guests: EditableGuest[]
-  onUpdate: (index: number, patch: Partial<EditableGuest>) => void
+  onUpdate: (guestId: string, patch: Partial<EditableGuest>) => void
 }) {
   return (
     <div>
@@ -788,7 +726,9 @@ function AllergiesStep({
             {normalizeName(guest, index)}
             <textarea
               value={guest.notes}
-              onChange={(event) => onUpdate(index, { notes: event.target.value })}
+              onChange={(event) =>
+                onUpdate(guest.id, { notes: event.target.value })
+              }
               placeholder="Sin alergias, vegetariano, intolerancias..."
               rows={2}
               className="min-h-24 resize-y rounded-[8px] border-2 border-[#55564d] bg-transparent px-5 py-4 text-xl font-normal text-[#1d1d1b] outline-none placeholder:text-[var(--invite-accent)]/55 focus:border-[var(--invite-accent)] focus:bg-white/30"
@@ -948,15 +888,7 @@ function FloralBackdrop() {
 }
 
 function normalizeGuests(guests: PublicInvitationGuestDto[]): EditableGuest[] {
-  const sortedGuests = [...guests].sort((a, b) => {
-    if (a.role === b.role) {
-      return a.name.localeCompare(b.name)
-    }
-
-    return a.role === "primary" ? -1 : 1
-  })
-
-  return sortedGuests.map((guest, index) => {
+  return guests.map((guest, index) => {
     const [firstName, ...lastNameParts] = guest.name.trim().split(/\s+/)
 
     return {
@@ -969,7 +901,12 @@ function normalizeGuests(guests: PublicInvitationGuestDto[]): EditableGuest[] {
       phone: guest.phone ?? "",
       contactPreference: guest.email || !guest.phone ? "email" : "phone",
       notes: guest.notes ?? "",
-      rsvp: guest.rsvp,
+      attending:
+        guest.rsvp === "Confirmado"
+          ? true
+          : guest.rsvp === "Declinado"
+            ? false
+            : null,
       menuSelections: Object.fromEntries(
         guest.menuSelections.map((selection) => [
           selection.menuDishId,
@@ -980,36 +917,40 @@ function normalizeGuests(guests: PublicInvitationGuestDto[]): EditableGuest[] {
   })
 }
 
-function initialAttendingCount(guests: PublicInvitationGuestDto[]) {
-  const confirmed = guests.filter((guest) => guest.rsvp === "Confirmado").length
-
-  if (confirmed > 0) {
-    return confirmed
+function getAttendanceChoice(guests: EditableGuest[]) {
+  if (!guests.length || guests.some((guest) => guest.attending === null)) {
+    return null
   }
 
-  if (guests.length && guests.every((guest) => guest.rsvp === "Declinado")) {
-    return 0
+  const attending = guests.filter((guest) => guest.attending)
+
+  if (!attending.length) {
+    return "none"
   }
 
-  return Math.max(guests.length, 1)
+  if (attending.length === guests.length) {
+    return "all"
+  }
+
+  return `guest:${attending[0].id}`
 }
 
-function createCompanionDraft(position: number): EditableGuest {
-  const clientId = `companion-${position}-${Date.now()}`
-
-  return {
-    localId: clientId,
-    clientId,
-    role: "companion",
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    contactPreference: "email",
-    notes: "",
-    rsvp: "Sin respuesta",
-    menuSelections: {},
+function attendanceOptions(guests: EditableGuest[]) {
+  if (guests.length === 1) {
+    return [
+      { value: "all", label: "Asistiré" },
+      { value: "none", label: "No podré asistir" },
+    ]
   }
+
+  return [
+    { value: "all", label: "Asistiremos los dos" },
+    ...guests.map((guest, index) => ({
+      value: `guest:${guest.id}`,
+      label: `Solo asistirá ${normalizeName(guest, index)}`,
+    })),
+    { value: "none", label: "No podremos asistir ninguno" },
+  ]
 }
 
 function normalizeName(guest: EditableGuest, index: number) {

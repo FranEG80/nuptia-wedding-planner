@@ -2,7 +2,7 @@ import { requireAppSession } from "@/core/auth"
 import { getRepositories } from "@/composition/repositories"
 import { DEFAULT_INVITATION_CONTENT } from "@/domains/invitations/domain/invitation-design"
 import { getCurrentInvitationDesignUseCase } from "@/domains/invitations/application/use-cases/get-current-invitation-design.use-case"
-import { listGuestsUseCase } from "@/domains/guests/application/use-cases/list-guests.use-case"
+import { listInvitationPartiesUseCase } from "@/domains/guests/application/use-cases/list-invitation-parties.use-case"
 import { GuestsView } from "@/domains/guests/adapters/next/components/guests-view"
 import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
 
@@ -17,14 +17,14 @@ export async function GuestsPage() {
   if (!wedding) {
     return (
       <GuestsView
-        initialGuests={[]}
+        initialParties={[]}
         initialWhatsappMessage={DEFAULT_INVITATION_CONTENT.whatsappMessage}
       />
     )
   }
 
-  const [guests, design] = await Promise.all([
-    listGuestsUseCase({
+  const [parties, design] = await Promise.all([
+    listInvitationPartiesUseCase({
       guestRepository: repositories.guest,
       weddingId: wedding.id,
     }),
@@ -36,7 +36,7 @@ export async function GuestsPage() {
 
   return (
     <GuestsView
-      initialGuests={guests}
+      initialParties={parties}
       initialWhatsappMessage={
         design?.content.whatsappMessage ?? DEFAULT_INVITATION_CONTENT.whatsappMessage
       }

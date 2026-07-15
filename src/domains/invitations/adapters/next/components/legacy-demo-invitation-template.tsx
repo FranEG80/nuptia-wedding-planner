@@ -12,7 +12,7 @@ import type { WeddingDto } from "@/domains/weddings/application/dtos/wedding.dto
 import { cn } from "@/shared/lib/utils"
 import { InvitationMenuDrawer } from "@/domains/invitations/adapters/next/components/invitation-menu-drawer"
 
-export function CustomInvitationTemplate({
+export function LegacyDemoInvitationTemplate({
   wedding,
   content,
   rsvpSlot,
@@ -67,8 +67,8 @@ export function CustomInvitationTemplate({
           <div className="flex min-h-svh flex-col justify-between pb-8 text-center ">
             <div className=" flex w-full  h-screen flex-1 flex-col justify-start">
               <div className="relative h-[clamp(20rem,52svh,31rem)] w-full  overflow-hidden rounded-[8px] bg-[color-mix(in_srgb,var(--invite-section)_72%,white)] shadow-[0_28px_90px_rgba(72,54,34,0.12)] lg:h-[min(66svh,43rem)]">
-                <Image
-                  src="/images/church.png"
+                <Image draggable="false"
+                  src="/images/church.webp"
                   alt="Ilustración de la iglesia"
                   fill
                   priority={!preview}
@@ -188,8 +188,8 @@ export function CustomInvitationTemplate({
                 {content.travel.map((item) => (
                   <article key={item.id} className="grid gap-5 sm:grid-cols-[128px_1fr]">
                     <div className="relative h-32 overflow-hidden rounded-[6px] bg-[var(--invite-border)]">
-                      <Image
-                        src={item.imageSrc || "/images/venue.png"}
+                      <Image draggable="false"
+                        src={item.imageSrc || "/images/venue.webp"}
                         alt=""
                         fill
                         sizes="128px"
@@ -287,7 +287,7 @@ export function CustomInvitationTemplate({
 
         {visible.rsvp ? (
         <aside id="rsvp" className="relative hidden min-h-svh overflow-hidden lg:block lg:h-svh">
-          <Image
+          <Image draggable="false"
             src={heroPhoto.src}
             alt=""
             fill

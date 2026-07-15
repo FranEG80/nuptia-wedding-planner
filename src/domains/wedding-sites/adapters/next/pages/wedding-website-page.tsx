@@ -1,8 +1,8 @@
-import { requireAppSession } from "@/core/auth"
 import { getRepositories } from "@/composition/repositories"
-import { getPublicWeddingSiteUseCase } from "@/domains/wedding-sites/application/use-cases/get-public-wedding-site.use-case"
-import { listWeddingSiteModulesUseCase } from "@/domains/wedding-sites/application/use-cases/list-wedding-site-modules.use-case"
+import { requireAppSession } from "@/core/auth"
 import { WebsiteView } from "@/domains/wedding-sites/adapters/next/components/website-view"
+import { createWeddingExperienceFromWedding } from "@/domains/wedding-sites/application/dtos/wedding-experience.dto"
+import { listWeddingSiteModulesUseCase } from "@/domains/wedding-sites/application/use-cases/list-wedding-site-modules.use-case"
 import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
 
 export async function WeddingWebsitePage() {
@@ -17,20 +17,11 @@ export async function WeddingWebsitePage() {
     return null
   }
 
-  const [modules, publicSite] = await Promise.all([
-    listWeddingSiteModulesUseCase({
-      weddingSiteRepository: repositories.weddingSite,
-      weddingId: wedding.id,
-    }),
-    getPublicWeddingSiteUseCase({
-      weddingSiteRepository: repositories.weddingSite,
-      slug: wedding.slug,
-    }),
-  ])
+  const modules = await listWeddingSiteModulesUseCase({
+    weddingSiteRepository: repositories.weddingSite,
+    weddingId: wedding.id,
+  })
+  const experience = createWeddingExperienceFromWedding(wedding, modules)
 
-  if (!publicSite) {
-    return null
-  }
-
-  return <WebsiteView modules={modules} publicSite={publicSite} />
+  return <WebsiteView modules={modules} experience={experience} />
 }

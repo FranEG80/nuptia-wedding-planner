@@ -7,10 +7,15 @@ import { cache } from "react"
 
 import { PrismaClient } from "@generated/prisma/client"
 
-export const getPrisma = cache(async () => {
+export const getD1 = cache(async () => {
   await connection()
   const { env } = getCloudflareContext()
-  const adapter = new PrismaD1(env.DB)
+
+  return env.DB
+})
+
+export const getPrisma = cache(async () => {
+  const adapter = new PrismaD1(await getD1())
 
   return new PrismaClient({
     adapter,

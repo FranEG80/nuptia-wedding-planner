@@ -1,4 +1,4 @@
-export type AuthProvider = "better-auth" | "supabase" | "demo"
+export type AuthProvider = "better-auth" | "supabase"
 
 export interface AuthSession {
   provider: AuthProvider

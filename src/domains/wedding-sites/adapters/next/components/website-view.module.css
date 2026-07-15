@@ -1,0 +1,34 @@
+.editor { --paper: #fbf4ea; --ink: #5b4d47; --terracotta: #d5764d; display: grid; min-height: calc(100svh - 8rem); overflow: hidden; border: 1px solid rgba(91,77,71,.14); border-radius: 1.5rem; background: var(--paper); color: var(--ink); grid-template-columns: minmax(20rem, 25rem) 1fr; }
+.controls { display: flex; min-height: 0; padding: 2rem; border-right: 1px solid rgba(48,61,56,.15); flex-direction: column; background: rgba(255,255,255,.24); }
+.intro > p { color: var(--terracotta); font-size: .65rem; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+.intro h1 { margin: .55rem 0 .35rem; font-family: var(--font-cormorant), serif; font-size: 2rem; line-height: 1; }
+.intro span { color: rgba(48,61,56,.62); font-size: .72rem; }
+.moduleList { display: flex; margin-top: 2rem; flex-direction: column; gap: .65rem; }
+.moduleList article { display: grid; padding: .85rem; border: 1px solid rgba(48,61,56,.12); border-radius: 1rem; align-items: center; gap: .85rem; grid-template-columns: 3.1rem 1fr auto; background: rgba(255,255,255,.45); transition: border-color .2s, background .2s; }
+.moduleList .moduleActive { border-color: rgba(213,118,77,.5); background: rgba(255,255,255,.75); }
+.moduleArtwork { position: relative; width: 3.1rem; height: 3.1rem; overflow: hidden; border-radius: .75rem; background: #fff6ee; }
+.moduleArtwork img { padding: .35rem; object-fit: contain; pointer-events: none; }
+.moduleList h2 { margin: 0 0 .2rem; font-size: .82rem; }
+.moduleList p { display: -webkit-box; margin: 0; overflow: hidden; color: rgba(48,61,56,.6); font-size: .66rem; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.moduleList button { position: relative; width: 2.65rem; height: 1.5rem; padding: 0; border: 0; border-radius: 2rem; background: #c8c7c0; cursor: pointer; transition: background .2s; }
+.moduleList button:disabled { cursor: wait; opacity: .7; }
+.moduleList button span { position: absolute; top: .18rem; left: .2rem; width: 1.14rem; height: 1.14rem; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.15); transition: transform .2s; }
+.moduleList .switchOn { background: var(--terracotta); }
+.moduleList .switchOn span { transform: translateX(1.1rem); }
+.publicLink { margin-top: auto; padding: .95rem 1.2rem; border-radius: 999px; background: var(--ink); color: #fff; font-size: .71rem; font-weight: 800; letter-spacing: .12em; text-align: center; text-decoration: none; text-transform: uppercase; }
+.previewPanel { display: flex; min-width: 0; flex-direction: column; }
+.previewToolbar { display: flex; min-height: 5.4rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(48,61,56,.14); align-items: center; justify-content: space-between; gap: 1rem; background: rgba(255,255,255,.55); }
+.previewToolbar > div:first-child { display: flex; flex-direction: column; }
+.previewToolbar strong { font-family: var(--font-cormorant), serif; font-size: 1.25rem; }
+.previewToolbar span { color: rgba(48,61,56,.6); font-size: .68rem; }
+.devices { display: flex; padding: .25rem; border-radius: 999px; background: rgba(48,61,56,.08); }
+.devices button { padding: .48rem .75rem; border: 0; border-radius: 999px; background: transparent; color: inherit; font-size: .65rem; cursor: pointer; }
+.devices button[aria-pressed="true"] { background: white; box-shadow: 0 2px 8px rgba(48,61,56,.12); }
+.canvas { display: grid; min-height: 50rem; padding: 2rem; place-items: start center; overflow: auto; background-color: #deddd5; background-image: radial-gradient(rgba(48,61,56,.12) .7px, transparent .7px); background-size: 12px 12px; }
+.frame { min-width: 320px; overflow: hidden; border: 1px solid rgba(48,61,56,.17); border-radius: 1rem; box-shadow: 0 25px 60px rgba(36,43,39,.16); background: white; transition: width .35s ease; }
+.browserBar { display: flex; height: 2rem; padding: 0 .65rem; align-items: center; gap: .3rem; background: #f0eee9; }
+.browserBar > span { width: .48rem; height: .48rem; border-radius: 50%; background: #c5c2ba; }
+.browserBar small { margin-left: .5rem; overflow: hidden; color: #85827b; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
+.frame iframe { display: block; width: 100%; height: 72svh; border: 0; background: var(--paper); }
+@media (max-width: 1050px) { .editor { grid-template-columns: 1fr; } .controls { border-right: 0; border-bottom: 1px solid rgba(48,61,56,.15); } .publicLink { margin-top: 1.5rem; } }
+@media (max-width: 600px) { .controls { padding: 1.2rem; } .previewToolbar { align-items: flex-start; flex-direction: column; } .canvas { padding: .75rem; } .devices { width: 100%; } .devices button { flex: 1; } }

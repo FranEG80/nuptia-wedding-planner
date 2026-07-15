@@ -1,13 +1,14 @@
 "use client"
 
-import { useRef, useState } from "react"
-import { LogIn } from "lucide-react"
+import { useActionState, useRef, useState } from "react"
+import { FlaskConical, LogIn } from "lucide-react"
 
 import { AuthFormField } from "@/app/(auth)/_components/auth-form-field"
 import {
   loginFormSchema,
   type LoginFormValues,
 } from "@/core/auth/auth-form-schemas"
+import { loginAction, signInDemoAction } from "@/core/auth/actions"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 
@@ -56,6 +57,10 @@ function firstLoginErrorField(errors: LoginErrors) {
 }
 
 export function LoginForm() {
+  const [actionState, formAction, pending] = useActionState(
+    loginAction,
+    { message: "" },
+  )
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   const [errors, setErrors] = useState<LoginErrors>({})
@@ -96,7 +101,6 @@ export function LoginForm() {
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
     setSubmitted(true)
 
     const nextErrors = collectLoginErrors(values, loginFields)
@@ -105,69 +109,104 @@ export function LoginForm() {
     const firstError = firstLoginErrorField(nextErrors)
 
     if (firstError) {
+      event.preventDefault()
       inputRefs[firstError].current?.focus()
       setStatus("Revisa los campos marcados antes de continuar.")
       return
     }
 
-    setStatus("Formulario validado. La conexión de acceso se añadirá más adelante.")
+    setStatus("Comprobando tus datos…")
   }
 
   return (
-    <form className="mt-8 space-y-5" onSubmit={handleSubmit} noValidate>
-      <AuthFormField
-        id="login-email"
-        name="email"
-        label="Email"
-        error={errors.email?.[0]}
+    <>
+      <form
+        action={formAction}
+        className="mt-8 space-y-5"
+        onSubmit={handleSubmit}
+        noValidate
       >
-        <Input
-          ref={emailRef}
+        <AuthFormField
           id="login-email"
           name="email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          value={values.email}
-          onBlur={() => markTouched("email")}
-          onChange={(event) => updateValue("email", event.currentTarget.value)}
-          aria-invalid={Boolean(errors.email)}
-          aria-describedby={errors.email ? "login-email-error" : undefined}
-          className="h-11 px-3"
-          placeholder="tu@email.com"
-        />
-      </AuthFormField>
+          label="Email"
+          error={errors.email?.[0]}
+        >
+          <Input
+            ref={emailRef}
+            id="login-email"
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={values.email}
+            onBlur={() => markTouched("email")}
+            onChange={(event) => updateValue("email", event.currentTarget.value)}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "login-email-error" : undefined}
+            className="h-11 px-3"
+            placeholder="tu@email.com"
+          />
+        </AuthFormField>
 
-      <AuthFormField
-        id="login-password"
-        name="password"
-        label="Contraseña"
-        error={errors.password?.[0]}
-      >
-        <Input
-          ref={passwordRef}
+        <AuthFormField
           id="login-password"
           name="password"
-          type="password"
-          autoComplete="current-password"
-          value={values.password}
-          onBlur={() => markTouched("password")}
-          onChange={(event) => updateValue("password", event.currentTarget.value)}
-          aria-invalid={Boolean(errors.password)}
-          aria-describedby={errors.password ? "login-password-error" : undefined}
-          className="h-11 px-3"
-          placeholder="Tu contraseña"
-        />
-      </AuthFormField>
+          label="Contraseña"
+          error={errors.password?.[0]}
+        >
+          <Input
+            ref={passwordRef}
+            id="login-password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            value={values.password}
+            onBlur={() => markTouched("password")}
+            onChange={(event) =>
+              updateValue("password", event.currentTarget.value)
+            }
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={
+              errors.password ? "login-password-error" : undefined
+            }
+            className="h-11 px-3"
+            placeholder="Tu contraseña"
+          />
+        </AuthFormField>
 
-      <p aria-live="polite" className="min-h-5 text-sm text-muted-foreground">
-        {status}
-      </p>
+        <p aria-live="polite" className="min-h-5 text-sm text-muted-foreground">
+          {actionState.message || status}
+        </p>
 
-      <Button type="submit" size="lg" className="h-11 w-full">
-        <LogIn data-icon="inline-start" />
-        Acceder
-      </Button>
-    </form>
+        <Button
+          type="submit"
+          size="lg"
+          className="h-11 w-full"
+          disabled={pending}
+        >
+          <LogIn data-icon="inline-start" />
+          {pending ? "Accediendo…" : "Acceder"}
+        </Button>
+      </form>
+
+      <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
+        o prueba el panel
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <form action={signInDemoAction}>
+        <Button
+          type="submit"
+          variant="outline"
+          size="lg"
+          className="h-11 w-full"
+        >
+          <FlaskConical data-icon="inline-start" />
+          Probar demo
+        </Button>
+      </form>
+    </>
   )
 }

@@ -272,42 +272,42 @@ export const INVITATION_PHOTO_ASSETS = [
   {
     id: "invite-floral",
     label: "Flores acuarela",
-    src: "/images/invite-floral.png",
+    src: "/images/invite-floral.webp",
   },
   {
     id: "couple-hero",
     label: "Pareja",
-    src: "/images/couple-hero.png",
+    src: "/images/couple-hero.webp",
   },
   {
     id: "venue",
     label: "Finca",
-    src: "/images/venue.png",
+    src: "/images/venue.webp",
   },
   {
     id: "gallery-1",
     label: "Detalle floral",
-    src: "/images/gallery-1.png",
+    src: "/images/gallery-1.webp",
   },
   {
     id: "invitation-photo-garden",
     label: "Jardín",
-    src: "/images/invitation-photo-garden.png",
+    src: "/images/invitation-photo-garden.webp",
   },
   {
     id: "invitation-photo-table",
     label: "Mesa",
-    src: "/images/invitation-photo-table.png",
+    src: "/images/invitation-photo-table.webp",
   },
   {
     id: "invitation-photo-hands",
     label: "Manos",
-    src: "/images/invitation-photo-hands.png",
+    src: "/images/invitation-photo-hands.webp",
   },
   {
     id: "invitation-photo-venue",
     label: "Ceremonia",
-    src: "/images/invitation-photo-venue.png",
+    src: "/images/invitation-photo-venue.webp",
   },
 ] as const
 
@@ -322,9 +322,14 @@ export const INVITATION_TEMPLATES = [
     description: "Pantalla dividida, fotografía lateral, timeline y RSVP integrado.",
   },
   {
-    id: "custom",
-    label: "Custom",
-    description: "Template personalizable con estructura flexible.",
+    id: "demo",
+    label: "Demo",
+    description: "La antigua plantilla Custom, renombrada para la galería de demostración.",
+  },
+  {
+    id: "maria-daniela",
+    label: "Maria Daniela",
+    description: "Diseño editorial a medida con acuarelas, fotografía y RSVP por pasos.",
   },
 ] as const
 
@@ -333,6 +338,10 @@ export type InvitationTemplateId = (typeof INVITATION_TEMPLATES)[number]["id"]
 export const DEFAULT_INVITATION_TEMPLATE_ID: InvitationTemplateId = "bouquet"
 
 export function normalizeInvitationTemplateId(value: string | undefined): InvitationTemplateId {
+  if (value === "custom") {
+    return "demo"
+  }
+
   return INVITATION_TEMPLATES.some((t) => t.id === value)
     ? (value as InvitationTemplateId)
     : DEFAULT_INVITATION_TEMPLATE_ID

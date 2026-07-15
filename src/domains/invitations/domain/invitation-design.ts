@@ -120,7 +120,7 @@ export const DEFAULT_INVITATION_CONTENT: InvitationContent = {
       title: "Hotel recomendado",
       description:
         "Recomendamos reservar alojamiento cerca del lugar de celebración para disfrutar del fin de semana con calma.",
-      imageSrc: "/images/venue.png",
+      imageSrc: "/images/venue.webp",
       websiteUrl: "",
       mapsUrl: "",
     },
@@ -129,7 +129,7 @@ export const DEFAULT_INVITATION_CONTENT: InvitationContent = {
       title: "Transporte",
       description:
         "Compartiremos más información sobre accesos, aparcamiento y transporte cuando se acerque la fecha.",
-      imageSrc: "/images/gallery-1.png",
+      imageSrc: "/images/gallery-1.webp",
       websiteUrl: "",
       mapsUrl: "",
     },
@@ -149,8 +149,8 @@ export const DEFAULT_INVITATION_CONTENT: InvitationContent = {
   rsvpPanelMotion: "slide-up",
   whatsappMessage:
     "Hola {guestName}, nos hace mucha ilusión invitarte a nuestra boda. Puedes ver la invitación y confirmar asistencia aquí: {inviteUrl}",
-  heroImageSrc: "/images/invite-floral.png",
-  monogramImageSrc: "/images/invite-floral.png",
+  heroImageSrc: "/images/invite-floral.webp",
+  monogramImageSrc: "/images/invite-floral.webp",
 }
 
 export interface InvitationDesign {

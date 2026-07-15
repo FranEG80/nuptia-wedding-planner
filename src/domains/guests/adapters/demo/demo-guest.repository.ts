@@ -70,6 +70,21 @@ export const demoGuestRepository: GuestRepository = {
     return demoGuests.filter((guest) => guest.weddingId === weddingId)
   },
 
+  async listPartiesByWeddingId(weddingId) {
+    const tokens = [
+      ...new Set(
+        demoGuests
+          .filter((guest) => guest.weddingId === weddingId)
+          .map((guest) => guest.party.inviteToken),
+      ),
+    ]
+
+    return tokens.flatMap((token) => {
+      const party = partyByInviteToken(token)
+      return party ? [party] : []
+    })
+  },
+
   async findPartyByInviteToken(inviteToken) {
     return partyByInviteToken(inviteToken)
   },
@@ -131,6 +146,109 @@ export const demoGuestRepository: GuestRepository = {
     return next
   },
 
+  async createInvitationParty(input) {
+    const partyId = `party-${Date.now()}`
+    const inviteToken = `demo-token-${Date.now()}`
+    const partyGuests = input.guests.map((item, index): Guest => {
+      const guest = demoGuest({
+        id: `guest-${Date.now()}-${index}`,
+        name: item.name,
+        groupName: input.groupName ?? "",
+        invite: "Pendiente",
+        rsvp: "Sin respuesta",
+        notes: "",
+        table: null,
+      })
+
+      return {
+        ...guest,
+        partyId,
+        role: item.isRecipient ? "primary" : "companion",
+        email: item.email ?? null,
+        phone: item.phone ?? null,
+        party: {
+          ...guest.party,
+          id: partyId,
+          inviteToken,
+        },
+      }
+    })
+
+    demoGuests = [...demoGuests, ...partyGuests]
+
+    return partyByInviteToken(inviteToken)!
+  },
+
+  async updateInvitationParty(partyId, input) {
+    const currentGuests = demoGuests.filter(
+      (guest) =>
+        guest.partyId === partyId && guest.weddingId === input.weddingId,
+    )
+
+    if (!currentGuests.length) {
+      return null
+    }
+
+    const currentIds = new Set(currentGuests.map((guest) => guest.id))
+    const submittedIds = new Set(
+      input.guests.flatMap((guest) => (guest.id ? [guest.id] : [])),
+    )
+    const compositionLocked =
+      currentGuests[0].party.invite === "Enviada" ||
+      currentGuests.some((guest) => guest.rsvp !== "Sin respuesta")
+
+    if (
+      compositionLocked &&
+      (submittedIds.size !== currentIds.size ||
+        input.guests.some((guest) => !guest.id) ||
+        [...currentIds].some((id) => !submittedIds.has(id)))
+    ) {
+      throw new Error(
+        "No se puede cambiar la composición de una invitación enviada o respondida",
+      )
+    }
+
+    const party = currentGuests[0].party
+    demoGuests = demoGuests.filter(
+      (guest) => guest.partyId !== partyId || submittedIds.has(guest.id),
+    )
+
+    for (const [index, item] of input.guests.entries()) {
+      const id = item.id ?? `guest-${Date.now()}-${index}`
+      const current = demoGuests.find((guest) => guest.id === id)
+      const base =
+        current ??
+        demoGuest({
+          id,
+          name: item.name,
+          groupName: input.groupName ?? "",
+          invite: party.invite,
+          rsvp: "Sin respuesta",
+          notes: "",
+          table: null,
+        })
+      const next: Guest = {
+        ...base,
+        partyId,
+        weddingId: input.weddingId,
+        role: item.isRecipient ? "primary" : "companion",
+        name: item.name,
+        email: item.email ?? null,
+        phone: item.phone ?? null,
+        party: {
+          ...party,
+          groupName: input.groupName ?? "",
+        },
+      }
+
+      demoGuests = current
+        ? demoGuests.map((guest) => (guest.id === id ? next : guest))
+        : [...demoGuests, next]
+    }
+
+    return partyByInviteToken(party.inviteToken)
+  },
+
   async markPartiesInvited(weddingId, partyIds) {
     demoGuests = demoGuests.map((guest) =>
       guest.weddingId === weddingId && partyIds.includes(guest.partyId)
@@ -163,54 +281,40 @@ export const demoGuestRepository: GuestRepository = {
     }
 
     const partyGuestIds = new Set(party.guests.map((guest) => guest.id))
+    const responseIds = input.guests.map((guest) => guest.guestId)
+
+    if (
+      responseIds.length !== partyGuestIds.size ||
+      new Set(responseIds).size !== responseIds.length ||
+      responseIds.some((id) => !partyGuestIds.has(id))
+    ) {
+      throw new Error(
+        "La respuesta debe incluir una única respuesta para cada invitado del enlace",
+      )
+    }
 
     demoGuests = demoGuests.map((guest) => {
       if (!partyGuestIds.has(guest.id)) {
         return guest
       }
 
-      const response = input.guests.find((item) => item.id === guest.id)
+      const response = input.guests.find((item) => item.guestId === guest.id)
 
       if (!response) {
-        return { ...guest, rsvp: "Declinado", menuSelections: [] }
+        return guest
       }
 
       return {
         ...guest,
-        name: response.name,
-        email: response.email ?? null,
-        phone: response.phone ?? null,
-        notes: response.notes ?? "",
-        rsvp: response.rsvp,
-        menuSelections: response.menuSelections ?? [],
+        email: response.email === undefined ? guest.email : response.email,
+        phone: response.phone === undefined ? guest.phone : response.phone,
+        notes: response.attending ? response.notes ?? guest.notes : "",
+        rsvp: response.attending ? "Confirmado" : "Declinado",
+        menuSelections: response.attending
+          ? response.menuSelections ?? []
+          : [],
       }
     })
-
-    const existingIds = new Set(demoGuests.map((guest) => guest.id))
-    const newGuests = input.guests
-      .filter((guest) => !guest.id || !existingIds.has(guest.id))
-      .filter((guest) => guest.rsvp === "Confirmado")
-      .map((guest, index): Guest => {
-        const id = `guest-${Date.now()}-${index}`
-        const firstPartyGuest = party.guests[0]
-
-        return {
-          ...firstPartyGuest,
-          id,
-          role: guest.role ?? "companion",
-          name: guest.name,
-          email: guest.email ?? null,
-          phone: guest.phone ?? null,
-          notes: guest.notes ?? "",
-          rsvp: "Confirmado",
-          seat: null,
-          invitedBy: [],
-          uploadToken: `upload-${id}`,
-          menuSelections: guest.menuSelections ?? [],
-        }
-      })
-
-    demoGuests = [...demoGuests, ...newGuests]
 
     return partyByInviteToken(inviteToken)
   },
@@ -229,6 +333,7 @@ function partyByInviteToken(inviteToken: string): GuestInviteParty | null {
     weddingId: firstGuest.weddingId,
     inviteToken,
     groupName: firstGuest.party.groupName,
+    invite: firstGuest.party.invite,
     guests,
   }
 }

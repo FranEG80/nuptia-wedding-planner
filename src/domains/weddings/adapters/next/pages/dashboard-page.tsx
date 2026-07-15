@@ -21,5 +21,11 @@ export async function DashboardPage() {
     weddingId: wedding.id,
   })
 
-  return <DashboardView summary={summary} wedding={wedding} />
+  return (
+    <DashboardView
+      summary={summary}
+      wedding={wedding}
+      userName={session.appUser.name}
+    />
+  )
 }

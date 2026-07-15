@@ -9,16 +9,6 @@ import { resolveAppUserForAuthSession } from "@/core/auth/app-user"
 import { getAuth } from "@/core/auth/better-auth"
 import { createSupabaseServerClient } from "@/core/auth/supabase/server"
 
-const demoSession: AuthSession = {
-  provider: "demo",
-  user: {
-    id: "demo-user",
-    email: "demo@nuptia.local",
-    name: "Maria e Ignacio",
-    imageUrl: null,
-  },
-}
-
 async function getBetterAuthSession(): Promise<AuthSession | null> {
   try {
     const auth = await getAuth()
@@ -73,16 +63,11 @@ async function getSupabaseSession(): Promise<AuthSession | null> {
 }
 
 export async function getCurrentSession(): Promise<AuthSession | null> {
-  const session =
+  return (
     env.AUTH_PROVIDER === "supabase"
       ? await getSupabaseSession()
       : await getBetterAuthSession()
-
-  if (session) {
-    return session
-  }
-
-  return env.AUTH_ENFORCE ? null : demoSession
+  )
 }
 
 export async function requireSession() {

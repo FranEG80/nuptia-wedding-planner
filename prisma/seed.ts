@@ -1,10 +1,12 @@
 import { readFile } from "node:fs/promises"
 
 import { PrismaD1 } from "@prisma/adapter-d1"
+import { hashPassword } from "better-auth/crypto"
 import { getPlatformProxy } from "wrangler"
 import { z } from "zod"
 
 import { PrismaClient } from "../generated/prisma-seed/client"
+import { PUBLIC_DEMO_ACCOUNT } from "../src/core/auth/demo-account"
 import { DEFAULT_INVITATION_CONTENT } from "../src/domains/invitations/domain/invitation-design"
 
 const personSchema = z.object({
@@ -87,10 +89,105 @@ function weddingDate(seed: NachoWeddingSeed) {
   return new Date(`${seed.wedding.date}T${seed.wedding.time}:00.000+02:00`)
 }
 
-const demoAppUserId = "demo-app-user"
 const demoWeddingId = "demo-wedding"
 const demoRestaurantId = "demo-restaurant"
 const demoMenuId = "demo-menu"
+
+const nachoAuthUserId = "auth-user-nacho"
+const mariaAuthUserId = "auth-user-maria-daniela"
+const adminAuthUserId = "auth-user-admin"
+const nachoAppUserId = "app-user-nacho"
+const mariaAppUserId = "app-user-maria-daniela"
+const adminAppUserId = "app-user-admin"
+const nachoWeddingId = "wedding-nacho-y-maria-daniela"
+
+const demoSeed: NachoWeddingSeed = {
+  wife: {
+    name: "Lucía Romero",
+    email: "lucia.demo@nuptia.local",
+    phone: "+34 600 111 222",
+  },
+  husband: {
+    name: "Mateo Vidal",
+    email: "mateo.demo@nuptia.local",
+    phone: "+34 600 333 444",
+  },
+  history: [
+    "Nos conocimos en una sobremesa que se alargó mucho más de lo previsto.",
+    "Desde entonces hemos llenado los años de viajes, proyectos y domingos tranquilos.",
+    "Ahora queremos celebrar este nuevo capítulo rodeados de nuestra gente favorita.",
+  ],
+  wedding: {
+    date: "2027-05-22",
+    time: "17:30",
+    location: {
+      city: "Sevilla",
+      venue: "Jardines del Alcázar",
+      address: {
+        street: "Plaza del Triunfo",
+        number: "1",
+        postal_code: "41004",
+        city: "Sevilla",
+        province: "Sevilla",
+        country: "España",
+      },
+    },
+  },
+  cocktail: {
+    time: "19:00",
+    location: {
+      city: "Sevilla",
+      venue: "Finca Los Olivos",
+      address: {
+        street: "Camino de los Olivos",
+        number: "12",
+        postal_code: "41020",
+        city: "Sevilla",
+        province: "Sevilla",
+        country: "España",
+      },
+    },
+  },
+  banquet: {
+    time: "21:00",
+    location: {
+      city: "Sevilla",
+      venue: "Finca Los Olivos",
+      address: {
+        street: "Camino de los Olivos",
+        number: "12",
+        postal_code: "41020",
+        city: "Sevilla",
+        province: "Sevilla",
+        country: "España",
+      },
+    },
+  },
+  party: {
+    time: "23:30",
+    location: {
+      city: "Sevilla",
+      venue: "Finca Los Olivos",
+      address: {
+        street: "Camino de los Olivos",
+        number: "12",
+        postal_code: "41020",
+        city: "Sevilla",
+        province: "Sevilla",
+        country: "España",
+      },
+    },
+  },
+  rsvp: { deadline: "2027-04-30" },
+  gifts: {
+    bank_account: {
+      iban: "ES00 0000 0000 0000 0000 0000",
+      bic: "DEMOESMMXXX",
+      bank_name: "Banco Demo",
+      account_holder: "Lucía Romero y Mateo Vidal",
+    },
+  },
+}
 
 const roles = [
   { id: "role-owner", code: "owner", label: "Propietario", sortOrder: 1 },
@@ -100,7 +197,22 @@ const roles = [
   { id: "role-planner", code: "planner", label: "Wedding planner", sortOrder: 5 },
 ]
 
-const guests = [
+interface SeedGuest {
+  id: string
+  partyId?: string
+  role?: "primary" | "companion"
+  name: string
+  groupName: string
+  inviteStatus: string
+  rsvpStatus: string
+  phone: string | null
+  email: string | null
+  notes: string
+  tableNumber: number | null
+  inviteToken: string
+}
+
+const guests: SeedGuest[] = [
   {
     id: "guest-ana-santos",
     name: "Ana Santos",
@@ -114,13 +226,27 @@ const guests = [
     inviteToken: "token-ana-santos",
   },
   {
+    id: "guest-luis-santos",
+    partyId: "party-guest-ana-santos",
+    role: "companion",
+    name: "Luis Santos",
+    groupName: "Familia novia",
+    inviteStatus: "sent",
+    rsvpStatus: "declined",
+    phone: null,
+    email: null,
+    notes: "",
+    tableNumber: null,
+    inviteToken: "token-ana-santos",
+  },
+  {
     id: "guest-paco-enriquez",
     name: "Paco Enriquez",
     groupName: "Amigo novio",
     inviteStatus: "sent",
-    rsvpStatus: "pending",
+    rsvpStatus: "no_response",
     phone: "+34625391654",
-    email: null,
+    email: "maria.lopez@example.com",
     notes: "",
     tableNumber: 4,
     inviteToken: "token-paco-enriquez",
@@ -130,7 +256,7 @@ const guests = [
     name: "María López",
     groupName: "Familia novio",
     inviteStatus: "pending",
-    email: null,
+    email: "javier.marin@example.com",
     rsvpStatus: "no_response",
     notes: "Pendiente de confirmar acompañante",
     tableNumber: null,
@@ -150,23 +276,23 @@ const guests = [
     inviteToken: "token-javier-marin",
   },
   {
-    id: "guest-nacho-demo",
-    name: "Nacho Demo",
-    email: "nacho.ruiz@example.com",
+    id: "guest-sergio-ruiz",
+    name: "Sergio Ruiz",
+    email: "sergio.ruiz@example.com",
     groupName: "Familia novio",
     phone: "+34616633576",
     inviteStatus: "sent",
     rsvpStatus: "confirmed",
     notes: "Viaje fuera de España",
     tableNumber: null,
-    inviteToken: "token-nacho-demo",
+    inviteToken: "token-sergio-ruiz",
   },
 ]
 
-function siteModules(seed: NachoWeddingSeed) {
+function siteModules(seed: NachoWeddingSeed, prefix: string) {
   return [
     {
-      id: "module-location",
+      id: `${prefix}-module-location`,
       type: "location",
       title: "Lugar",
       desc: "Mapa, horarios y detalles de llegada.",
@@ -181,7 +307,7 @@ function siteModules(seed: NachoWeddingSeed) {
       }),
     },
     {
-      id: "module-timeline",
+      id: `${prefix}-module-timeline`,
       type: "timeline",
       title: "Programa",
       desc: "Ceremonia, cóctel, cena y fiesta.",
@@ -192,7 +318,7 @@ function siteModules(seed: NachoWeddingSeed) {
       }),
     },
     {
-      id: "module-menu",
+      id: `${prefix}-module-menu`,
       type: "menu",
       title: "Menú",
       desc: "Platos y opciones especiales.",
@@ -201,7 +327,7 @@ function siteModules(seed: NachoWeddingSeed) {
       config: "{}",
     },
     {
-      id: "module-spotify",
+      id: `${prefix}-module-spotify`,
       type: "spotify",
       title: "Lista de Spotify",
       desc: "Canciones propuestas por los invitados.",
@@ -210,7 +336,7 @@ function siteModules(seed: NachoWeddingSeed) {
       config: JSON.stringify({ playlistUrl: "" }),
     },
     {
-      id: "module-gallery",
+      id: `${prefix}-module-gallery`,
       type: "gallery",
       title: "Galería live",
       desc: "Fotos compartidas durante la celebración.",
@@ -219,7 +345,7 @@ function siteModules(seed: NachoWeddingSeed) {
       config: "{}",
     },
     {
-      id: "module-guestbook",
+      id: `${prefix}-module-guestbook`,
       type: "guestbook",
       title: "Firmas y felicitaciones",
       desc: "Mensajes, dedicatorias y firmas digitales.",
@@ -228,7 +354,7 @@ function siteModules(seed: NachoWeddingSeed) {
       config: "{}",
     },
     {
-      id: "module-gifts",
+      id: `${prefix}-module-gifts`,
       type: "gifts",
       title: "Regalos",
       desc: "Información útil para regalos y aportaciones.",
@@ -390,20 +516,60 @@ function invitationContent(seed: NachoWeddingSeed) {
   }
 }
 
-async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
-  await seedRoles(prisma)
-  await seedRestaurantMenu(prisma, seed)
+interface AuthAccountSeed {
+  authUserId: string
+  appUserId: string
+  name: string
+  email: string
+  password: string
+  role: "user" | "admin"
+}
 
-  const appUser = await prisma.appUser.upsert({
-    where: { email: "demo@nuptia.local" },
+async function seedAuthAccount(prisma: PrismaClient, account: AuthAccountSeed) {
+  const password = await hashPassword(account.password)
+  const authUser = await prisma.user.upsert({
+    where: { email: account.email.toLowerCase() },
     update: {
-      name: seed.husband.name,
-      imageUrl: null,
+      name: account.name,
+      emailVerified: true,
+      role: account.role,
+      banned: false,
+      banReason: null,
+      banExpires: null,
     },
     create: {
-      id: demoAppUserId,
-      email: "demo@nuptia.local",
-      name: seed.husband.name,
+      id: account.authUserId,
+      name: account.name,
+      email: account.email.toLowerCase(),
+      emailVerified: true,
+      role: account.role,
+    },
+  })
+
+  await prisma.account.upsert({
+    where: { id: `credential-${authUser.id}` },
+    update: {
+      userId: authUser.id,
+      accountId: authUser.id,
+      providerId: "credential",
+      password,
+    },
+    create: {
+      id: `credential-${authUser.id}`,
+      userId: authUser.id,
+      accountId: authUser.id,
+      providerId: "credential",
+      password,
+    },
+  })
+
+  const appUser = await prisma.appUser.upsert({
+    where: { email: account.email.toLowerCase() },
+    update: { name: account.name, imageUrl: null },
+    create: {
+      id: account.appUserId,
+      email: account.email.toLowerCase(),
+      name: account.name,
       imageUrl: null,
     },
   })
@@ -411,27 +577,36 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
   await prisma.authIdentity.upsert({
     where: {
       provider_providerUserId: {
-        provider: "demo",
-        providerUserId: "demo-user",
+        provider: "better-auth",
+        providerUserId: authUser.id,
       },
     },
-    update: {
-      appUserId: appUser.id,
-      email: appUser.email,
-    },
+    update: { appUserId: appUser.id, email: appUser.email },
     create: {
-      id: "demo-auth-identity",
+      id: `identity-${authUser.id}`,
       appUserId: appUser.id,
-      provider: "demo",
-      providerUserId: "demo-user",
+      provider: "better-auth",
+      providerUserId: authUser.id,
       email: appUser.email,
     },
   })
 
+  return appUser
+}
+
+async function seedDemoWedding(
+  prisma: PrismaClient,
+  seed: NachoWeddingSeed,
+  appUser: Awaited<ReturnType<typeof seedAuthAccount>>,
+) {
+  await seedRoles(prisma)
+  await seedRestaurantMenu(prisma, seed)
+
   const wedding = await prisma.wedding.upsert({
-    where: { slug: "demo" },
+    where: { id: demoWeddingId },
     update: {
       ownerId: appUser.id,
+      slug: "demo",
       date: weddingDate(seed),
       status: "published",
       partnerInviteEmail: seed.wife.email,
@@ -530,8 +705,9 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
   })
 
   for (const guest of guests) {
+    const partyId = guest.partyId ?? `party-${guest.id}`
     const party = await prisma.guestParty.upsert({
-      where: { id: `party-${guest.id}` },
+      where: { id: partyId },
       update: {
         weddingId: wedding.id,
         inviteToken: guest.inviteToken,
@@ -539,7 +715,7 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
         inviteStatus: guest.inviteStatus,
       },
       create: {
-        id: `party-${guest.id}`,
+        id: partyId,
         weddingId: wedding.id,
         inviteToken: guest.inviteToken,
         groupName: guest.groupName,
@@ -552,7 +728,7 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
       update: {
         partyId: party.id,
         weddingId: wedding.id,
-        role: "primary",
+        role: guest.role ?? "primary",
         name: guest.name,
         phone: guest.phone ?? null,
         email: guest?.email ?? null,
@@ -564,7 +740,7 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
         id: guest.id,
         partyId: party.id,
         weddingId: wedding.id,
-        role: "primary",
+        role: guest.role ?? "primary",
         name: guest.name,
         phone: guest.phone ?? null,
         email: guest?.email ?? null,
@@ -606,7 +782,7 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
     }
   }
 
-  for (const siteModule of siteModules(seed)) {
+  for (const siteModule of siteModules(seed, "demo")) {
     await prisma.weddingSiteModule.upsert({
       where: {
         weddingId_type: {
@@ -627,6 +803,191 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
       },
     })
   }
+}
+
+async function seedNachoWedding(
+  prisma: PrismaClient,
+  seed: NachoWeddingSeed,
+  nacho: Awaited<ReturnType<typeof seedAuthAccount>>,
+  maria: Awaited<ReturnType<typeof seedAuthAccount>>,
+) {
+  const restaurant = await prisma.restaurant.upsert({
+    where: { id: "nacho-restaurant" },
+    update: {
+      name: seed.banquet.location.venue,
+      city: seed.banquet.location.city,
+      address: formatAddress(seed.banquet.location),
+      mapsUrl: mapsUrl(seed.banquet.location),
+    },
+    create: {
+      id: "nacho-restaurant",
+      name: seed.banquet.location.venue,
+      city: seed.banquet.location.city,
+      address: formatAddress(seed.banquet.location),
+      mapsUrl: mapsUrl(seed.banquet.location),
+    },
+  })
+
+  const menu = await prisma.restaurantMenu.upsert({
+    where: { id: "nacho-menu" },
+    update: {
+      restaurantId: restaurant.id,
+      name: "Menú de boda",
+      active: true,
+    },
+    create: {
+      id: "nacho-menu",
+      restaurantId: restaurant.id,
+      name: "Menú de boda",
+      active: true,
+    },
+  })
+
+  const wedding = await prisma.wedding.upsert({
+    where: { id: nachoWeddingId },
+    update: {
+      ownerId: nacho.id,
+      slug: "nacho-y-maria-daniela",
+      date: weddingDate(seed),
+      status: "published",
+      partnerInviteEmail: seed.wife.email,
+      restaurantId: restaurant.id,
+      menuId: menu.id,
+    },
+    create: {
+      id: nachoWeddingId,
+      ownerId: nacho.id,
+      slug: "nacho-y-maria-daniela",
+      date: weddingDate(seed),
+      status: "published",
+      partnerInviteEmail: seed.wife.email,
+      restaurantId: restaurant.id,
+      menuId: menu.id,
+    },
+  })
+
+  await prisma.weddingCeremonyLocation.upsert({
+    where: { weddingId: wedding.id },
+    update: {
+      name: seed.wedding.location.venue,
+      city: seed.wedding.location.city,
+      address: formatAddress(seed.wedding.location),
+      mapsUrl: mapsUrl(seed.wedding.location),
+    },
+    create: {
+      id: "nacho-ceremony-location",
+      weddingId: wedding.id,
+      name: seed.wedding.location.venue,
+      city: seed.wedding.location.city,
+      address: formatAddress(seed.wedding.location),
+      mapsUrl: mapsUrl(seed.wedding.location),
+    },
+  })
+
+  for (const member of [
+    {
+      id: "nacho-wedding-owner-member",
+      appUserId: nacho.id,
+      roleId: "role-owner",
+      displayName: seed.husband.name,
+      sortOrder: 0,
+    },
+    {
+      id: "nacho-wedding-bride-member",
+      appUserId: maria.id,
+      roleId: "role-bride",
+      displayName: seed.wife.name,
+      sortOrder: 1,
+    },
+  ]) {
+    await prisma.weddingMember.upsert({
+      where: { id: member.id },
+      update: { ...member, weddingId: wedding.id },
+      create: { ...member, weddingId: wedding.id },
+    })
+  }
+
+  await prisma.invitationDesign.upsert({
+    where: { weddingId: wedding.id },
+    update: {
+      templateId: "maria-daniela",
+      titleFont: "cormorant-lato",
+      palette: "terracotta",
+      content: JSON.stringify(invitationContent(seed)),
+      openingEffect: "envelope",
+      musicEnabled: false,
+    },
+    create: {
+      id: "nacho-invitation-design",
+      weddingId: wedding.id,
+      templateId: "maria-daniela",
+      titleFont: "cormorant-lato",
+      palette: "terracotta",
+      content: JSON.stringify(invitationContent(seed)),
+      openingEffect: "envelope",
+      musicEnabled: false,
+    },
+  })
+
+  for (const siteModule of siteModules(seed, "nacho")) {
+    await prisma.weddingSiteModule.upsert({
+      where: {
+        weddingId_type: { weddingId: wedding.id, type: siteModule.type },
+      },
+      update: {
+        title: siteModule.title,
+        desc: siteModule.desc,
+        enabled: siteModule.enabled,
+        sortOrder: siteModule.sortOrder,
+        config: siteModule.config,
+      },
+      create: { ...siteModule, weddingId: wedding.id },
+    })
+  }
+}
+
+async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
+  await seedRoles(prisma)
+
+  await prisma.authIdentity.deleteMany({ where: { provider: "demo" } })
+  await prisma.guest.deleteMany({ where: { id: "guest-nacho-demo" } })
+  await prisma.guestParty.deleteMany({ where: { id: "party-guest-nacho-demo" } })
+
+  const nacho = await seedAuthAccount(prisma, {
+    authUserId: nachoAuthUserId,
+    appUserId: nachoAppUserId,
+    name: seed.husband.name,
+    email: seed.husband.email,
+    password: "MariaDaniela26",
+    role: "user",
+  })
+  const maria = await seedAuthAccount(prisma, {
+    authUserId: mariaAuthUserId,
+    appUserId: mariaAppUserId,
+    name: seed.wife.name,
+    email: seed.wife.email,
+    password: "Nacho26",
+    role: "user",
+  })
+  const demo = await seedAuthAccount(prisma, {
+    authUserId: PUBLIC_DEMO_ACCOUNT.id,
+    appUserId: PUBLIC_DEMO_ACCOUNT.appUserId,
+    name: PUBLIC_DEMO_ACCOUNT.name,
+    email: PUBLIC_DEMO_ACCOUNT.email,
+    password: PUBLIC_DEMO_ACCOUNT.password,
+    role: "user",
+  })
+  await seedAuthAccount(prisma, {
+    authUserId: adminAuthUserId,
+    appUserId: adminAppUserId,
+    name: "Admin Fenrig",
+    email: "admin@nuptia.local",
+    password: "AdminFenrig26",
+    role: "admin",
+  })
+
+  await seedDemoWedding(prisma, demoSeed, demo)
+  await seedNachoWedding(prisma, seed, nacho, maria)
 }
 
 async function run() {

@@ -24,9 +24,11 @@ export default async function PublicInvitationRoutePage({
     notFound()
   }
 
+  const templateId = normalizeInvitationTemplateId(invitation.design.templateId)
+
   return (
     <ResolvedInvitationTemplate
-      templateId={normalizeInvitationTemplateId(invitation.design.templateId)}
+      templateId={templateId}
       wedding={invitation.wedding}
       content={invitation.design.content}
       rsvpSlot={
@@ -37,6 +39,7 @@ export default async function PublicInvitationRoutePage({
           title={invitation.design.content.rsvpTitle}
           subtitle={invitation.design.content.rsvpSubtitle}
           panelMotion={invitation.design.content.rsvpPanelMotion}
+          experience={templateId === "maria-daniela" ? "demo" : "default"}
         />
       }
     />

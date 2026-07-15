@@ -184,7 +184,7 @@ export function BouquetInvitationTemplate({
                 {content.travel.map((item) => (
                   <article key={item.id} className="grid gap-5 sm:grid-cols-[128px_1fr]">
                     <div className="relative h-32 overflow-hidden rounded-[6px] bg-[var(--invite-border)]">
-                      <Image
+                      <Image draggable="false"
                         src={item.imageSrc || "/images/venue.png"}
                         alt=""
                         fill
@@ -283,7 +283,7 @@ export function BouquetInvitationTemplate({
 
         {visible.rsvp ? (
         <aside id="rsvp" className="relative hidden min-h-svh overflow-hidden lg:block lg:h-svh">
-          <Image
+          <Image draggable="false"
             src={heroPhoto.src}
             alt=""
             fill

@@ -7,7 +7,7 @@ const emailSchema = z.preprocess(
 
 const passwordSchema = z
   .string()
-  .min(8, "La contraseña debe tener al menos 8 caracteres.")
+  .min(7, "La contraseña debe tener al menos 7 caracteres.")
   .regex(/[A-Za-z]/, "Incluye al menos una letra.")
   .regex(/[0-9]/, "Incluye al menos un número.")
 
