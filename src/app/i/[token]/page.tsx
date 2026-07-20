@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { getRepositories } from "@/composition/repositories"
@@ -5,6 +6,45 @@ import { ResolvedInvitationTemplate } from "@/domains/invitations/adapters/next/
 import { PublicRsvpPanel } from "@/domains/invitations/adapters/next/components/public-rsvp-panel"
 import { getPublicInvitationByTokenUseCase } from "@/domains/invitations/application/use-cases/get-public-invitation-by-token.use-case"
 import { normalizeInvitationTemplateId } from "@/domains/invitations/domain/invitation-template-options"
+
+function formatWeddingDate(date: string) {
+  return new Date(date).toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>
+}): Promise<Metadata> {
+  const { token } = await params
+  const repositories = await getRepositories()
+  const invitation = await getPublicInvitationByTokenUseCase({
+    guestRepository: repositories.guest,
+    invitationRepository: repositories.invitation,
+    weddingRepository: repositories.wedding,
+    token,
+  })
+
+  if (!invitation) {
+    return { title: "Invitación | Nuptia" }
+  }
+
+  const dateLabel = formatWeddingDate(invitation.wedding.date)
+  const title = `${invitation.wedding.displayName} · ${dateLabel}`
+  const greeting = invitation.groupName ? `${invitation.groupName}, e` : "E"
+  const description = `${greeting}stáis invitados a la boda de ${invitation.wedding.displayName} el ${dateLabel} en ${invitation.wedding.primaryCity}.`
+
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "website" },
+    twitter: { card: "summary_large_image", title, description },
+  }
+}
 
 export default async function PublicInvitationRoutePage({
   params,
