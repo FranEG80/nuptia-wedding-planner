@@ -1,5 +1,9 @@
 import type { Prisma, PrismaClient } from "@generated/prisma/client"
 import type {
+  D1BatchDatabase,
+  D1BatchStatement,
+} from "@/core/db/d1-batch"
+import type {
   CreateGuestInput,
   CreateInvitationPartyInput,
   GuestInviteParty,
@@ -161,7 +165,7 @@ function assertValidPartyMembers(guests: InvitationPartyGuestInput[]) {
 export class PrismaGuestRepository implements GuestRepository {
   constructor(
     private readonly prisma: PrismaClient,
-    private readonly d1: D1Database,
+    private readonly d1: D1BatchDatabase,
   ) {}
 
   async findRecordById(id: string) {
@@ -297,7 +301,7 @@ export class PrismaGuestRepository implements GuestRepository {
     const partyId = crypto.randomUUID()
     const inviteToken = crypto.randomUUID()
     const now = new Date().toISOString()
-    const statements: D1PreparedStatement[] = [
+    const statements: D1BatchStatement[] = [
       this.d1
         .prepare(
           `INSERT INTO guest_parties
@@ -400,7 +404,7 @@ export class PrismaGuestRepository implements GuestRepository {
     }
 
     const now = new Date().toISOString()
-    const statements: D1PreparedStatement[] = [
+    const statements: D1BatchStatement[] = [
       this.d1
         .prepare(
           `UPDATE guest_parties
@@ -618,7 +622,7 @@ export class PrismaGuestRepository implements GuestRepository {
       input.guests.map((guest) => [guest.guestId, guest]),
     )
     const now = new Date().toISOString()
-    const statements: D1PreparedStatement[] = []
+    const statements: D1BatchStatement[] = []
 
     for (const guest of party.guests) {
       const response = responsesByGuestId.get(guest.id)

@@ -150,6 +150,8 @@ La aplicación usa los bindings `DB` (D1) y `MEDIA_BUCKET` (R2), definidos en `w
 
 Las fotos se suben como `multipart/form-data` al endpoint autenticado `POST /api/media/upload`, usando el campo `file` y, opcionalmente, `alt`. Se guardan en R2 y se sirven desde `/api/media/files/...`.
 
+Para desplegar Next.js en Vercel conservando D1 en Cloudflare, consulta la [guía de despliegue paso a paso](docs/despliegue-vercel-d1.md).
+
 ## 📄 Licencia
 
 Proyecto privado. Todos los derechos reservados.

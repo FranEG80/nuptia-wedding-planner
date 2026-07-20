@@ -55,7 +55,9 @@ describe("contrato de errores HTTP", () => {
 
   it("responde con JSON ante una ruta API inexistente", async () => {
     const response = unknownApiRoute()
-    const body = await response.json()
+    const body = (await response.json()) as {
+      error: { code: string; message: string }
+    }
 
     assert.equal(response.status, 404)
     assert.equal(response.headers.get("content-type"), "application/json")

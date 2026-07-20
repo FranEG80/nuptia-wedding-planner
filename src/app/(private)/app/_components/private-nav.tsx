@@ -73,9 +73,6 @@ export function PrivateNav({
             </div>
             <nav className="flex-1 space-y-1 px-4">
               {navItems.map((item) => {
-                if (item.active === false) {
-                  return null
-                }
                 const Icon = item.icon
                 const isActive = pathname === item.href
                 return (
@@ -169,9 +166,6 @@ export function PrivateNav({
 
       <nav className={cn("flex-1 space-y-1 px-4", collapsed && "px-3")}>
         {navItems.map((item) => {
-          if (item.active === false) {
-            return null
-          }
           const Icon = item.icon
           const isActive = pathname === item.href
 

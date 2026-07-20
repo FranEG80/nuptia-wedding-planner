@@ -7,6 +7,7 @@ import { getPlatformProxy } from "wrangler"
 
 import type { PrismaClient as AppPrismaClient } from "@generated/prisma/client"
 import { PrismaClient } from "@generated/prisma-seed/client"
+import { createBindingD1BatchDatabase } from "@/core/db/d1-batch"
 import { PrismaGuestRepository } from "@/domains/guests/adapters/prisma/prisma-guest.repository"
 
 test("el repositorio gestiona una invitación individual y una pareja completa", async () => {
@@ -19,7 +20,7 @@ test("el repositorio gestiona una invitación individual y una pareja completa",
   const prisma = new PrismaClient({ adapter: new PrismaD1(db) })
   const repository = new PrismaGuestRepository(
     prisma as unknown as AppPrismaClient,
-    db,
+    createBindingD1BatchDatabase(db),
   )
   const partyIds: string[] = []
   const seatId = `test-seat-${randomUUID()}`

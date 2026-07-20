@@ -26,4 +26,20 @@ const envSchema = z.object({
   SPOTIFY_REDIRECT_URI: z.string().url().default("http://localhost:3000/api/integrations/spotify/callback"),
 })
 
+const d1HttpEnvSchema = z.object({
+  CLOUDFLARE_D1_TOKEN: z.string().min(1),
+  CLOUDFLARE_ACCOUNT_ID: z.string().min(1),
+  CLOUDFLARE_DATABASE_ID: z.string().uuid(),
+})
+
 export const env = envSchema.parse(process.env)
+
+export function getD1HttpCredentials() {
+  const values = d1HttpEnvSchema.parse(process.env)
+
+  return {
+    token: values.CLOUDFLARE_D1_TOKEN,
+    accountId: values.CLOUDFLARE_ACCOUNT_ID,
+    databaseId: values.CLOUDFLARE_DATABASE_ID,
+  }
+}
