@@ -9,14 +9,16 @@ import { assertExactPartyResponses } from "@/domains/guests/domain/invitation-pa
 import { publicInvitationResponseSchema } from "@/domains/invitations/application/dtos/public-invitation-response.dto"
 
 const ana = {
-  name: "Ana",
+  firstName: "Ana",
+  lastName: "",
   email: "ana@example.com",
   phone: null,
   isRecipient: true,
 }
 
 const luis = {
-  name: "Luis",
+  firstName: "Luis",
+  lastName: "",
   email: null,
   phone: null,
   isRecipient: false,
@@ -46,7 +48,7 @@ describe("invitaciones compartidas", () => {
   it("rechaza un tercer invitado y grupos sin destinatario válido", () => {
     assert.equal(
       createInvitationPartySchema.safeParse({
-        guests: [ana, luis, { ...luis, name: "Marta" }],
+        guests: [ana, luis, { ...luis, firstName: "Marta" }],
       }).success,
       false,
     )

@@ -4,7 +4,8 @@ export interface CreateGuestInput {
   weddingId: string
   partyId?: string
   role?: Guest["role"]
-  name: string
+  firstName: string
+  lastName?: string
   email?: string | null
   phone?: string | null
   groupName?: string
@@ -27,7 +28,8 @@ export interface GuestInviteParty {
 
 export interface InvitationPartyGuestInput {
   id?: string
-  name: string
+  firstName: string
+  lastName?: string
   email?: string | null
   phone?: string | null
   isRecipient: boolean
@@ -83,4 +85,7 @@ export interface GuestRepository {
       message?: string | null
     },
   ): Promise<GuestInviteParty | null>
+  assignSeat(guestId: string, weddingId: string, tableId: string): Promise<Guest | null>
+  unassignSeat(guestId: string, weddingId: string): Promise<Guest | null>
+  deleteInvitationParty(partyId: string, weddingId: string): Promise<boolean>
 }

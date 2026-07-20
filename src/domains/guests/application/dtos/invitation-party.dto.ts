@@ -15,7 +15,8 @@ const nullableContactSchema = z
   .transform((value) => value || null)
 
 const invitationGuestSchema = z.object({
-  name: z.string().trim().min(1).max(140),
+  firstName: z.string().trim().min(1).max(80),
+  lastName: z.string().trim().max(80).optional().transform((value) => value ?? ""),
   email: nullableContactSchema.refine(
     (value) => value === null || z.email().safeParse(value).success,
     "El email no es válido",

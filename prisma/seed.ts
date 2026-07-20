@@ -201,7 +201,8 @@ interface SeedGuest {
   id: string
   partyId?: string
   role?: "primary" | "companion"
-  name: string
+  firstName: string
+  lastName: string
   groupName: string
   inviteStatus: string
   rsvpStatus: string
@@ -215,7 +216,8 @@ interface SeedGuest {
 const guests: SeedGuest[] = [
   {
     id: "guest-ana-santos",
-    name: "Ana Santos",
+    firstName: "Ana",
+    lastName: "Santos",
     groupName: "Familia novia",
     inviteStatus: "sent",
     rsvpStatus: "confirmed",
@@ -229,7 +231,8 @@ const guests: SeedGuest[] = [
     id: "guest-luis-santos",
     partyId: "party-guest-ana-santos",
     role: "companion",
-    name: "Luis Santos",
+    firstName: "Luis",
+    lastName: "Santos",
     groupName: "Familia novia",
     inviteStatus: "sent",
     rsvpStatus: "declined",
@@ -241,7 +244,8 @@ const guests: SeedGuest[] = [
   },
   {
     id: "guest-paco-enriquez",
-    name: "Paco Enriquez",
+    firstName: "Paco",
+    lastName: "Enriquez",
     groupName: "Amigo novio",
     inviteStatus: "sent",
     rsvpStatus: "no_response",
@@ -253,7 +257,8 @@ const guests: SeedGuest[] = [
   },
   {
     id: "guest-maria-lopez",
-    name: "María López",
+    firstName: "María",
+    lastName: "López",
     groupName: "Familia novio",
     inviteStatus: "pending",
     email: "maria.lopez@example.com",
@@ -265,7 +270,8 @@ const guests: SeedGuest[] = [
   },
   {
     id: "guest-javier-marin",
-    name: "Javier Marín",
+    firstName: "Javier",
+    lastName: "Marín",
     groupName: "Trabajo",
     inviteStatus: "sent",
     email: null,
@@ -277,7 +283,8 @@ const guests: SeedGuest[] = [
   },
   {
     id: "guest-sergio-ruiz",
-    name: "Sergio Ruiz",
+    firstName: "Sergio",
+    lastName: "Ruiz",
     email: "sergio.ruiz@example.com",
     groupName: "Familia novio",
     phone: "+34616633576",
@@ -723,13 +730,17 @@ async function seedDemoWedding(
       },
     })
 
+    const guestFullName = [guest.firstName, guest.lastName].filter(Boolean).join(" ")
+
     await prisma.guest.upsert({
       where: { id: guest.id },
       update: {
         partyId: party.id,
         weddingId: wedding.id,
         role: guest.role ?? "primary",
-        name: guest.name,
+        name: guestFullName,
+        firstName: guest.firstName,
+        lastName: guest.lastName,
         phone: guest.phone ?? null,
         email: guest?.email ?? null,
         rsvpStatus: guest.rsvpStatus,
@@ -741,7 +752,9 @@ async function seedDemoWedding(
         partyId: party.id,
         weddingId: wedding.id,
         role: guest.role ?? "primary",
-        name: guest.name,
+        name: guestFullName,
+        firstName: guest.firstName,
+        lastName: guest.lastName,
         phone: guest.phone ?? null,
         email: guest?.email ?? null,
         rsvpStatus: guest.rsvpStatus,
@@ -757,12 +770,14 @@ async function seedDemoWedding(
           weddingId: wedding.id,
           name: `Mesa ${guest.tableNumber}`,
           sortOrder: guest.tableNumber,
+          capacity: 8,
         },
         create: {
           id: `demo-table-${guest.tableNumber}`,
           weddingId: wedding.id,
           name: `Mesa ${guest.tableNumber}`,
           sortOrder: guest.tableNumber,
+          capacity: 8,
         },
       })
 

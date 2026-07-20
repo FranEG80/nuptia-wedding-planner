@@ -35,6 +35,8 @@ export interface Guest {
   appUserId: string | null
   role: GuestRole
   name: string
+  firstName: string
+  lastName: string
   email: string | null
   phone: string | null
   rsvp: GuestRsvpStatus

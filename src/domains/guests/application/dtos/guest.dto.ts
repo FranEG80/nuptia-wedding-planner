@@ -23,6 +23,8 @@ export interface GuestDto {
   appUserId: string | null
   role: Guest["role"]
   name: string
+  firstName: string
+  lastName: string
   email: string | null
   phone: string | null
   group: string
@@ -32,14 +34,14 @@ export interface GuestDto {
   inviteToken: string
   uploadToken: string | null
   seat: GuestSeatDto | null
-  table: number | null
   invitedBy: GuestInvitedByDto[]
 }
 
 export interface CreateGuestDto {
   partyId?: string
   role?: Guest["role"]
-  name: string
+  firstName: string
+  lastName?: string
   email?: string | null
   phone?: string | null
   groupName?: string
@@ -51,15 +53,6 @@ export interface CreateGuestDto {
 
 export type UpdateGuestDto = Partial<CreateGuestDto>
 
-function tableNumberFromSeat(seat: Guest["seat"]) {
-  if (!seat) {
-    return null
-  }
-
-  const numberMatch = seat.tableName.match(/\d+/)
-  return numberMatch ? Number(numberMatch[0]) : null
-}
-
 export function toGuestDto(guest: Guest): GuestDto {
   return {
     id: guest.id,
@@ -68,6 +61,8 @@ export function toGuestDto(guest: Guest): GuestDto {
     appUserId: guest.appUserId,
     role: guest.role,
     name: guest.name,
+    firstName: guest.firstName,
+    lastName: guest.lastName,
     email: guest.email,
     phone: guest.phone,
     group: guest.party.groupName,
@@ -84,7 +79,6 @@ export function toGuestDto(guest: Guest): GuestDto {
           position: guest.seat.position,
         }
       : null,
-    table: tableNumberFromSeat(guest.seat),
     invitedBy: guest.invitedBy.map((item) => ({
       weddingMemberId: item.weddingMemberId,
       displayName: item.displayName,

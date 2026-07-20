@@ -89,6 +89,8 @@ function toGuest(record: PrismaGuestRecord): Guest {
     appUserId: record.appUserId,
     role: roleFromDb(record.role),
     name: record.name,
+    firstName: record.firstName,
+    lastName: record.lastName,
     email: record.email,
     phone: record.phone,
     rsvp: rsvpFromDb[record.rsvpStatus] ?? "Sin respuesta",
@@ -136,6 +138,10 @@ function toGuestParty(record: PrismaGuestPartyRecord): GuestInviteParty {
 function normalizeContact(value: string | null | undefined) {
   const normalized = value?.trim()
   return normalized ? normalized : null
+}
+
+function composeFullName(firstName: string, lastName: string) {
+  return [firstName.trim(), lastName.trim()].filter(Boolean).join(" ")
 }
 
 function assertValidPartyMembers(guests: InvitationPartyGuestInput[]) {
@@ -232,12 +238,16 @@ export class PrismaGuestRepository implements GuestRepository {
         })
       ).id
 
+    const firstName = input.firstName.trim()
+    const lastName = input.lastName?.trim() ?? ""
     const guest = await this.prisma.guest.create({
       data: {
         partyId,
         weddingId: input.weddingId,
         role: input.role ?? "primary",
-        name: input.name,
+        name: composeFullName(firstName, lastName),
+        firstName,
+        lastName,
         email: input.email,
         phone: input.phone,
         rsvpStatus: input.rsvp ? rsvpToDb[input.rsvp] : "no_response",
@@ -260,12 +270,17 @@ export class PrismaGuestRepository implements GuestRepository {
       return null
     }
 
+    const firstName = input.firstName?.trim() ?? current.firstName
+    const lastName = input.lastName?.trim() ?? current.lastName
+
     await this.prisma.$transaction(async (tx) => {
       await tx.guest.update({
         where: { id },
         data: {
           role: input.role,
-          name: input.name,
+          name: composeFullName(firstName, lastName),
+          firstName,
+          lastName,
           email: input.email,
           phone: input.phone,
           rsvpStatus: input.rsvp ? rsvpToDb[input.rsvp] : undefined,
@@ -320,21 +335,25 @@ export class PrismaGuestRepository implements GuestRepository {
 
     for (const [index, guest] of input.guests.entries()) {
       const createdAt = new Date(Date.now() + index).toISOString()
+      const firstName = guest.firstName.trim()
+      const lastName = guest.lastName?.trim() ?? ""
 
       statements.push(
         this.d1
           .prepare(
             `INSERT INTO guests
-              (id, partyId, weddingId, role, name, email, phone, rsvpStatus,
+              (id, partyId, weddingId, role, name, firstName, lastName, email, phone, rsvpStatus,
                notes, uploadToken, createdAt, updatedAt)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'no_response', '', ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'no_response', '', ?, ?, ?)`,
           )
           .bind(
             crypto.randomUUID(),
             partyId,
             input.weddingId,
             guest.isRecipient ? "primary" : "companion",
-            guest.name.trim(),
+            composeFullName(firstName, lastName),
+            firstName,
+            lastName,
             normalizeContact(guest.email),
             normalizeContact(guest.phone),
             crypto.randomUUID(),
@@ -443,18 +462,22 @@ export class PrismaGuestRepository implements GuestRepository {
 
     for (const guest of input.guests) {
       const role = guest.isRecipient ? "primary" : "companion"
+      const firstName = guest.firstName.trim()
+      const lastName = guest.lastName?.trim() ?? ""
 
       if (guest.id) {
         statements.push(
           this.d1
             .prepare(
               `UPDATE guests
-               SET role = ?, name = ?, email = ?, phone = ?, updatedAt = ?
+               SET role = ?, name = ?, firstName = ?, lastName = ?, email = ?, phone = ?, updatedAt = ?
                WHERE id = ? AND partyId = ? AND weddingId = ?`,
             )
             .bind(
               role,
-              guest.name.trim(),
+              composeFullName(firstName, lastName),
+              firstName,
+              lastName,
               normalizeContact(guest.email),
               normalizeContact(guest.phone),
               now,
@@ -470,16 +493,18 @@ export class PrismaGuestRepository implements GuestRepository {
         this.d1
           .prepare(
             `INSERT INTO guests
-              (id, partyId, weddingId, role, name, email, phone, rsvpStatus,
+              (id, partyId, weddingId, role, name, firstName, lastName, email, phone, rsvpStatus,
                notes, uploadToken, createdAt, updatedAt)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'no_response', '', ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'no_response', '', ?, ?, ?)`,
           )
           .bind(
             crypto.randomUUID(),
             partyId,
             input.weddingId,
             role,
-            guest.name.trim(),
+            composeFullName(firstName, lastName),
+            firstName,
+            lastName,
             normalizeContact(guest.email),
             normalizeContact(guest.phone),
             crypto.randomUUID(),
@@ -713,5 +738,93 @@ export class PrismaGuestRepository implements GuestRepository {
     await this.d1.batch(statements)
 
     return this.findPartyByInviteToken(inviteToken)
+  }
+
+  async assignSeat(
+    guestId: string,
+    weddingId: string,
+    tableId: string,
+  ): Promise<Guest | null> {
+    const now = new Date().toISOString()
+
+    await this.d1.batch([
+      this.d1.prepare("DELETE FROM wedding_seats WHERE guestId = ?").bind(guestId),
+      this.d1
+        .prepare(
+          `INSERT INTO wedding_seats (id, tableId, position, guestId, createdAt, updatedAt)
+           VALUES (?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM wedding_seats WHERE tableId = ?), ?, ?, ?)`,
+        )
+        .bind(crypto.randomUUID(), tableId, tableId, guestId, now, now),
+    ])
+
+    const guest = await this.prisma.guest.findFirst({
+      where: { id: guestId, weddingId },
+      include: guestInclude,
+    })
+
+    return guest ? toGuest(guest) : null
+  }
+
+  async unassignSeat(guestId: string, weddingId: string): Promise<Guest | null> {
+    await this.d1.batch([
+      this.d1
+        .prepare(
+          `DELETE FROM wedding_seats
+           WHERE guestId = (SELECT id FROM guests WHERE id = ? AND weddingId = ?)`,
+        )
+        .bind(guestId, weddingId),
+    ])
+
+    const guest = await this.prisma.guest.findFirst({
+      where: { id: guestId, weddingId },
+      include: guestInclude,
+    })
+
+    return guest ? toGuest(guest) : null
+  }
+
+  async deleteInvitationParty(
+    partyId: string,
+    weddingId: string,
+  ): Promise<boolean> {
+    const party = await this.prisma.guestParty.findFirst({
+      where: { id: partyId, weddingId },
+      select: { id: true },
+    })
+
+    if (!party) {
+      return false
+    }
+
+    const guestScope =
+      "(SELECT id FROM guests WHERE partyId = ? AND weddingId = ?)"
+
+    await this.d1.batch([
+      this.d1
+        .prepare(`DELETE FROM guest_invited_by WHERE guestId IN ${guestScope}`)
+        .bind(partyId, weddingId),
+      this.d1
+        .prepare(
+          `DELETE FROM guest_menu_selections WHERE guestId IN ${guestScope}`,
+        )
+        .bind(partyId, weddingId),
+      this.d1
+        .prepare(`DELETE FROM guest_messages WHERE guestId IN ${guestScope}`)
+        .bind(partyId, weddingId),
+      this.d1
+        .prepare(`DELETE FROM guest_photos WHERE guestId IN ${guestScope}`)
+        .bind(partyId, weddingId),
+      this.d1
+        .prepare(`DELETE FROM wedding_seats WHERE guestId IN ${guestScope}`)
+        .bind(partyId, weddingId),
+      this.d1
+        .prepare("DELETE FROM guests WHERE partyId = ? AND weddingId = ?")
+        .bind(partyId, weddingId),
+      this.d1
+        .prepare("DELETE FROM guest_parties WHERE id = ? AND weddingId = ?")
+        .bind(partyId, weddingId),
+    ])
+
+    return true
   }
 }

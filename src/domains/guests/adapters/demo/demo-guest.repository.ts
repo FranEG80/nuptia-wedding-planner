@@ -7,9 +7,14 @@ import type {
 } from "@/domains/guests/domain/ports/guest.repository"
 import { DEMO_WEDDING_ID } from "@/domains/weddings/adapters/demo/demo-wedding.repository"
 
+function composeFullName(firstName: string, lastName: string) {
+  return [firstName.trim(), lastName.trim()].filter(Boolean).join(" ")
+}
+
 function demoGuest(input: {
   id: string
-  name: string
+  firstName: string
+  lastName?: string
   groupName: string
   invite: Guest["party"]["invite"]
   rsvp: Guest["rsvp"]
@@ -17,6 +22,8 @@ function demoGuest(input: {
   table: number | null
 }): Guest {
   const partyId = `party-${input.id}`
+  const firstName = input.firstName
+  const lastName = input.lastName ?? ""
 
   return {
     id: input.id,
@@ -24,7 +31,9 @@ function demoGuest(input: {
     weddingId: DEMO_WEDDING_ID,
     appUserId: null,
     role: "primary",
-    name: input.name,
+    name: composeFullName(firstName, lastName),
+    firstName,
+    lastName,
     email: null,
     phone: null,
     rsvp: input.rsvp,
@@ -51,18 +60,18 @@ function demoGuest(input: {
 }
 
 let demoGuests: Guest[] = [
-  demoGuest({ id: "g1", name: "María López", groupName: "Familia Novia", invite: "Enviada", rsvp: "Confirmado", notes: "Sin gluten", table: 1 }),
-  demoGuest({ id: "g2", name: "Javier Ruiz", groupName: "Familia Novia", invite: "Enviada", rsvp: "Confirmado", notes: "", table: 1 }),
-  demoGuest({ id: "g3", name: "Lucía Fernández", groupName: "Amigos Novia", invite: "Enviada", rsvp: "Confirmado", notes: "Alérgica a frutos secos", table: 2 }),
-  demoGuest({ id: "g4", name: "Diego Morales", groupName: "Amigos Novio", invite: "Enviada", rsvp: "Sin respuesta", notes: "", table: null }),
-  demoGuest({ id: "g5", name: "Carmen Vega", groupName: "Familia Novio", invite: "Enviada", rsvp: "Confirmado", notes: "", table: 3 }),
-  demoGuest({ id: "g6", name: "Pablo Castro", groupName: "Trabajo", invite: "Pendiente", rsvp: "Sin respuesta", notes: "", table: null }),
-  demoGuest({ id: "g7", name: "Elena Navarro", groupName: "Amigos Novia", invite: "Enviada", rsvp: "Declinado", notes: "No podrá asistir", table: null }),
-  demoGuest({ id: "g8", name: "Sergio Ramos", groupName: "Familia Novio", invite: "Enviada", rsvp: "Confirmado", notes: "", table: 3 }),
-  demoGuest({ id: "g9", name: "Marta Gil", groupName: "Amigos Novia", invite: "Enviada", rsvp: "Confirmado", notes: "", table: 2 }),
-  demoGuest({ id: "g10", name: "Andrés Soto", groupName: "Trabajo", invite: "Pendiente", rsvp: "Sin respuesta", notes: "", table: null }),
-  demoGuest({ id: "g11", name: "Beatriz Ortiz", groupName: "Familia Novia", invite: "Enviada", rsvp: "Confirmado", notes: "Trona para bebé", table: 1 }),
-  demoGuest({ id: "g12", name: "Hugo Méndez", groupName: "Amigos Novio", invite: "Enviada", rsvp: "Confirmado", notes: "", table: null }),
+  demoGuest({ id: "g1", firstName: "María", lastName: "López", groupName: "Familia Novia", invite: "Enviada", rsvp: "Confirmado", notes: "Sin gluten", table: 1 }),
+  demoGuest({ id: "g2", firstName: "Javier", lastName: "Ruiz", groupName: "Familia Novia", invite: "Enviada", rsvp: "Confirmado", notes: "", table: 1 }),
+  demoGuest({ id: "g3", firstName: "Lucía", lastName: "Fernández", groupName: "Amigos Novia", invite: "Enviada", rsvp: "Confirmado", notes: "Alérgica a frutos secos", table: 2 }),
+  demoGuest({ id: "g4", firstName: "Diego", lastName: "Morales", groupName: "Amigos Novio", invite: "Enviada", rsvp: "Sin respuesta", notes: "", table: null }),
+  demoGuest({ id: "g5", firstName: "Carmen", lastName: "Vega", groupName: "Familia Novio", invite: "Enviada", rsvp: "Confirmado", notes: "", table: 3 }),
+  demoGuest({ id: "g6", firstName: "Pablo", lastName: "Castro", groupName: "Trabajo", invite: "Pendiente", rsvp: "Sin respuesta", notes: "", table: null }),
+  demoGuest({ id: "g7", firstName: "Elena", lastName: "Navarro", groupName: "Amigos Novia", invite: "Enviada", rsvp: "Declinado", notes: "No podrá asistir", table: null }),
+  demoGuest({ id: "g8", firstName: "Sergio", lastName: "Ramos", groupName: "Familia Novio", invite: "Enviada", rsvp: "Confirmado", notes: "", table: 3 }),
+  demoGuest({ id: "g9", firstName: "Marta", lastName: "Gil", groupName: "Amigos Novia", invite: "Enviada", rsvp: "Confirmado", notes: "", table: 2 }),
+  demoGuest({ id: "g10", firstName: "Andrés", lastName: "Soto", groupName: "Trabajo", invite: "Pendiente", rsvp: "Sin respuesta", notes: "", table: null }),
+  demoGuest({ id: "g11", firstName: "Beatriz", lastName: "Ortiz", groupName: "Familia Novia", invite: "Enviada", rsvp: "Confirmado", notes: "Trona para bebé", table: 1 }),
+  demoGuest({ id: "g12", firstName: "Hugo", lastName: "Méndez", groupName: "Amigos Novio", invite: "Enviada", rsvp: "Confirmado", notes: "", table: null }),
 ]
 
 export const demoGuestRepository: GuestRepository = {
@@ -97,7 +106,8 @@ export const demoGuestRepository: GuestRepository = {
     const id = `guest-${Date.now()}`
     const guest = demoGuest({
       id,
-      name: input.name,
+      firstName: input.firstName,
+      lastName: input.lastName,
       groupName: input.groupName ?? "",
       invite: input.invite ?? "Pendiente",
       rsvp: input.rsvp ?? "Sin respuesta",
@@ -124,10 +134,14 @@ export const demoGuestRepository: GuestRepository = {
       return null
     }
 
+    const firstName = input.firstName ?? current.firstName
+    const lastName = input.lastName ?? current.lastName
     const next: Guest = {
       ...current,
       role: input.role ?? current.role,
-      name: input.name ?? current.name,
+      name: composeFullName(firstName, lastName),
+      firstName,
+      lastName,
       email: input.email === undefined ? current.email : input.email,
       phone: input.phone === undefined ? current.phone : input.phone,
       rsvp: input.rsvp ?? current.rsvp,
@@ -152,7 +166,8 @@ export const demoGuestRepository: GuestRepository = {
     const partyGuests = input.guests.map((item, index): Guest => {
       const guest = demoGuest({
         id: `guest-${Date.now()}-${index}`,
-        name: item.name,
+        firstName: item.firstName,
+        lastName: item.lastName,
         groupName: input.groupName ?? "",
         invite: "Pendiente",
         rsvp: "Sin respuesta",
@@ -220,19 +235,24 @@ export const demoGuestRepository: GuestRepository = {
         current ??
         demoGuest({
           id,
-          name: item.name,
+          firstName: item.firstName,
+          lastName: item.lastName,
           groupName: input.groupName ?? "",
           invite: party.invite,
           rsvp: "Sin respuesta",
           notes: "",
           table: null,
         })
+      const firstName = item.firstName
+      const lastName = item.lastName ?? ""
       const next: Guest = {
         ...base,
         partyId,
         weddingId: input.weddingId,
         role: item.isRecipient ? "primary" : "companion",
-        name: item.name,
+        name: composeFullName(firstName, lastName),
+        firstName,
+        lastName,
         email: item.email ?? null,
         phone: item.phone ?? null,
         party: {
@@ -317,6 +337,58 @@ export const demoGuestRepository: GuestRepository = {
     })
 
     return partyByInviteToken(inviteToken)
+  },
+
+  async assignSeat(guestId, weddingId, tableId) {
+    const current = demoGuests.find(
+      (guest) => guest.id === guestId && guest.weddingId === weddingId,
+    )
+
+    if (!current) {
+      return null
+    }
+
+    const next: Guest = {
+      ...current,
+      seat: {
+        id: `seat-${guestId}`,
+        tableId,
+        tableName: tableId,
+        position: 1,
+      },
+    }
+
+    demoGuests = demoGuests.map((guest) => (guest.id === guestId ? next : guest))
+
+    return next
+  },
+
+  async unassignSeat(guestId, weddingId) {
+    const current = demoGuests.find(
+      (guest) => guest.id === guestId && guest.weddingId === weddingId,
+    )
+
+    if (!current) {
+      return null
+    }
+
+    const next: Guest = { ...current, seat: null }
+
+    demoGuests = demoGuests.map((guest) => (guest.id === guestId ? next : guest))
+
+    return next
+  },
+
+  async deleteInvitationParty(partyId, weddingId) {
+    const existed = demoGuests.some(
+      (guest) => guest.partyId === partyId && guest.weddingId === weddingId,
+    )
+
+    demoGuests = demoGuests.filter(
+      (guest) => !(guest.partyId === partyId && guest.weddingId === weddingId),
+    )
+
+    return existed
   },
 }
 

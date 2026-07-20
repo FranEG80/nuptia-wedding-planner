@@ -232,6 +232,8 @@ model Guest {
   appUserId      String?
   role           String               @default("primary")
   name           String
+  firstName      String               @default("")
+  lastName       String               @default("")
   email          String?
   phone          String?
   rsvpStatus     String               @default("no_response")
