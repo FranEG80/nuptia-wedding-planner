@@ -12,6 +12,7 @@ import type {
 } from "@/domains/guests/application/dtos/invitation-party.dto"
 import { toInvitationPartyDto } from "@/domains/guests/application/dtos/invitation-party.dto"
 import { createInvitationPartyUseCase } from "@/domains/guests/application/use-cases/create-invitation-party.use-case"
+import { deleteInvitationPartyUseCase } from "@/domains/guests/application/use-cases/delete-invitation-party.use-case"
 import { updateInvitationPartyUseCase } from "@/domains/guests/application/use-cases/update-invitation-party.use-case"
 import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
 
@@ -75,6 +76,34 @@ export async function updateInvitationPartyAction(
   revalidatePath("/app/invitados")
 
   return party
+}
+
+export async function deleteInvitationPartyAction(partyId: string) {
+  const repositories = await getRepositories()
+  const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return false
+  }
+
+  const wedding = await getCurrentWeddingUseCase({
+    weddingRepository: repositories.wedding,
+    appUserId: session.appUser.id,
+  })
+
+  if (!wedding) {
+    return false
+  }
+
+  const deleted = await deleteInvitationPartyUseCase({
+    guestRepository: repositories.guest,
+    weddingId: wedding.id,
+    partyId,
+  })
+
+  revalidatePath("/app/invitados")
+
+  return deleted
 }
 
 export async function markGuestPartiesInvitedAction(partyIds: string[]) {
