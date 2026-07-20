@@ -134,6 +134,7 @@ model Wedding {
   siteModules        WeddingSiteModule[]
   mediaAssets        MediaAsset[]
   tables             WeddingTable[]
+  tasks              WeddingTask[]
 
   @@index([ownerId])
   @@index([restaurantId])
@@ -177,12 +178,34 @@ model WeddingMember {
   appUser       AppUser?          @relation(fields: [appUserId], references: [id], onDelete: Cascade)
   role          WeddingMemberRole @relation(fields: [roleId], references: [id])
   invitedGuests GuestInvitedBy[]
+  createdTasks   WeddingTask[]     @relation("TaskCreatedBy")
+  completedTasks WeddingTask[]     @relation("TaskCompletedBy")
 
   @@unique([weddingId, appUserId])
   @@index([weddingId])
   @@index([appUserId])
   @@index([roleId])
   @@map("wedding_members")
+}
+
+model WeddingTask {
+  id            String    @id @default(cuid())
+  weddingId     String
+  title         String
+  notes         String?
+  done          Boolean   @default(false)
+  createdById   String?
+  completedById String?
+  completedAt   DateTime?
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  wedding       Wedding        @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  createdBy     WeddingMember? @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  completedBy   WeddingMember? @relation("TaskCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+
+  @@index([weddingId])
+  @@map("wedding_tasks")
 }
 
 model GuestParty {

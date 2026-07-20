@@ -12610,7 +12610,7 @@ interface ImageHandle {
      * Get metadata for a hosted image
      * @returns Image metadata, or null if not found
      */
-    details(): Promise<Image draggable="false"Metadata | null>;
+    details(): Promise<ImageMetadata | null>;
     /**
      * Get the raw image data for a hosted image
      * @returns ReadableStream of image bytes, or null if not found
@@ -12622,7 +12622,7 @@ interface ImageHandle {
      * @returns Updated image metadata
      * @throws {@link ImagesError} if update fails
      */
-    update(options: ImageUpdateOptions): Promise<Image draggable="false"Metadata>;
+    update(options: ImageUpdateOptions): Promise<ImageMetadata>;
     /**
      * Delete a hosted image
      * @returns True if deleted, false if not found
@@ -12643,14 +12643,14 @@ interface HostedImagesBinding {
      * @returns Metadata for the uploaded image
      * @throws {@link ImagesError} if upload fails
      */
-    upload(image: ReadableStream<Uint8Array> | ArrayBuffer, options?: ImageUploadOptions): Promise<Image draggable="false"Metadata>;
+    upload(image: ReadableStream<Uint8Array> | ArrayBuffer, options?: ImageUploadOptions): Promise<ImageMetadata>;
     /**
      * List hosted images with pagination
      * @param options List configuration
      * @returns List of images with pagination info
      * @throws {@link ImagesError} if list fails
      */
-    list(options?: ImageListOptions): Promise<Image draggable="false"List>;
+    list(options?: ImageListOptions): Promise<ImageList>;
 }
 interface ImagesBinding {
     /**
@@ -12658,7 +12658,7 @@ interface ImagesBinding {
      * @throws {@link ImagesError} with code 9412 if input is not an image
      * @param stream The image bytes
      */
-    info(stream: ReadableStream<Uint8Array>, options?: ImageInputOptions): Promise<Image draggable="false"InfoResponse>;
+    info(stream: ReadableStream<Uint8Array>, options?: ImageInputOptions): Promise<ImageInfoResponse>;
     /**
      * Begin applying a series of transformations to an image
      * @param stream The image bytes
@@ -12689,7 +12689,7 @@ interface ImageTransformer {
      * provided input
      * @param options Options that apply to the output e.g. output format
      */
-    output(options: ImageOutputOptions): Promise<Image draggable="false"TransformationResult>;
+    output(options: ImageOutputOptions): Promise<ImageTransformationResult>;
 }
 type ImageTransformationOutputOptions = {
     encoding?: 'base64';

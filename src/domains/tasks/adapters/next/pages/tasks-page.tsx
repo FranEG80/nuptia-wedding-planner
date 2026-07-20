@@ -1,12 +1,11 @@
-import { requireAppSession } from "@/core/auth"
 import { getRepositories } from "@/composition/repositories"
+import { requireAppSession } from "@/core/auth"
+import { TasksView } from "@/domains/tasks/adapters/next/components/tasks-view"
 import { buildMemberNameMap } from "@/domains/tasks/application/dtos/task.dto"
 import { listTasksUseCase } from "@/domains/tasks/application/use-cases/list-tasks.use-case"
 import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
-import { getDashboardSummaryUseCase } from "@/domains/weddings/application/use-cases/get-dashboard-summary.use-case"
-import { DashboardView } from "@/domains/weddings/adapters/next/components/dashboard-view"
 
-export async function DashboardPage() {
+export async function TasksPage() {
   const repositories = await getRepositories()
   const session = await requireAppSession()
   const wedding = await getCurrentWeddingUseCase({
@@ -18,11 +17,6 @@ export async function DashboardPage() {
     return null
   }
 
-  const summary = await getDashboardSummaryUseCase({
-    guestRepository: repositories.guest,
-    weddingId: wedding.id,
-  })
-
   const memberNameById = buildMemberNameMap(wedding.members, session.appUser)
   const tasks = await listTasksUseCase({
     taskRepository: repositories.task,
@@ -30,12 +24,5 @@ export async function DashboardPage() {
     memberNameById,
   })
 
-  return (
-    <DashboardView
-      summary={summary}
-      wedding={wedding}
-      userName={session.appUser.name}
-      tasks={tasks}
-    />
-  )
+  return <TasksView tasks={tasks} />
 }

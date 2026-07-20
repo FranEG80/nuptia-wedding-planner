@@ -6,6 +6,7 @@ import { getD1, getPrisma } from "@/core/db/prisma"
 import { PrismaGuestRepository } from "@/domains/guests/adapters/prisma/prisma-guest.repository"
 import { PrismaInvitationRepository } from "@/domains/invitations/adapters/prisma/prisma-invitation.repository"
 import { PrismaMediaRepository } from "@/domains/media/adapters/prisma/prisma-media.repository"
+import { PrismaTaskRepository } from "@/domains/tasks/adapters/prisma/prisma-task.repository"
 import { PrismaWeddingSiteRepository } from "@/domains/wedding-sites/adapters/prisma/prisma-wedding-site.repository"
 import { PrismaWeddingRepository } from "@/domains/weddings/adapters/prisma/prisma-wedding.repository"
 
@@ -18,5 +19,6 @@ export const getRepositories = cache(async () => {
     invitation: new PrismaInvitationRepository(prisma),
     media: new PrismaMediaRepository(prisma),
     weddingSite: new PrismaWeddingSiteRepository(prisma),
+    task: new PrismaTaskRepository(prisma),
   }
 })

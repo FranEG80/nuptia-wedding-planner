@@ -8,6 +8,7 @@ import {
   Globe,
   Heart,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   Mail,
   Settings,
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/app/invitacion", label: "Invitación Digital", icon: Mail },
   { href: "/app/web", label: "Web de Bodas", icon: Globe },
   { href: "/app/invitados", label: "Invitados", icon: Users },
+  { href: "/app/tareas", label: "Tareas", icon: ListChecks },
   { href: "/app/ajustes", label: "Ajustes", icon: Settings },
 ]
 

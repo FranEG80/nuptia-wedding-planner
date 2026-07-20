@@ -4,9 +4,9 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 
+import type { WeddingTaskDto } from "@/domains/tasks/application/dtos/task.dto"
 import type { DashboardSummaryDto } from "@/domains/weddings/application/dtos/dashboard-summary.dto"
 import type { WeddingDto } from "@/domains/weddings/application/dtos/wedding.dto"
-import { DEFAULT_WEDDING_TASKS } from "@/domains/weddings/application/dtos/wedding-task.dto"
 import { Progress } from "@/shared/components/ui/progress"
 import {
   Mail,
@@ -38,10 +38,12 @@ export function DashboardView({
   summary,
   wedding,
   userName,
+  tasks,
 }: {
   summary: DashboardSummaryDto
   wedding: WeddingDto
   userName: string
+  tasks: WeddingTaskDto[]
 }) {
   const cd = useCountdown(wedding.date)
   const { confirmed, pending, declined, total } = summary
@@ -49,7 +51,8 @@ export function DashboardView({
   const confirmedPct = Math.round((confirmed / safeTotal) * 100)
   const pendingPct = Math.round((pending / safeTotal) * 100)
   const declinedPct = Math.max(0, 100 - confirmedPct - pendingPct)
-  const pendingTasks = DEFAULT_WEDDING_TASKS.filter((t) => !t.done).length
+  const pendingTaskItems = tasks.filter((t) => !t.done)
+  const pendingTasks = pendingTaskItems.length
 
   const cdItems = [
     { v: cd.days, l: "días" },
@@ -136,20 +139,27 @@ export function DashboardView({
             <span className="font-serif text-3xl text-foreground">{pendingTasks}</span>
           </div>
           <p className="mt-4 text-sm font-medium text-foreground">Tareas pendientes</p>
-          <ul className="mt-3 space-y-2">
-            {DEFAULT_WEDDING_TASKS.slice(0, 3).map((t) => (
-              <li key={t.label} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span
-                  className={
-                    t.done
-                      ? "h-1.5 w-1.5 rounded-full bg-primary"
-                      : "h-1.5 w-1.5 rounded-full bg-accent"
-                  }
-                />
-                <span className={t.done ? "line-through" : ""}>{t.label}</span>
-              </li>
-            ))}
-          </ul>
+          {pendingTaskItems.length === 0 ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              No hay tareas pendientes.
+            </p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {pendingTaskItems.slice(0, 3).map((t) => (
+                <li key={t.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                  <span>{t.title}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link
+            href="/app/tareas"
+            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            Ver todas
+            <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
