@@ -1,3 +1,5 @@
+import "dotenv/config"
+
 import { readFile } from "node:fs/promises"
 
 import { PrismaD1 } from "@prisma/adapter-d1"
@@ -8,6 +10,25 @@ import { z } from "zod"
 import { PrismaClient } from "../generated/prisma-seed/client"
 import { PUBLIC_DEMO_ACCOUNT } from "../src/core/auth/demo-account"
 import { DEFAULT_INVITATION_CONTENT } from "../src/domains/invitations/domain/invitation-design"
+
+// `src/core/config/env.ts` is guarded by the "server-only" package, which
+// throws when imported outside Next.js — read the same D1 HTTP credentials
+// directly here instead (mirrors getD1HttpCredentials()).
+const d1HttpCredentialsSchema = z.object({
+  CLOUDFLARE_D1_TOKEN: z.string().min(1),
+  CLOUDFLARE_ACCOUNT_ID: z.string().min(1),
+  CLOUDFLARE_DATABASE_ID: z.string().uuid(),
+})
+
+function getD1HttpCredentials() {
+  const values = d1HttpCredentialsSchema.parse(process.env)
+
+  return {
+    token: values.CLOUDFLARE_D1_TOKEN,
+    accountId: values.CLOUDFLARE_ACCOUNT_ID,
+    databaseId: values.CLOUDFLARE_DATABASE_ID,
+  }
+}
 
 const personSchema = z.object({
   name: z.string().min(1),
@@ -1011,12 +1032,29 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
   await seedNachoWedding(prisma, seed, nacho, maria)
 }
 
-async function run() {
-  const remote = process.argv.includes("--remote")
+async function runRemote() {
+  const credentials = getD1HttpCredentials()
+  const prisma = new PrismaClient({
+    adapter: new PrismaD1({
+      CLOUDFLARE_D1_TOKEN: credentials.token,
+      CLOUDFLARE_ACCOUNT_ID: credentials.accountId,
+      CLOUDFLARE_DATABASE_ID: credentials.databaseId,
+    }),
+  })
+
+  try {
+    const seed = await loadNachoWeddingSeed()
+    await main(prisma, seed)
+    console.info(`Seed D1 remoto aplicado: ${seed.husband.name} & ${seed.wife.name}`)
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+async function runLocal() {
   const platform = await getPlatformProxy<Pick<CloudflareEnv, "DB">>({
     configPath: "wrangler.jsonc",
-    persist: remote ? false : true,
-    remoteBindings: remote,
+    persist: true,
   })
   const prisma = new PrismaClient({
     adapter: new PrismaD1(platform.env.DB),
@@ -1025,13 +1063,21 @@ async function run() {
   try {
     const seed = await loadNachoWeddingSeed()
     await main(prisma, seed)
-    console.info(
-      `Seed D1 ${remote ? "remoto" : "local"} aplicado: ${seed.husband.name} & ${seed.wife.name}`,
-    )
+    console.info(`Seed D1 local aplicado: ${seed.husband.name} & ${seed.wife.name}`)
   } finally {
     await prisma.$disconnect()
     await platform.dispose()
   }
+}
+
+async function run() {
+  const remote = process.argv.includes("--remote")
+
+  // getPlatformProxy({ remoteBindings: true }) no expone el D1 real (ver
+  // sqlite_master vacío pese a que `wrangler d1 execute --remote` sí lo ve),
+  // así que en remoto usamos el mismo cliente HTTP de D1 que el runtime real
+  // en Vercel (src/core/db/prisma.ts), no el binding simulado por Wrangler.
+  return remote ? runRemote() : runLocal()
 }
 
 run().catch((error: unknown) => {
