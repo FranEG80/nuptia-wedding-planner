@@ -215,7 +215,11 @@ export function InvitationView({
 
         <Section icon={Layers} title="Selector de template">
           <div className="grid gap-3">
-            {INVITATION_TEMPLATES.filter((template) => !bespoke || template.id === "maria-daniela").map((template) => {
+            {INVITATION_TEMPLATES.filter((template) =>
+              bespoke
+                ? template.id === "maria-daniela"
+                : !(isDemo && template.id === "maria-daniela"),
+            ).map((template) => {
               const isActive = templateId === template.id
               return (
                 <button

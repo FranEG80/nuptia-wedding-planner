@@ -14,6 +14,8 @@ export interface AppUser {
   id: string
   email: string
   name: string
+  lastName: string | null
+  phone: string | null
   imageUrl: string | null
 }
 

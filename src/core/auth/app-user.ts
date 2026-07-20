@@ -7,6 +7,8 @@ type AppUserRecord = {
   id: string
   email: string
   name: string
+  lastName: string | null
+  phone: string | null
   imageUrl: string | null
 }
 
@@ -22,6 +24,8 @@ function toAppUser(record: AppUserRecord): AppUser {
     id: record.id,
     email: record.email,
     name: record.name,
+    lastName: record.lastName,
+    phone: record.phone,
     imageUrl: record.imageUrl,
   }
 }

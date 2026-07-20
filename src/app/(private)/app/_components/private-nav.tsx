@@ -25,7 +25,7 @@ const navItems = [
   { href: "/app/web", label: "Web de Bodas", icon: Globe },
   { href: "/app/invitados", label: "Invitados", icon: Users },
   { href: "/app/tareas", label: "Tareas", icon: ListChecks },
-  { href: "/app/ajustes", label: "Ajustes", icon: Settings, active: false },
+  { href: "/app/ajustes", label: "Ajustes", icon: Settings },
 ]
 
 export function PrivateNav({
