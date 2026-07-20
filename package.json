@@ -21,6 +21,7 @@
     "db:migrate": "pnpm db:audit:invitations && wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "pnpm db:audit:invitations:remote && wrangler d1 migrations apply DB --remote",
     "db:seed": "node --import tsx prisma/seed.ts",
+    "db:seed:remote": "node --import tsx prisma/seed.ts --remote",
     "db:studio": "prisma studio",
     "db:diagram": "node --import tsx scripts/generate-er-diagram.ts"
   },

@@ -246,7 +246,7 @@ const guests: SeedGuest[] = [
     inviteStatus: "sent",
     rsvpStatus: "no_response",
     phone: "+34625391654",
-    email: "maria.lopez@example.com",
+    email: "paco.enriquez@example.com",
     notes: "",
     tableNumber: 4,
     inviteToken: "token-paco-enriquez",
@@ -256,7 +256,7 @@ const guests: SeedGuest[] = [
     name: "María López",
     groupName: "Familia novio",
     inviteStatus: "pending",
-    email: "javier.marin@example.com",
+    email: "maria.lopez@example.com",
     rsvpStatus: "no_response",
     notes: "Pendiente de confirmar acompañante",
     tableNumber: null,
@@ -991,10 +991,11 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
 }
 
 async function run() {
+  const remote = process.argv.includes("--remote")
   const platform = await getPlatformProxy<Pick<CloudflareEnv, "DB">>({
     configPath: "wrangler.jsonc",
-    persist: true,
-    remoteBindings: false,
+    persist: remote ? false : true,
+    remoteBindings: remote,
   })
   const prisma = new PrismaClient({
     adapter: new PrismaD1(platform.env.DB),
@@ -1003,7 +1004,9 @@ async function run() {
   try {
     const seed = await loadNachoWeddingSeed()
     await main(prisma, seed)
-    console.info(`Seed D1 local aplicado: ${seed.husband.name} & ${seed.wife.name}`)
+    console.info(
+      `Seed D1 ${remote ? "remoto" : "local"} aplicado: ${seed.husband.name} & ${seed.wife.name}`,
+    )
   } finally {
     await prisma.$disconnect()
     await platform.dispose()

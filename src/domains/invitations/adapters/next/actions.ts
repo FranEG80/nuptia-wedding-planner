@@ -17,6 +17,7 @@ import {
 import { respondToPublicInvitationUseCase } from "@/domains/invitations/application/use-cases/respond-to-public-invitation.use-case"
 import { updateInvitationDesignUseCase } from "@/domains/invitations/application/use-cases/update-invitation-design.use-case"
 import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
+import { NACHO_WEDDING_SLUG } from "@/domains/wedding-sites/application/dtos/wedding-experience.dto"
 
 export async function updateInvitationDesignAction(
   input: UpdateInvitationDesignDto,
@@ -35,6 +36,12 @@ export async function updateInvitationDesignAction(
 
   const data: UpdateInvitationDesignDto = {
     ...parsed,
+    // Esta boda usa un diseño realizado a medida; no debe poder sustituirse
+    // desde una petición modificada fuera del selector del panel.
+    templateId:
+      wedding.slug === NACHO_WEDDING_SLUG
+        ? "maria-daniela"
+        : parsed.templateId,
     titleFont: parsed.titleFont
       ? normalizeInvitationFontPairId(parsed.titleFont)
       : undefined,

@@ -43,7 +43,7 @@ export function InvitationView({
   bespoke?: boolean
 }) {
   const [templateId, setTemplateId] = useState(() =>
-    bespoke ? "maria-daniela" as const : normalizeInvitationTemplateId(initialDesign.templateId),
+    normalizeInvitationTemplateId(initialDesign.templateId),
   )
   const [content, setContent] = useState<InvitationContentDto>(() => ({
     ...initialDesign.content,
@@ -179,7 +179,9 @@ export function InvitationView({
               <h1 className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Template de invitación
               </h1>
-              <h2 className="mt-1 font-serif text-3xl text-foreground">{bespoke ? "Demo" : "Invitación"}</h2>
+              <h2 className="mt-1 font-serif text-3xl text-foreground">
+                {bespoke ? "María Daniela" : "Invitación"}
+              </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                 {bespoke
                   ? "Diseño editorial creado a medida para vuestra boda, con acuarelas y RSVP por pasos."

@@ -1,4 +1,5 @@
 import { getMediaObjectStorage } from "@/composition/media-storage"
+import { reportUnexpectedApiError } from "@/shared/http/api-errors"
 
 type MediaFileContext = {
   params: Promise<{ key: string[] }>
@@ -40,9 +41,30 @@ async function readMediaObject(
 }
 
 export function GET(request: Request, context: MediaFileContext) {
-  return readMediaObject(request, context, true)
+  return safelyReadMediaObject(request, context, true)
 }
 
 export function HEAD(request: Request, context: MediaFileContext) {
-  return readMediaObject(request, context, false)
+  return safelyReadMediaObject(request, context, false)
+}
+
+async function safelyReadMediaObject(
+  request: Request,
+  context: MediaFileContext,
+  includeBody: boolean,
+) {
+  try {
+    return await readMediaObject(request, context, includeBody)
+  } catch (error) {
+    const requestId = reportUnexpectedApiError("media.files.read", error)
+
+    return new Response(null, {
+      status: 500,
+      headers: {
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "X-Request-Id": requestId,
+      },
+    })
+  }
 }

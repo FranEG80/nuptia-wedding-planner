@@ -6,6 +6,10 @@ import { getCurrentAppSession } from "@/core/auth"
 import { env } from "@/core/config/env"
 import { createMediaAssetUseCase } from "@/domains/media/application/use-cases/create-media-asset.use-case"
 import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
+import {
+  apiErrorResponse,
+  withApiErrorHandling,
+} from "@/shared/http/api-errors"
 
 const imageExtensions: Record<string, string> = {
   "image/avif": "avif",
@@ -15,22 +19,26 @@ const imageExtensions: Record<string, string> = {
   "image/webp": "webp",
 }
 
-function jsonError(message: string, status: number) {
-  return Response.json({ error: message }, { status })
-}
-
-export async function POST(request: Request) {
+async function uploadMedia(request: Request) {
   const requestUrl = new URL(request.url)
   const origin = request.headers.get("origin")
 
   if (origin && origin !== requestUrl.origin) {
-    return jsonError("Origen no permitido", 403)
+    return apiErrorResponse({
+      code: "ORIGIN_NOT_ALLOWED",
+      message: "Origen no permitido",
+      status: 403,
+    })
   }
 
   const appSession = await getCurrentAppSession()
 
   if (!appSession) {
-    return jsonError("Autenticación requerida", 401)
+    return apiErrorResponse({
+      code: "AUTHENTICATION_REQUIRED",
+      message: "Autenticación requerida",
+      status: 401,
+    })
   }
 
   const repositories = await getRepositories()
@@ -40,7 +48,11 @@ export async function POST(request: Request) {
   })
 
   if (!wedding) {
-    return jsonError("Boda no encontrada", 404)
+    return apiErrorResponse({
+      code: "WEDDING_NOT_FOUND",
+      message: "Boda no encontrada",
+      status: 404,
+    })
   }
 
   let formData: FormData
@@ -48,26 +60,39 @@ export async function POST(request: Request) {
   try {
     formData = await request.formData()
   } catch {
-    return jsonError("Formulario de subida no válido", 400)
+    return apiErrorResponse({
+      code: "INVALID_UPLOAD_FORM",
+      message: "Formulario de subida no válido",
+      status: 400,
+    })
   }
 
   const file = formData.get("file")
 
   if (!(file instanceof File)) {
-    return jsonError("Falta el campo file", 400)
+    return apiErrorResponse({
+      code: "FILE_REQUIRED",
+      message: "Falta el campo file",
+      status: 400,
+    })
   }
 
   const extension = imageExtensions[file.type]
 
   if (!extension) {
-    return jsonError("Formato de imagen no permitido", 415)
+    return apiErrorResponse({
+      code: "UNSUPPORTED_IMAGE_FORMAT",
+      message: "Formato de imagen no permitido",
+      status: 415,
+    })
   }
 
   if (file.size === 0 || file.size > env.R2_MAX_UPLOAD_BYTES) {
-    return jsonError(
-      `La imagen debe ocupar entre 1 byte y ${env.R2_MAX_UPLOAD_BYTES} bytes`,
-      413,
-    )
+    return apiErrorResponse({
+      code: "INVALID_IMAGE_SIZE",
+      message: `La imagen debe ocupar entre 1 byte y ${env.R2_MAX_UPLOAD_BYTES} bytes`,
+      status: 413,
+    })
   }
 
   const altValue = formData.get("alt")
@@ -99,7 +124,17 @@ export async function POST(request: Request) {
     return Response.json(asset, { status: 201 })
   } catch (error) {
     await storage.delete(key).catch(() => undefined)
-    console.error("Media upload failed", error)
-    return jsonError("No se pudo guardar la imagen", 500)
+    throw error
   }
+}
+
+export function POST(request: Request) {
+  return withApiErrorHandling(
+    {
+      code: "MEDIA_UPLOAD_FAILED",
+      message: "No se pudo guardar la imagen",
+      operation: "media.upload",
+    },
+    () => uploadMedia(request),
+  )
 }

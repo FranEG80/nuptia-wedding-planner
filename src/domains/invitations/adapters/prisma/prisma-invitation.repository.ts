@@ -8,6 +8,7 @@ import { parseInvitationContent } from "@/domains/invitations/application/dtos/i
 import {
   normalizeInvitationColorPresetId,
   normalizeInvitationFontPairId,
+  normalizeInvitationTemplateId,
 } from "@/domains/invitations/domain/invitation-template-options"
 
 type PrismaInvitationDesignRecord = {
@@ -31,7 +32,7 @@ function toInvitationDesign(
   return {
     id: record.id,
     weddingId: record.weddingId,
-    templateId: record.templateId === "bouquet" ? "bouquet" : "bouquet",
+    templateId: normalizeInvitationTemplateId(record.templateId),
     titleFont: titleFontFromDb(record.titleFont),
     palette: normalizeInvitationColorPresetId(record.palette),
     content: parseInvitationContent(record.content),

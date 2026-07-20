@@ -11,8 +11,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "nuptia-db",
-      "database_id": "<CLOUDFLARE_D1_DATABASE_ID>",
+      "database_name": "nuptia-wedding-planner",
+      "database_id": "aa4708c1-2f8e-4dcb-8ecc-24306de4e483",
       "migrations_dir": "prisma/migrations_d1"
     }
   ],

@@ -143,7 +143,7 @@ Abre [http://localhost:3000](http://localhost:3000) para ver la demo pública, y
 
 La aplicación usa los bindings `DB` (D1) y `MEDIA_BUCKET` (R2), definidos en `wrangler.jsonc`. Antes del primer despliegue:
 
-1. Crea la base D1 `nuptia-db` y el bucket R2 `nuptia-media` en Cloudflare.
+1. Crea la base D1 `nuptia-wedding-planner` y el bucket R2 `nuptia-media` en Cloudflare.
 2. Sustituye `<CLOUDFLARE_D1_DATABASE_ID>` por el identificador real de D1.
 3. Ejecuta `pnpm cf:typegen` y `pnpm db:migrate:remote`.
 4. Configura los secretos de Better Auth y el resto de variables del `.env.example` en Cloudflare.
