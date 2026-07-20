@@ -968,6 +968,12 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
   await prisma.guest.deleteMany({ where: { id: "guest-nacho-demo" } })
   await prisma.guestParty.deleteMany({ where: { id: "party-guest-nacho-demo" } })
 
+  // "guest-paco-enriquez" fue renombrado a "guest-paco-demo"; limpia el
+  // registro huérfano (y su asiento) para que el reseed sea idempotente.
+  await prisma.weddingSeat.deleteMany({ where: { guestId: "guest-paco-enriquez" } })
+  await prisma.guest.deleteMany({ where: { id: "guest-paco-enriquez" } })
+  await prisma.guestParty.deleteMany({ where: { id: "party-guest-paco-enriquez" } })
+
   const nacho = await seedAuthAccount(prisma, {
     authUserId: nachoAuthUserId,
     appUserId: nachoAppUserId,

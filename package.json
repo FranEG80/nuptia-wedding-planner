@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev",
     "postinstall": "prisma generate",
-    "prebuild": "prisma generate",
     "build": "next build",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:d1": "node --import tsx --test --test-concurrency=1 tests/d1/*.test.ts",
