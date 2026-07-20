@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation"
 import { Menu } from "lucide-react"
 
 import { PrivateNav } from "@/app/(private)/app/_components/private-nav"
+import { DemoModeProvider } from "@/core/demo/demo-mode-context"
 import { cn } from "@/shared/lib/utils"
 
 const PRIVATE_NAV_COLLAPSED_STORAGE_KEY = "nuptia:private-nav-collapsed"
@@ -47,10 +48,12 @@ function persistPrivateNavCollapsed(collapsed: boolean) {
 export function PrivateShell({
   userName,
   userEmail,
+  isDemo,
   children,
 }: {
   userName: string
   userEmail: string
+  isDemo: boolean
   children: ReactNode
 }) {
   const pathname = usePathname()
@@ -83,6 +86,7 @@ export function PrivateShell({
   }, [setCollapsed])
 
   return (
+    <DemoModeProvider isDemo={isDemo}>
     <div className="flex min-h-screen bg-background">
       <PrivateNav
         userName={userName}
@@ -123,5 +127,6 @@ export function PrivateShell({
         </main>
       </div>
     </div>
+    </DemoModeProvider>
   )
 }

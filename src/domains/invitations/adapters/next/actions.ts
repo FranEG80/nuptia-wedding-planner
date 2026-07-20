@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { getRepositories } from "@/composition/repositories"
 import { requireAppSession } from "@/core/auth"
+import { isDemoSession } from "@/core/demo/is-demo-session"
 import {
   parseInvitationContent,
   updateInvitationDesignSchema,
@@ -24,6 +25,11 @@ export async function updateInvitationDesignAction(
 ) {
   const repositories = await getRepositories()
   const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return null
+  }
+
   const parsed = updateInvitationDesignSchema.parse(input)
   const wedding = await getCurrentWeddingUseCase({
     weddingRepository: repositories.wedding,

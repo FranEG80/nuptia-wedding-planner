@@ -30,6 +30,7 @@ import type {
   InvitationPartyDto,
   InvitationPartyGuestDto,
 } from "@/domains/guests/application/dtos/invitation-party.dto"
+import { useDemoState } from "@/core/demo/use-demo-state"
 import { cn } from "@/shared/lib/utils"
 
 type Filter = "todos" | "confirmados" | "pendientes" | "declinados"
@@ -63,7 +64,7 @@ export function GuestsView({
   initialParties: InvitationPartyDto[]
   initialWhatsappMessage: string
 }) {
-  const [parties, setParties] = useState(initialParties)
+  const [parties, setParties, isDemo] = useDemoState("guest-parties", initialParties)
   const [tab, setTab] = useState<"lista" | "mesas">("lista")
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<Filter>("todos")
@@ -180,6 +181,19 @@ export function GuestsView({
       )
     }
 
+    if (isDemo) {
+      const selectedIds = new Set(selectedParties.map((party) => party.id))
+      setParties((current) =>
+        current.map((party) =>
+          selectedIds.has(party.id)
+            ? { ...party, invite: "Enviada", compositionLocked: true }
+            : party,
+        ),
+      )
+      setSelectedPartyIds([])
+      return
+    }
+
     startSending(async () => {
       try {
         const nextParties = await markGuestPartiesInvitedAction(
@@ -289,6 +303,63 @@ export function GuestsView({
       phone: member.phone.trim() || null,
       isRecipient: member.isRecipient,
     }))
+
+    if (isDemo) {
+      const partyId = editingParty?.id ?? crypto.randomUUID()
+      const inviteToken = editingParty?.inviteToken ?? crypto.randomUUID()
+      const existingGuestsById = new Map(
+        (editingParty?.guests ?? []).map((guest) => [guest.id, guest]),
+      )
+
+      const guests: InvitationPartyGuestDto[] = guestsInput.map((draft) => {
+        const existing = draft.id ? existingGuestsById.get(draft.id) : undefined
+
+        return {
+          ...(existing ?? {
+            partyId,
+            weddingId: "demo",
+            appUserId: null,
+            role: draft.isRecipient ? "primary" : "companion",
+            group: groupName,
+            invite: "Pendiente",
+            rsvp: "Sin respuesta",
+            notes: "",
+            inviteToken,
+            uploadToken: null,
+            seat: null,
+            table: null,
+            invitedBy: [],
+          }),
+          id: draft.id ?? crypto.randomUUID(),
+          name: draft.name,
+          email: draft.email,
+          phone: draft.phone,
+          isRecipient: draft.isRecipient,
+        }
+      })
+      const recipient = guests.find((guest) => guest.isRecipient)!
+      const inviteeNames = guests.map((guest) => guest.name).join(" y ")
+      const savedParty: InvitationPartyDto = {
+        id: partyId,
+        weddingId: "demo",
+        inviteToken,
+        group: groupName,
+        invite: editingParty?.invite ?? "Pendiente",
+        displayName: `Invitación para ${inviteeNames}`,
+        inviteeNames,
+        recipient,
+        guests,
+        compositionLocked: Boolean(editingParty?.compositionLocked),
+      }
+
+      setParties((current) =>
+        editingParty
+          ? current.map((party) => (party.id === savedParty.id ? savedParty : party))
+          : [...current, savedParty],
+      )
+      setDialogOpen(false)
+      return
+    }
 
     startSaving(async () => {
       try {

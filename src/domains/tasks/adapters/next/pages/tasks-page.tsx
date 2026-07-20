@@ -24,5 +24,5 @@ export async function TasksPage() {
     memberNameById,
   })
 
-  return <TasksView tasks={tasks} />
+  return <TasksView tasks={tasks} currentUserName={session.appUser.name} />
 }

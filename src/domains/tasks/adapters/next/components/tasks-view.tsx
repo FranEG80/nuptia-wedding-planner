@@ -10,6 +10,7 @@ import {
   updateTaskAction,
 } from "@/domains/tasks/adapters/next/actions"
 import type { WeddingTaskDto } from "@/domains/tasks/application/dtos/task.dto"
+import { useDemoState } from "@/core/demo/use-demo-state"
 import { cn } from "@/shared/lib/utils"
 
 function TaskRow({
@@ -145,8 +146,14 @@ function TaskRow({
   )
 }
 
-export function TasksView({ tasks: initialTasks }: { tasks: WeddingTaskDto[] }) {
-  const [tasks, setTasks] = useState(initialTasks)
+export function TasksView({
+  tasks: initialTasks,
+  currentUserName,
+}: {
+  tasks: WeddingTaskDto[]
+  currentUserName: string
+}) {
+  const [tasks, setTasks, isDemo] = useDemoState("tasks", initialTasks)
   const [newTitle, setNewTitle] = useState("")
   const [newNotes, setNewNotes] = useState("")
   const [showNotesField, setShowNotesField] = useState(false)
@@ -157,10 +164,36 @@ export function TasksView({ tasks: initialTasks }: { tasks: WeddingTaskDto[] }) 
       return
     }
 
+    const title = newTitle.trim()
+    const notes = newNotes.trim()
+
+    if (isDemo) {
+      const now = new Date().toISOString()
+      setTasks((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          weddingId: "demo",
+          title,
+          notes: notes || null,
+          done: false,
+          createdByName: currentUserName,
+          completedByName: null,
+          completedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ])
+      setNewTitle("")
+      setNewNotes("")
+      setShowNotesField(false)
+      return
+    }
+
     startTransition(async () => {
       const task = await createTaskAction({
-        title: newTitle.trim(),
-        notes: newNotes.trim() || undefined,
+        title,
+        notes: notes || undefined,
       })
 
       if (task) {
@@ -174,6 +207,25 @@ export function TasksView({ tasks: initialTasks }: { tasks: WeddingTaskDto[] }) 
   }
 
   function handleToggle(task: WeddingTaskDto) {
+    if (isDemo) {
+      const now = new Date().toISOString()
+      const done = !task.done
+      setTasks((current) =>
+        current.map((t) =>
+          t.id === task.id
+            ? {
+                ...t,
+                done,
+                completedByName: done ? currentUserName : null,
+                completedAt: done ? now : null,
+                updatedAt: now,
+              }
+            : t,
+        ),
+      )
+      return
+    }
+
     startTransition(async () => {
       const updated = await toggleTaskAction(task.id, !task.done)
       if (updated) {
@@ -183,6 +235,16 @@ export function TasksView({ tasks: initialTasks }: { tasks: WeddingTaskDto[] }) 
   }
 
   function handleSave(taskId: string, title: string, notes: string) {
+    if (isDemo) {
+      const now = new Date().toISOString()
+      setTasks((current) =>
+        current.map((t) =>
+          t.id === taskId ? { ...t, title, notes: notes || null, updatedAt: now } : t,
+        ),
+      )
+      return
+    }
+
     startTransition(async () => {
       const updated = await updateTaskAction(taskId, { title, notes: notes || null })
       if (updated) {
@@ -192,6 +254,11 @@ export function TasksView({ tasks: initialTasks }: { tasks: WeddingTaskDto[] }) 
   }
 
   function handleDelete(taskId: string) {
+    if (isDemo) {
+      setTasks((current) => current.filter((t) => t.id !== taskId))
+      return
+    }
+
     startTransition(async () => {
       const deleted = await deleteTaskAction(taskId)
       if (deleted) {

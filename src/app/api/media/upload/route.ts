@@ -4,6 +4,7 @@ import { getMediaObjectStorage } from "@/composition/media-storage"
 import { getRepositories } from "@/composition/repositories"
 import { getCurrentAppSession } from "@/core/auth"
 import { env } from "@/core/config/env"
+import { isDemoSession } from "@/core/demo/is-demo-session"
 import { createMediaAssetUseCase } from "@/domains/media/application/use-cases/create-media-asset.use-case"
 import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
 import {
@@ -38,6 +39,14 @@ async function uploadMedia(request: Request) {
       code: "AUTHENTICATION_REQUIRED",
       message: "Autenticación requerida",
       status: 401,
+    })
+  }
+
+  if (isDemoSession(appSession)) {
+    return apiErrorResponse({
+      code: "DEMO_ACCOUNT_READ_ONLY",
+      message: "La cuenta demo no permite subir archivos",
+      status: 403,
     })
   }
 

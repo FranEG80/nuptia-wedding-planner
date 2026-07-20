@@ -25,7 +25,7 @@ const navItems = [
   { href: "/app/web", label: "Web de Bodas", icon: Globe },
   { href: "/app/invitados", label: "Invitados", icon: Users },
   { href: "/app/tareas", label: "Tareas", icon: ListChecks },
-  { href: "/app/ajustes", label: "Ajustes", icon: Settings },
+  { href: "/app/ajustes", label: "Ajustes", icon: Settings, active: false },
 ]
 
 export function PrivateNav({
@@ -73,6 +73,9 @@ export function PrivateNav({
             </div>
             <nav className="flex-1 space-y-1 px-4">
               {navItems.map((item) => {
+                if (item.active === false) {
+                  return null
+                }
                 const Icon = item.icon
                 const isActive = pathname === item.href
                 return (
@@ -123,7 +126,7 @@ export function PrivateNav({
       {/* Desktop sidebar */}
       <aside
         className={cn(
-        "hidden min-h-screen shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200 lg:flex",
+        "sticky top-0 hidden h-screen shrink-0 flex-col overflow-y-auto bg-sidebar text-sidebar-foreground transition-[width] duration-200 lg:flex",
         collapsed ? "w-20" : "w-72",
       )}
     >
@@ -166,6 +169,9 @@ export function PrivateNav({
 
       <nav className={cn("flex-1 space-y-1 px-4", collapsed && "px-3")}>
         {navItems.map((item) => {
+          if (item.active === false) {
+            return null
+          }
           const Icon = item.icon
           const isActive = pathname === item.href
 

@@ -48,7 +48,7 @@ export async function signInDemoAction() {
     redirect("/login?demoError=1")
   }
 
-  redirect("/app/dashboard")
+  redirect("/app/dashboard?demo=1")
 }
 
 export async function signOutAction() {

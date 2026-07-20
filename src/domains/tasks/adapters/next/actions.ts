@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { getRepositories } from "@/composition/repositories"
 import { requireAppSession } from "@/core/auth"
+import { isDemoSession } from "@/core/demo/is-demo-session"
 import {
   buildMemberNameMap,
   type CreateTaskDto,
@@ -17,6 +18,11 @@ import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cas
 async function loadWeddingContext() {
   const repositories = await getRepositories()
   const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return null
+  }
+
   const wedding = await getCurrentWeddingUseCase({
     weddingRepository: repositories.wedding,
     appUserId: session.appUser.id,

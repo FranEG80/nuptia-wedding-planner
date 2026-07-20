@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 
 import { updateInvitationDesignAction } from "@/domains/invitations/adapters/next/actions"
+import { useDemoState } from "@/core/demo/use-demo-state"
 import type {
   InvitationContentDto,
   InvitationDesignDto,
@@ -42,16 +43,23 @@ export function InvitationView({
   initialDesign: InvitationDesignDto
   bespoke?: boolean
 }) {
-  const [templateId, setTemplateId] = useState(() =>
+  const [templateId, setTemplateId, isDemo] = useDemoState(
+    "invitation-design-template",
     normalizeInvitationTemplateId(initialDesign.templateId),
   )
-  const [content, setContent] = useState<InvitationContentDto>(() => ({
-    ...initialDesign.content,
-    fontPairId: normalizeInvitationFontPairId(initialDesign.titleFont),
-    colorPresetId: normalizeInvitationColorPresetId(initialDesign.palette),
-    photoAssetId: normalizeInvitationPhotoAssetId(initialDesign.content.photoAssetId),
-  }))
-  const [musicEnabled, setMusicEnabled] = useState(initialDesign.musicEnabled)
+  const [content, setContent] = useDemoState<InvitationContentDto>(
+    "invitation-design-content",
+    {
+      ...initialDesign.content,
+      fontPairId: normalizeInvitationFontPairId(initialDesign.titleFont),
+      colorPresetId: normalizeInvitationColorPresetId(initialDesign.palette),
+      photoAssetId: normalizeInvitationPhotoAssetId(initialDesign.content.photoAssetId),
+    },
+  )
+  const [musicEnabled, setMusicEnabled] = useDemoState(
+    "invitation-design-music",
+    initialDesign.musicEnabled,
+  )
   const [previewMode, setPreviewMode] = useState<PreviewMode>("desktop")
   const [desktopZoom, setDesktopZoom] = useState(0.58)
   const [saved, setSaved] = useState(false)
@@ -146,6 +154,11 @@ export function InvitationView({
   }
 
   function saveDesign() {
+    if (isDemo) {
+      setSaved(true)
+      return
+    }
+
     startTransition(async () => {
       const nextDesign = await updateInvitationDesignAction({
         templateId,

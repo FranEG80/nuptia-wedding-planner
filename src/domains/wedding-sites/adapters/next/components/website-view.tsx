@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react"
 
 import { updateWeddingSiteModuleAction } from "@/domains/wedding-sites/adapters/next/actions"
 import { mariaDanielaAssets } from "@/domains/wedding-sites/adapters/next/components/maria-daniela-assets"
+import { useDemoState } from "@/core/demo/use-demo-state"
 import type { WeddingExperienceContent } from "@/domains/wedding-sites/application/dtos/wedding-experience.dto"
 import type { WeddingSiteModuleDto } from "@/domains/wedding-sites/application/dtos/wedding-site-module.dto"
 
@@ -35,7 +36,10 @@ export function WebsiteView({
   modules: WeddingSiteModuleDto[]
   experience: WeddingExperienceContent
 }) {
-  const [active, setActive] = useState<Record<WeddingSiteModuleDto["type"], boolean>>(
+  const [active, setActive, isDemo] = useDemoState<
+    Record<WeddingSiteModuleDto["type"], boolean>
+  >(
+    "site-modules",
     Object.fromEntries(modules.map((module) => [module.type, module.enabled])) as Record<WeddingSiteModuleDto["type"], boolean>,
   )
   const [device, setDevice] = useState<Device>("desktop")
@@ -50,6 +54,12 @@ export function WebsiteView({
   function toggleModule(module: WeddingSiteModuleDto) {
     const nextValue = !active[module.type]
     setActive((current) => ({ ...current, [module.type]: nextValue }))
+
+    if (isDemo) {
+      setMessage("Cambios guardados")
+      return
+    }
+
     setMessage("Guardando cambios…")
 
     startTransition(async () => {

@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { getRepositories } from "@/composition/repositories"
 import { requireAppSession } from "@/core/auth"
+import { isDemoSession } from "@/core/demo/is-demo-session"
 import type {
   CreateInvitationPartyDto,
   UpdateInvitationPartyDto,
@@ -21,6 +22,11 @@ export async function createInvitationPartyAction(
 ) {
   const repositories = await getRepositories()
   const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return null
+  }
+
   const wedding = await getCurrentWeddingUseCase({
     weddingRepository: repositories.wedding,
     appUserId: session.appUser.id,
@@ -46,6 +52,11 @@ export async function updateInvitationPartyAction(
 ) {
   const repositories = await getRepositories()
   const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return null
+  }
+
   const wedding = await getCurrentWeddingUseCase({
     weddingRepository: repositories.wedding,
     appUserId: session.appUser.id,
@@ -69,6 +80,11 @@ export async function updateInvitationPartyAction(
 export async function markGuestPartiesInvitedAction(partyIds: string[]) {
   const repositories = await getRepositories()
   const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return []
+  }
+
   const parsedPartyIds = markPartiesInvitedSchema.parse(partyIds)
   const wedding = await getCurrentWeddingUseCase({
     weddingRepository: repositories.wedding,

@@ -18,11 +18,18 @@ import {
   Prata,
   Source_Sans_3,
   Work_Sans,
+  Parisienne,
 } from 'next/font/google'
 import './globals.css'
 
 const allura = Allura({
   variable: '--font-allura',
+  subsets: ['latin'],
+  weight: '400',
+})
+
+const parisienne = Parisienne({
+  variable: '--font-parisienne',
   subsets: ['latin'],
   weight: '400',
 })
