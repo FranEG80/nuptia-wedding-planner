@@ -36,7 +36,7 @@ export function MariaDanielaCountdown({ weddingDate }: { weddingDate: string }) 
   }, [target])
 
   return (
-    <section className="relative isolate overflow-hidden text-center py-[clamp(4rem,11vw,8rem)] px-[max(4vw,1.25rem)]">
+    <section className="relative isolate overflow-hidden text-center py-[clamp(4rem,7vw,4rem)] px-[max(4vw,1.25rem)]">
       <Image draggable="false" src={mariaDanielaAssets.terracottaBrush} alt="" fill sizes="100vw" className="-z-10 object-cover opacity-25" />
       <p className={kickerBase} data-reveal>Ya queda menos</p>
       <h2 className={scriptHeading} data-script-reveal>Cuenta atrás</h2>

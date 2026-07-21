@@ -250,8 +250,8 @@ export function MariaDanielaInvitationTemplate({
             {/* <Image draggable="false" src={mariaDanielaAssets.cocktailsLight} alt="" width={120} height={150} className="mx-auto" /> */}
             <h2 className="mt-4 mb-6 [font-family:var(--font-parisienne),cursive] text-[clamp(3.8rem,8vw,7rem)] font-normal leading-[1.1]">{content.questionsTitle}</h2>
 
-            <div className="grid w-[min(1100px,100%)] mx-auto gap-x-8 gap-y-1 grid-cols-2 items-center text-center max-[720px]:grid-cols-1">
-              <div className="relative order-1 mx-auto max-w-[32rem]">
+            <div className="flex w-[min(1100px,100%)] mx-auto gap-x-8 items-center text-center max-[720px]:flex-col max-[720px]:gap-y-10">
+              <div className="relative flex-1 mx-auto max-w-[32rem]">
                 <Image draggable="false" src={mariaDanielaAssets.watercolorBlobs} alt="" width={200} height={200} className="absolute -top-10 -left-12 -z-10 w-28 h-auto opacity-35 max-[720px]:hidden" />
 
                 <p className="my-0 [font-family:var(--font-cormorant),serif] text-[1.2rem] leading-[1.55]">Si necesitas cualquier cosa, escríbenos directamente por WhatsApp. Estaremos encantados de ayudarte.</p>
@@ -272,31 +272,37 @@ export function MariaDanielaInvitationTemplate({
                     ))}
                   </div>
                 )}
+
+                <figure className="relative m-0 mt-10 min-h-[min(80vw,26rem)] w-full hidden max-[720px]:block">
+                  <Image draggable="false" src={coupleArt.coupleHorizontal1} alt="Pareja bailando" fill sizes="90vw" className="object-contain" />
+                </figure>
+
+                {isNachoWedding && (
+                  <div className="relative mt-10">
+                    <Image draggable="false" src={mariaDanielaAssets.watercolorBlobsAlternative} alt="" width={200} height={200} className="absolute -right-10 -bottom-6 -z-10 w-24 h-auto opacity-35 max-[720px]:hidden" />
+
+                    <p className="my-0 text-[1.05rem] font-extrabold tracking-[0.02em] text-[#d5764d]">¿Necesitas alojamiento?</p>
+                    <p className="mt-3 mb-0 [font-family:var(--font-cormorant),serif] text-[1.15rem] leading-[1.6] text-[rgba(48,61,56,0.75)]">
+                      Si vais a necesitar alojamiento, tenemos un código especial para reservar directamente en la web del hotel con un descuento adicional sobre la tarifa publicada. Es válido para todas las habitaciones, en régimen de Alojamiento + Desayuno.
+                    </p>
+                    <p className="mt-4 mb-0 [font-family:var(--font-cormorant),serif] text-[1.25rem] tracking-[0.04em]">
+                      Código: <strong className="text-[#d5764d]">{ACCOMMODATION_CODE}</strong>
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <figure className="relative order-2 row-span-2 w-full min-h-[min(80vw,38rem)] m-0 max-[720px]:row-span-1">
+              <figure className="relative flex-1 w-full min-h-[min(80vw,38rem)] m-0 max-[720px]:hidden">
                 <Image draggable="false" src={coupleArt.coupleHorizontal1} alt="Pareja bailando" fill sizes="(max-width: 720px) 90vw, 40vw" className="object-contain" />
               </figure>
-
-              {isNachoWedding && (
-                <div className="relative order-3 mx-auto max-w-[32rem]">
-                  <Image draggable="false" src={mariaDanielaAssets.watercolorBlobsAlternative} alt="" width={200} height={200} className="absolute -right-10 -bottom-6 -z-10 w-24 h-auto opacity-35 max-[720px]:hidden" />
-
-                  <p className="my-0 text-[1.05rem] font-extrabold tracking-[0.02em] text-[#d5764d]">¿Necesitas alojamiento?</p>
-                  <p className="mt-3 mb-0 [font-family:var(--font-cormorant),serif] text-[1.15rem] leading-[1.6] text-[rgba(48,61,56,0.75)]">
-                    Si vais a necesitar alojamiento, tenemos un código especial para reservar directamente en la web del hotel con un descuento adicional sobre la tarifa publicada. Es válido para todas las habitaciones, en régimen de Alojamiento + Desayuno.
-                  </p>
-                  <p className="mt-4 mb-0 [font-family:var(--font-cormorant),serif] text-[1.25rem] tracking-[0.04em]">
-                    Código: <strong className="text-[#d5764d]">{ACCOMMODATION_CODE}</strong>
-                  </p>
-                </div>
-              )}
             </div>
           </section>
         )}
       </main>
 
       <div aria-hidden="true" className="h-20 bg-gradient-to-b from-[#fbf4ea] to-[#fff9f2] max-[720px]:h-12" />
+
+      <MariaDanielaCountdown weddingDate={wedding.date} />
 
       <footer className="grid text-[#5b4d47] text-center max-[720px]:min-h-[58svh]">
         <div className="relative grid min-h-[32rem] py-12 px-4 place-items-center content-center isolate bg-[#fff9f2]">
