@@ -4,7 +4,10 @@ import { Dialog } from "@base-ui/react/dialog"
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Download,
+  HelpCircle,
   Loader2,
   Upload,
   X,
@@ -20,6 +23,7 @@ import {
   type GuestImportParseResult,
 } from "@/domains/guests/application/guest-import"
 import type { InvitationPartyDto } from "@/domains/guests/application/dtos/invitation-party.dto"
+import { cn } from "@/shared/lib/utils"
 
 export function ImportGuestsDialog({
   open,
@@ -41,6 +45,7 @@ export function ImportGuestsDialog({
   const [parseError, setParseError] = useState<string | null>(null)
   const [parseResult, setParseResult] = useState<GuestImportParseResult | null>(null)
   const [importSummary, setImportSummary] = useState<string | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   function reset() {
     setFileName(null)
@@ -181,14 +186,32 @@ export function ImportGuestsDialog({
               <X className="h-4 w-4" />
             </Dialog.Close>
 
-            <button
-              type="button"
-              onClick={() => downloadGuestImportTemplate()}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-accent hover:text-foreground"
-            >
-              <Download className="h-4 w-4" />
-              Descargar plantilla vacía
-            </button>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => downloadGuestImportTemplate()}
+                className="inline-flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-accent hover:text-foreground"
+              >
+                <Download className="h-4 w-4" />
+                Descargar plantilla vacía
+              </button>
+              <button
+                type="button"
+                onClick={() => setHelpOpen((open) => !open)}
+                aria-expanded={helpOpen}
+                className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground hover:border-accent hover:text-foreground"
+              >
+                <HelpCircle className="h-4 w-4" />
+                Cómo rellenar el archivo
+                {helpOpen ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
+
+            {helpOpen ? <ImportHelpPanel /> : null}
 
             <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-background/50 px-4 py-3 text-sm hover:border-accent">
               <Upload className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -288,5 +311,167 @@ export function ImportGuestsDialog({
         </Dialog.Viewport>
       </Dialog.Portal>
     </Dialog.Root>
+  )
+}
+
+const HELP_RULES = [
+  "Cada fila es una persona.",
+  "Grupo es solo una etiqueta libre para organizar (Familia, Amigos, Trabajo...). No combina a nadie: repítela en tantas filas e invitaciones sueltas como quieras.",
+  "Invitación conjunta sí combina personas: pon el mismo texto en 2 filas para que reciban UNA misma invitación (pareja). Déjala vacía para invitaciones individuales.",
+  "Una invitación conjunta admite como máximo 2 personas; la 3ª fila con el mismo texto da error.",
+  "Marca con Sí, en Destinatario, a quien recibirá el enlace. Si no marcas a nadie, se elige automáticamente a quien tenga teléfono o email.",
+  "El destinatario necesita al menos un teléfono o un email; si no lo tiene, esa fila da error.",
+  "El nombre es obligatorio; los apellidos son opcionales.",
+  "Las filas completamente vacías se ignoran sin avisar.",
+]
+
+const HELP_EXAMPLE_ROWS: Array<{
+  grupo: string
+  conjunta: string
+  nombre: string
+  telefono: string
+  email: string
+  destinatario: string
+  resultado: string
+  status: "ok" | "warning" | "error"
+}> = [
+  {
+    grupo: "Amigos",
+    conjunta: "",
+    nombre: "Sara",
+    telefono: "600111111",
+    email: "sara@x.com",
+    destinatario: "",
+    resultado: "Sola, sin conjunta: invitación individual, destinataria automática.",
+    status: "ok",
+  },
+  {
+    grupo: "Familia Novio",
+    conjunta: "F1",
+    nombre: "Ana",
+    telefono: "600111222",
+    email: "ana@x.com",
+    destinatario: "Sí",
+    resultado: "Pareja con destinatario marcado.",
+    status: "ok",
+  },
+  {
+    grupo: "Familia Novio",
+    conjunta: "F1",
+    nombre: "Luis",
+    telefono: "600333444",
+    email: "",
+    destinatario: "No",
+    resultado: "Su pareja en F1; no recibe el enlace.",
+    status: "ok",
+  },
+  {
+    grupo: "Trabajo",
+    conjunta: "",
+    nombre: "Marta",
+    telefono: "600999000",
+    email: "",
+    destinatario: "",
+    resultado: "Mismo Grupo que otro soltero de Trabajo, pero NO se combinan (conjunta vacía).",
+    status: "ok",
+  },
+  {
+    grupo: "",
+    conjunta: "",
+    nombre: "",
+    telefono: "600222333",
+    email: "",
+    destinatario: "",
+    resultado: "Falta el nombre.",
+    status: "error",
+  },
+  {
+    grupo: "",
+    conjunta: "",
+    nombre: "Pedro",
+    telefono: "",
+    email: "",
+    destinatario: "",
+    resultado: "Destinatario sin teléfono ni email.",
+    status: "error",
+  },
+  {
+    grupo: "",
+    conjunta: "",
+    nombre: "Clara",
+    telefono: "600444555",
+    email: "no-es-email",
+    destinatario: "",
+    resultado: "Email con formato inválido.",
+    status: "error",
+  },
+  {
+    grupo: "",
+    conjunta: "",
+    nombre: "Nuria",
+    telefono: "",
+    email: "ana@x.com",
+    destinatario: "",
+    resultado: "Ese email ya existe en otra invitación (se importa igual).",
+    status: "warning",
+  },
+  {
+    grupo: "Trio",
+    conjunta: "T1",
+    nombre: "Tres",
+    telefono: "600",
+    email: "",
+    destinatario: "",
+    resultado: "T1 ya tiene 2 personas; esta fila no entra.",
+    status: "error",
+  },
+]
+
+const HELP_STATUS_STYLES: Record<string, string> = {
+  ok: "text-emerald-600",
+  warning: "text-amber-500",
+  error: "text-destructive",
+}
+
+function ImportHelpPanel() {
+  return (
+    <div className="mt-4 space-y-4 rounded-xl border border-border bg-background/50 p-4 text-xs text-muted-foreground">
+      <ol className="list-decimal space-y-1.5 pl-4">
+        {HELP_RULES.map((rule) => (
+          <li key={rule}>{rule}</li>
+        ))}
+      </ol>
+
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full min-w-[720px] border-collapse text-left">
+          <thead className="bg-secondary/40 text-foreground">
+            <tr>
+              <th className="px-2 py-1.5 font-medium">Grupo</th>
+              <th className="px-2 py-1.5 font-medium">Invitación conjunta</th>
+              <th className="px-2 py-1.5 font-medium">Nombre</th>
+              <th className="px-2 py-1.5 font-medium">Teléfono</th>
+              <th className="px-2 py-1.5 font-medium">Email</th>
+              <th className="px-2 py-1.5 font-medium">Destinatario</th>
+              <th className="px-2 py-1.5 font-medium">Qué pasa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {HELP_EXAMPLE_ROWS.map((row, index) => (
+              <tr key={index} className="border-t border-border/60 align-top">
+                <td className="px-2 py-1.5">{row.grupo}</td>
+                <td className="px-2 py-1.5">{row.conjunta}</td>
+                <td className="px-2 py-1.5">{row.nombre}</td>
+                <td className="px-2 py-1.5">{row.telefono}</td>
+                <td className="px-2 py-1.5">{row.email}</td>
+                <td className="px-2 py-1.5">{row.destinatario}</td>
+                <td className={cn("px-2 py-1.5", HELP_STATUS_STYLES[row.status])}>
+                  {row.resultado}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }
