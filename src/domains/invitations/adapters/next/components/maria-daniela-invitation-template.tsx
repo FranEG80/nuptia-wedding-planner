@@ -1,5 +1,5 @@
 import Image from "next/image"
-import type { ReactNode } from "react"
+import { Fragment, type ReactNode } from "react"
 
 import {
   mariaDanielaAssets,
@@ -19,6 +19,14 @@ const scheduleArt = [
   mariaDanielaAssets.dinnerTableDark,
   mariaDanielaAssets.discoBallDark,
 ]
+
+const coupleArt = {
+  church: mariaDanielaAssets.churchWatercolor,
+  hotel: mariaDanielaAssets.hotelWatercolor,
+  coupleVertical: mariaDanielaAssets.coupleVertical,
+  coupleHorizontal1: mariaDanielaAssets.coupleHorizontal1,
+  coupleHorizontal2: mariaDanielaAssets.coupleHorizontal2,
+}
 
 export function MariaDanielaInvitationTemplate({
   wedding,
@@ -59,13 +67,20 @@ export function MariaDanielaInvitationTemplate({
           <section className={styles.letter}>
             <p className={styles.kicker} data-reveal>Queremos celebrarlo contigo</p>
             <h2 data-script-reveal>{content.storyTitle}</h2>
-            <div className={styles.letterLayout}>
-              <div data-reveal>
-                {content.story.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 18)}`}>{paragraph}</p>)}
-              </div>
-              <figure data-reveal>
-                <Image draggable="false" src={selectedPhoto.src} alt="Fotografía de la pareja" fill sizes="(max-width: 720px) 84vw, 38vw" className={styles.photo} />
-              </figure>
+            <figure className={styles.storyFigure} data-reveal>
+              <Image draggable="false" src={coupleArt.coupleHorizontal2} alt="Fotografía de la pareja" fill sizes="(max-width: 720px) 84vw, 38vw" className={styles.photo} />
+            </figure>
+            <div className={styles.letterLayout} data-reveal>
+              {content.story.map((paragraph, index) => (
+                <Fragment key={`${index}-${paragraph.slice(0, 18)}`}>
+                  {index === Math.max(0, content.story.length - 3) && (
+                    <figure className={styles.storyFigureFloat}>
+                      <Image draggable="false" src={coupleArt.coupleVertical} alt="Fotografía de la pareja" fill sizes="(max-width: 720px) 60vw, 20rem" className={styles.photo} />
+                    </figure>
+                  )}
+                  <p>{paragraph}</p>
+                </Fragment>
+              ))}
             </div>
           </section>
         )}
@@ -187,7 +202,7 @@ export function MariaDanielaInvitationTemplate({
         )}
 
         {visible.questions && (
-          <section className={styles.questions}>
+          <section className={`${styles.questions} pb-0`} data-reveal>
             <Image draggable="false" src={mariaDanielaAssets.cocktailsLight} alt="" width={120} height={150} />
             <h2>{content.questionsTitle}</h2>
             <p>Si necesitas cualquier cosa, escríbenos directamente por WhatsApp. Estaremos encantados de ayudarte.</p>
@@ -196,7 +211,9 @@ export function MariaDanielaInvitationTemplate({
       </main>
 
       <footer className={styles.footer}>
-        <figure><Image draggable="false" src={weddingPlaceholderPhotos.dance} alt="Pareja bailando" fill sizes="100vw" className={styles.photo} /></figure>
+        <figure className="my-4 ">
+          <Image draggable="false" src={coupleArt.coupleHorizontal2} alt="Pareja bailando" fill sizes="100vw" className={styles.photo} />
+        </figure>
         <div>
           <Image draggable="false" src={mariaDanielaAssets.watercolorFrame} alt="" fill sizes="100vw" />
           <p>Nos vemos muy pronto</p><h2>{firstName} <i>&amp;</i> {secondName}</h2>

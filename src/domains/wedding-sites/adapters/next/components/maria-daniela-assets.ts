@@ -19,8 +19,11 @@ export const mariaDanielaAssets = {
   dinnerTableDark: `${assetRoot}/dinner-table-line-warm.webp`,
   cocktailsLight: `${assetRoot}/cocktails-line-light.webp`,
   cocktailsDark: `${assetRoot}/cocktails-line-warm.webp`,
-  churchWatercolor: `${assetRoot}/church-watercolor.webp`,
-  hotelWatercolor: `${assetRoot}/hotel-watercolor.webp`,
+  churchWatercolor: `${assetRoot}/sunset-church.webp`,
+  hotelWatercolor: `${assetRoot}/sunset-hotel.webp`,
+  coupleVertical: `${assetRoot}/couple-vertical.webp`,
+  coupleHorizontal1: `${assetRoot}/couple-1.webp`,
+  coupleHorizontal2: `${assetRoot}/couple-2.webp`,
 } as const
 
 export const weddingPlaceholderPhotos = {
