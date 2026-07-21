@@ -1,7 +1,7 @@
 import type { ComponentProps, ComponentType } from "react"
 
 import { BouquetInvitationTemplate } from "@/domains/invitations/adapters/next/components/bouquet-invitation-template"
-import { MariaDanielaInvitationTemplate } from "@/domains/invitations/adapters/next/components/demo-invitation-template"
+import { MariaDanielaInvitationTemplate } from "@/domains/invitations/adapters/next/components/maria-daniela-invitation-template"
 import { LegacyDemoInvitationTemplate } from "@/domains/invitations/adapters/next/components/legacy-demo-invitation-template"
 import type { InvitationTemplateId } from "@/domains/invitations/domain/invitation-template-options"
 

@@ -11,7 +11,7 @@ import type { WeddingDto } from "@/domains/weddings/application/dtos/wedding.dto
 import { EditorialMotion } from "@/shared/components/editorial-motion"
 import { cn } from "@/shared/lib/utils"
 
-import styles from "./demo-invitation-template.module.css"
+import styles from "./maria-daniela-invitation-template.module.css"
 
 const scheduleArt = [
   mariaDanielaAssets.churchLineDark,
