@@ -38,7 +38,7 @@
 .storyText p + p { margin-top: 1.15rem; }
 .storyPhotoSecond { min-height: 24rem; margin: -6rem -18% 0 auto; grid-column: 2; width: 72%; transform: rotate(3.5deg); }
 
-.places { padding: clamp(6rem, 12vw, 11rem) max(5vw, 1.5rem); background-color: var(--paper); background-image: url("/images/templates/maria-daniela/sage-watercolor-wash.webp"); background-position: center; background-size: cover; text-align: center; }
+.places { padding: clamp(6rem, 12vw, 11rem) max(5vw, 1.5rem); background-color: var(--paper); background-image: url("/images/templates/maria-daniela/sage-watercolor-wash-transparent.webp"); background-position: center; background-size: cover; text-align: center; }
 .sectionIntro { margin-bottom: 5rem; }
 .placeGrid { display: grid; width: min(1100px, 100%); margin: auto; gap: clamp(2rem, 6vw, 7rem); grid-template-columns: repeat(2, 1fr); }
 .placeCard { display: flex; align-items: center; flex-direction: column; }
@@ -97,7 +97,7 @@
 .ibanBox strong { font-family: var(--font-cormorant), serif; font-size: clamp(1rem, 3vw, 1.45rem); letter-spacing: .08em; }
 .ibanBox button { padding: .3rem 0; border-width: 0 0 1px; background: transparent; cursor: pointer; }
 
-.contact { padding: clamp(6rem, 10vw, 9rem) 1.5rem; background-color: var(--paper); background-image: url("/images/templates/maria-daniela/sage-watercolor-wash.webp"); background-position: center; background-size: cover; text-align: center; }
+.contact { padding: clamp(6rem, 10vw, 9rem) 1.5rem; background-color: var(--paper); background-image: url("/images/templates/maria-daniela/sage-watercolor-wash-transparent.webp"); background-position: center; background-size: cover; text-align: center; }
 .contact > img { width: 6rem; height: auto; margin: auto auto 1rem; }
 .contact > p:not(.eyebrow) { width: min(40rem, 100%); margin: 2rem auto; font-family: var(--font-cormorant), serif; font-size: 1.25rem; line-height: 1.55; }
 .contacts { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem 2.5rem; }

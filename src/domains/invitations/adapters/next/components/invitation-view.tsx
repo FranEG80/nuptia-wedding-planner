@@ -248,113 +248,122 @@ export function InvitationView({
           </div>
         </Section>
 
-        <Section icon={Palette} title="Colores">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {INVITATION_COLOR_PRESETS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => updateContent("colorPresetId", item.id)}
-                className={cn(
-                  "rounded-lg border p-3 text-left transition-colors",
-                  content.colorPresetId === item.id
-                    ? "border-accent bg-accent/10"
-                    : "border-border hover:bg-secondary/50",
-                )}
-              >
-                <span className="flex gap-1">
-                  {item.swatches.map((color) => (
-                    <span
-                      key={color}
-                      className="h-5 w-5 rounded-full border border-border"
-                      style={{ backgroundColor: color }}
+
+        {templateId != "maria-daniela" && (
+          <Section icon={Palette} title="Colores">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {INVITATION_COLOR_PRESETS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => updateContent("colorPresetId", item.id)}
+                  className={cn(
+                    "rounded-lg border p-3 text-left transition-colors",
+                    content.colorPresetId === item.id
+                      ? "border-accent bg-accent/10"
+                      : "border-border hover:bg-secondary/50",
+                  )}
+                >
+                  <span className="flex gap-1">
+                    {item.swatches.map((color) => (
+                      <span
+                        key={color}
+                        className="h-5 w-5 rounded-full border border-border"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </span>
+                  <span className="mt-2 block text-sm font-medium">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {templateId != "maria-daniela" && (
+          <Section icon={Type} title="Fuentes">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {INVITATION_FONT_PAIRS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => updateContent("fontPairId", item.id)}
+                  className={cn(
+                    "rounded-lg border p-3 text-left transition-colors",
+                    content.fontPairId === item.id
+                      ? "border-accent bg-accent/10"
+                      : "border-border hover:bg-secondary/50",
+                  )}
+                >
+                  <span
+                    className="block text-xl text-foreground"
+                    style={{ fontFamily: item.titleFamily }}
+                  >
+                    Título
+                  </span>
+                  <span
+                    className="mt-1 block text-sm text-muted-foreground"
+                    style={{ fontFamily: item.bodyFamily }}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {templateId != "maria-daniela" && (
+          <Section icon={ImageIcon} title="Fotografía">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {INVITATION_PHOTO_ASSETS.map((asset) => (
+                <button
+                  key={asset.id}
+                  type="button"
+                  onClick={() => updateContent("photoAssetId", asset.id)}
+                  className={cn(
+                    "overflow-hidden rounded-lg border bg-background text-left transition-colors",
+                    content.photoAssetId === asset.id
+                      ? "border-accent ring-2 ring-accent/20"
+                      : "border-border hover:bg-secondary/50",
+                  )}
+                >
+                  <span className="relative block aspect-[4/3] bg-secondary">
+                    <Image draggable="false"
+                      src={getInvitationPhotoAsset(asset.id).src}
+                      alt=""
+                      fill
+                      sizes="220px"
+                      className="object-cover"
                     />
-                  ))}
-                </span>
-                <span className="mt-2 block text-sm font-medium">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </Section>
+                  </span>
+                  <span className="block px-3 py-2 text-sm font-medium">{asset.label}</span>
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
 
-        <Section icon={Type} title="Fuentes">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {INVITATION_FONT_PAIRS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => updateContent("fontPairId", item.id)}
-                className={cn(
-                  "rounded-lg border p-3 text-left transition-colors",
-                  content.fontPairId === item.id
-                    ? "border-accent bg-accent/10"
-                    : "border-border hover:bg-secondary/50",
-                )}
-              >
-                <span
-                  className="block text-xl text-foreground"
-                  style={{ fontFamily: item.titleFamily }}
+        {templateId != "maria-daniela" && (
+          <Section icon={Eye} title="Secciones visibles">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {INVITATION_SECTIONS.map((section) => (
+                <label
+                  key={section.id}
+                  className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm"
                 >
-                  Título
-                </span>
-                <span
-                  className="mt-1 block text-sm text-muted-foreground"
-                  style={{ fontFamily: item.bodyFamily }}
-                >
-                  {item.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        <Section icon={ImageIcon} title="Fotografía">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {INVITATION_PHOTO_ASSETS.map((asset) => (
-              <button
-                key={asset.id}
-                type="button"
-                onClick={() => updateContent("photoAssetId", asset.id)}
-                className={cn(
-                  "overflow-hidden rounded-lg border bg-background text-left transition-colors",
-                  content.photoAssetId === asset.id
-                    ? "border-accent ring-2 ring-accent/20"
-                    : "border-border hover:bg-secondary/50",
-                )}
-              >
-                <span className="relative block aspect-[4/3] bg-secondary">
-                  <Image draggable="false"
-                    src={getInvitationPhotoAsset(asset.id).src}
-                    alt=""
-                    fill
-                    sizes="220px"
-                    className="object-cover"
+                  <input
+                    type="checkbox"
+                    checked={content.visibleSections[section.id]}
+                    onChange={() => updateVisibility(section.id)}
+                    className="h-4 w-4 accent-primary"
                   />
-                </span>
-                <span className="block px-3 py-2 text-sm font-medium">{asset.label}</span>
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        <Section icon={Eye} title="Secciones visibles">
-          <div className="grid gap-2 sm:grid-cols-2">
-            {INVITATION_SECTIONS.map((section) => (
-              <label
-                key={section.id}
-                className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={content.visibleSections[section.id]}
-                  onChange={() => updateVisibility(section.id)}
-                  className="h-4 w-4 accent-primary"
-                />
-                {section.label}
-              </label>
-            ))}
-          </div>
-        </Section>
+                  {section.label}
+                </label>
+              ))}
+            </div>
+          </Section>
+        )}
 
         <Section icon={Eye} title="Textos principales">
           <div className="grid gap-3 sm:grid-cols-2">

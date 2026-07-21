@@ -187,7 +187,7 @@ export function DemoRsvpExperience({
           className="z-10 object-contain transition-transform duration-[250ms] ease-out group-hover:rotate-[-1deg] group-hover:scale-[1.025] group-focus-visible:rotate-[-1deg] group-focus-visible:scale-[1.025]"
           unoptimized
         />
-        <span className="absolute inset-0 z-[1] flex items-center justify-center -translate-y-[14.4%] [font-family:var(--font-quicksand),sans-serif] text-[clamp(1.9rem,5vw,2.35rem)] font-normal tracking-[0.01em] leading-none text-[#d5764d]">CONFIRMAR</span>
+        <span className="absolute inset-0 z-[1] flex items-center justify-center -translate-y-[14.4%] [font-family:var(--font-manrope),sans-serif] text-[clamp(1.9rem,5vw,2.35rem)] font-normal tracking-[0.01em] leading-none text-[#d5764d] transition-transform duration-[250ms] ase-out group-hover:rotate-[-1deg] group-hover:scale-[1.025] group-focus-visible:rotate-[-1deg] group-focus-visible:scale-[1.025] ">CONFIRMAR</span>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-[80] bg-[rgba(57,47,43,0.72)] backdrop-blur-[8px] animate-[rsvp-modal-fade_0.25s_ease-out] motion-reduce:animate-none" />

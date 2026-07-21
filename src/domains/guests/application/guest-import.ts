@@ -133,9 +133,14 @@ export function parseGuestImportRows(
   rawRows: RawGuestImportRow[],
   options: { existingEmails?: Set<string> } = {},
 ): GuestImportParseResult {
-  const existingEmails = options.existingEmails ?? new Set<string>()
   const rowResults: GuestImportRowResult[] = []
   const parties: CreateInvitationPartyDto[] = []
+  // Arranca con los emails ya existentes en BD y va acumulando los del propio
+  // archivo, así detecta tanto duplicados contra invitaciones previas como
+  // duplicados entre dos filas de esta misma importación.
+  const seenEmails = new Set(
+    Array.from(options.existingEmails ?? []).map((email) => email.toLowerCase()),
+  )
 
   const normalizedRows = rawRows
     // La fila 1 es la cabecera, así que los datos empiezan en la fila 2.
@@ -215,8 +220,13 @@ export function parseGuestImportRows(
       parties.push(parsed.data)
 
       for (const member of members) {
-        const isDuplicate = member.email && existingEmails.has(member.email.toLowerCase())
+        const emailKey = member.email?.toLowerCase() ?? null
+        const isDuplicate = emailKey !== null && seenEmails.has(emailKey)
         const groupMismatch = groupLabels.size > 1
+
+        if (emailKey !== null) {
+          seenEmails.add(emailKey)
+        }
 
         rowResults.push({
           rowNumber: member.rowNumber,
@@ -224,7 +234,7 @@ export function parseGuestImportRows(
           message: groupMismatch
             ? `Se importará con el grupo "${groupName}"; las dos personas de esta invitación tienen grupos distintos.`
             : isDuplicate
-              ? `Se importará, pero el email ${member.email} ya existe en otra invitación.`
+              ? `Se importará, pero el email ${member.email} ya está en otra invitación (de esta lista o ya existente).`
               : "Lista para importar.",
         })
       }

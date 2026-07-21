@@ -3,9 +3,10 @@ const assetRoot = "/images/templates/maria-daniela"
 export const mariaDanielaAssets = {
   watercolorSides: `${assetRoot}/watercolor-side-flowers.webp`,
   watercolorFrame: `${assetRoot}/watercolor-frame.webp`,
-  sageWash: `${assetRoot}/sage-watercolor-wash.webp`,
+  sageWash: `${assetRoot}/sage-watercolor-wash-transparent.webp`,
   terracottaBrush: `${assetRoot}/terracotta-brush.webp`,
   watercolorBlobs: `${assetRoot}/watercolor-blobs.webp`,
+  watercolorBlobsAlternative: `${assetRoot}/watercolor-blobs-alternative.webp`,
   botanicalSprig: `${assetRoot}/botanical-sprig.webp`,
   locationPin: `${assetRoot}/location-pin-watercolor.webp`,
   whatsappWatercolor: `${assetRoot}/whatsapp-watercolor.webp`,

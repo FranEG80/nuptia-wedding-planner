@@ -129,6 +129,28 @@ describe("parseGuestImportRows", () => {
     assert.equal(result.rows[0].status, "warning")
   })
 
+  it("warns about an email repeated twice within the same file, not just against existing guests", () => {
+    const result = parseGuestImportRows([
+      { Grupo: "", Nombre: "Ana", Email: "ana@example.com" },
+      { Grupo: "", Nombre: "Ana Otra", Email: "ANA@example.com" },
+    ])
+
+    assert.equal(result.parties.length, 2)
+    assert.equal(result.rows.find((row) => row.rowNumber === 2)?.status, "ok")
+    assert.equal(result.rows.find((row) => row.rowNumber === 3)?.status, "warning")
+  })
+
+  it("rejects a joint invitation with two people both marked as recipient", () => {
+    const result = parseGuestImportRows([
+      { "Invitación conjunta": "F1", Nombre: "Ana", Teléfono: "600111222", Destinatario: "Sí" },
+      { "Invitación conjunta": "F1", Nombre: "Luis", Teléfono: "600333444", Destinatario: "Sí" },
+    ])
+
+    assert.equal(result.parties.length, 0)
+    assert.ok(result.rows.every((row) => row.status === "error"))
+    assert.match(result.rows[0].message, /un destinatario/i)
+  })
+
   it("skips fully blank rows", () => {
     const result = parseGuestImportRows([
       { Grupo: "", Nombre: "", Teléfono: "", Email: "", Apellidos: "" },
