@@ -20,13 +20,13 @@ export async function generateMetadata({
   const description = `Toda la información de la boda de ${wedding.displayName} en ${wedding.city}.`
 
   let [domain, protocol] = process.env.APP_URL.split("://"), baseUrl, customOgImage;
-  if (wedding.partnerNames[0] === "María Daniela" && wedding.partnerNames[1] === "Nacho") {
+  if (wedding.partnerNames.some((name) => name.toLowerCase() === "maria daniela") && wedding.partnerNames.some((name) => name.toLowerCase() === "nacho")) {
     domain = "bodamariadanielaynacho.es"
     protocol = "https"
     baseUrl = `${protocol}://${domain}`
     customOgImage = `${baseUrl}/images/templates/maria-daniela/ogimage.png`
   }
-  
+
   if (customOgImage) {
     return {
       title,
