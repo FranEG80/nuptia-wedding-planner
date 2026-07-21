@@ -16,6 +16,7 @@ import {
   Nunito_Sans,
   Playfair_Display,
   Prata,
+  Quicksand,
   Source_Sans_3,
   Work_Sans,
   Parisienne,
@@ -85,6 +86,7 @@ const prata = Prata({
   weight: '400',
 })
 const workSans = Work_Sans({ variable: '--font-work-sans', subsets: ['latin'] })
+const quicksand = Quicksand({ variable: '--font-quicksand', subsets: ['latin'] })
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
@@ -126,7 +128,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`light ${allura.variable} ${playfair.variable} ${inter.variable} ${cormorant.variable} ${lato.variable} ${libreBaskerville.variable} ${manrope.variable} ${marcellus.variable} ${mulish.variable} ${fraunces.variable} ${sourceSans.variable} ${cinzel.variable} ${montserrat.variable} ${bodoni.variable} ${nunito.variable} ${prata.variable} ${workSans.variable} ${geistMono.variable} bg-background`}
+      className={`light ${allura.variable} ${parisienne.variable} ${playfair.variable} ${inter.variable} ${cormorant.variable} ${lato.variable} ${libreBaskerville.variable} ${manrope.variable} ${marcellus.variable} ${mulish.variable} ${fraunces.variable} ${sourceSans.variable} ${cinzel.variable} ${montserrat.variable} ${bodoni.variable} ${nunito.variable} ${prata.variable} ${workSans.variable} ${quicksand.variable} ${geistMono.variable} bg-background`}
     >
       <body className="font-sans antialiased">
         {children}

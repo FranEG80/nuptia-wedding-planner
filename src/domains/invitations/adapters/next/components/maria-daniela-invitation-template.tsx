@@ -27,7 +27,7 @@ const coupleArt = {
 }
 
 const kickerBase = "my-0 mb-4! text-[0.65rem] font-extrabold tracking-[0.24em] uppercase"
-const scriptHeading = "my-0 [font-family:var(--font-allura),cursive] text-[clamp(3.8rem,8vw,7rem)] font-normal leading-[0.85]"
+const scriptHeading = "my-0 [font-family:var(--font-parisienne),cursive] text-[clamp(3.8rem,8vw,7rem)] font-normal leading-[0.85]"
 const linkUnderline = "inline-block mt-3 border-b border-current text-inherit text-[0.62rem] font-extrabold tracking-[0.15em] no-underline uppercase"
 const scheduleMeta = "block my-[0.35rem] text-[rgba(91,77,71,0.72)] text-[0.76rem] leading-[1.5]"
 const venueCopy = "my-0 text-[rgba(48,61,56,0.68)] text-[0.85rem] leading-[1.6]"
@@ -53,6 +53,7 @@ export function MariaDanielaInvitationTemplate({
   const reception = wedding.restaurant
   const publicRegistryNote = sanitizePublicRegistryNote(content.registryNote)
   const storyFloatIndex = Math.max(1, Math.floor(content.story.length / 4))
+  const storyFloatIndexMobile = Math.max(1, Math.floor(content.story.length / 2))
 
   return (
     <EditorialMotion className={cn("min-h-svh overflow-hidden bg-[#fbf4ea] text-[#5b4d47] [font-family:var(--font-manrope),sans-serif]", className)}>
@@ -61,7 +62,7 @@ export function MariaDanielaInvitationTemplate({
         <Image draggable="false" src={mariaDanielaAssets.botanicalSprig} alt="" width={280} height={450} className="absolute right-[-4rem] bottom-[-4rem] z-[-1] w-[clamp(12rem,28vw,23rem)] h-auto" />
         <div>
           <p className="my-0 text-[0.68rem] font-extrabold tracking-[0.34em] uppercase">{content.eyebrow}</p>
-          <h1 className="flex flex-col mt-[1.8rem] mb-[2.5rem] [font-family:var(--font-allura),cursive] text-[clamp(5.4rem,15vw,10.5rem)] font-normal leading-[0.56] max-[720px]:leading-[0.7]">
+          <h1 className="flex flex-col mt-[1.8rem] mb-[2.5rem] [font-family:var(--font-parisienne),cursive] text-[clamp(5.4rem,15vw,10.5rem)] font-normal leading-[0.56] max-[720px]:leading-[0.7]">
             <span>{firstName}</span><i className="text-[#d5764d] text-[0.6em] font-normal">&amp;</i><span>{secondName}</span>
           </h1>
           <time className="block [font-family:var(--font-cormorant),serif] text-[clamp(1.25rem,3vw,1.7rem)] uppercase">{formatDate(wedding.date)}</time>
@@ -82,7 +83,12 @@ export function MariaDanielaInvitationTemplate({
               {content.story.map((paragraph, index) => (
                 <Fragment key={`${index}-${paragraph.slice(0, 18)}`}>
                   {index === storyFloatIndex && (
-                    <figure className="relative float-right w-[min(36rem,50%)] aspect-[3/4]  rotate-[0deg] max-[720px]:float-none max-[720px]:w-[min(20rem,70%)] max-[720px]:my-6 max-[720px]:mx-auto">
+                    <figure className="relative float-right w-[min(36rem,50%)] aspect-[3/4] rotate-[0deg] max-[720px]:hidden">
+                      <Image draggable="false" src={coupleArt.coupleVertical} alt="Fotografía de la pareja" fill sizes="(max-width: 720px) 60vw, 20rem" className="object-contain" />
+                    </figure>
+                  )}
+                  {index === storyFloatIndexMobile && (
+                    <figure className="relative hidden w-[min(20rem,70%)] aspect-[3/4] mx-auto my-6 max-[720px]:block">
                       <Image draggable="false" src={coupleArt.coupleVertical} alt="Fotografía de la pareja" fill sizes="(max-width: 720px) 60vw, 20rem" className="object-contain" />
                     </figure>
                   )}
@@ -216,7 +222,7 @@ export function MariaDanielaInvitationTemplate({
         {visible.questions && (
           <section className="text-center py-24 px-6" data-reveal>
             {/* <Image draggable="false" src={mariaDanielaAssets.cocktailsLight} alt="" width={120} height={150} className="mx-auto" /> */}
-            <h2 className="mt-4 mb-6 [font-family:var(--font-allura),cursive] text-[clamp(3.8rem,8vw,7rem)] font-normal leading-[0.85]">{content.questionsTitle}</h2>
+            <h2 className="mt-4 mb-6 [font-family:var(--font-parisienne),cursive] text-[clamp(3.8rem,8vw,7rem)] font-normal leading-[0.85]">{content.questionsTitle}</h2>
             <p className="w-[min(35rem,100%)] mx-auto my-0 [font-family:var(--font-cormorant),serif] text-[1.2rem] leading-[1.55]">Si necesitas cualquier cosa, escríbenos directamente por WhatsApp. Estaremos encantados de ayudarte.</p>
             <figure className="relative min-h-[min(72vw,46rem)] m-0">
               <Image draggable="false" src={coupleArt.coupleHorizontal2} alt="Pareja bailando" fill sizes="100vw" className="object-contain" />
@@ -229,7 +235,7 @@ export function MariaDanielaInvitationTemplate({
         <div className="relative grid min-h-[32rem] py-12 px-4 place-items-center content-center isolate bg-[#fff9f2]">
           <Image draggable="false" src={mariaDanielaAssets.watercolorFrame} alt="" fill sizes="100vw" className="z-[-1] object-cover rotate-180" />
           <p className="my-0 text-[0.65rem] font-extrabold tracking-[0.22em] uppercase">Nos vemos muy pronto</p>
-          <h2 className="mt-4 mb-0 [font-family:var(--font-allura),cursive] text-[clamp(4.5rem,12vw,9rem)] font-normal leading-[0.85]">{firstName} <i className="text-[#d5764d] font-normal">&amp;</i> {secondName}</h2>
+          <h2 className="mt-4 mb-0 [font-family:var(--font-parisienne),cursive] text-[clamp(4.5rem,12vw,9rem)] font-normal leading-[0.85]">{firstName} <i className="text-[#d5764d] font-normal">&amp;</i> {secondName}</h2>
           
         </div>
       </footer>

@@ -12,7 +12,7 @@
 }
 
 .site h1, .site h2, .site h3, .site p { margin: 0; }
-.site h2 { font-family: var(--font-allura), cursive; font-size: clamp(3.8rem, 8vw, 7.5rem); font-weight: 400; line-height: .86; }
+.site h2 { font-family: var(--font-parisienne), cursive; font-size: clamp(3.8rem, 8vw, 7.5rem); font-weight: 400; line-height: .86; }
 .eyebrow { margin-bottom: 1rem !important; font-size: .68rem; font-weight: 700; letter-spacing: .26em; text-transform: uppercase; }
 .cover { object-fit: cover; }
 .contain { object-fit: contain; }
@@ -22,7 +22,7 @@
 .heroSage { position: absolute; top: 2%; left: 50%; z-index: -2; width: 100vw; max-width: none; height: auto; opacity: .72; transform: translateX(-50%); }
 .heroCopy { width: min(900px, 94vw); padding: 8rem 1rem 5rem; text-align: center; }
 .heroCopy > p:first-child { font-size: .72rem; font-weight: 700; letter-spacing: .46em; text-transform: uppercase; }
-.hero h1 { display: flex; margin: 1rem 0 1.5rem; flex-direction: column; font-family: var(--font-allura), cursive; font-size: clamp(5.1rem, 13vw, 10.5rem); font-weight: 400; line-height: .57; }
+.hero h1 { display: flex; margin: 1rem 0 1.5rem; flex-direction: column; font-family: var(--font-parisienne), cursive; font-size: clamp(5.1rem, 13vw, 10.5rem); font-weight: 400; line-height: .57; }
 .hero h1 i { margin: .02em 0 -.08em; color: #f4bf9f; font-size: .58em; font-weight: 400; }
 .heroDate { font-family: var(--font-cormorant), serif; font-size: clamp(1rem, 2vw, 1.35rem); letter-spacing: .14em; text-transform: uppercase; }
 .scrollCue { position: absolute; bottom: 1.8rem; color: inherit; font-size: .62rem; letter-spacing: .2em; text-decoration: none; text-transform: uppercase; }
@@ -66,7 +66,7 @@
 .countdownWash { position: absolute; left: -7%; bottom: 2%; z-index: -1; width: min(53rem, 80vw); height: auto; opacity: .72; transform: rotate(4deg); }
 .countdownBlobs { position: absolute; top: -1rem; right: -3rem; z-index: -1; width: min(25rem, 56vw); height: auto; opacity: .72; }
 .countdownCopy { width: min(900px, 92vw); text-align: center; }
-.countdownCopy > p { margin-bottom: 2.5rem; font-family: var(--font-allura), cursive; font-size: clamp(4rem, 9vw, 7rem); }
+.countdownCopy > p { margin-bottom: 2.5rem; font-family: var(--font-parisienne), cursive; font-size: clamp(4rem, 9vw, 7rem); }
 .countdownCopy > div { display: grid; grid-template-columns: repeat(4, 1fr); }
 .countdownCopy span { display: flex; padding: .8rem; border-right: 1px solid rgba(91,77,71,.32); flex-direction: column; }
 .countdownCopy span:last-child { border: 0; }
