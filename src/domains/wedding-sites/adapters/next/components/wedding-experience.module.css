@@ -12,7 +12,7 @@
 }
 
 .site h1, .site h2, .site h3, .site p { margin: 0; }
-.site h2 { font-family: var(--font-parisienne), cursive; font-size: clamp(3.8rem, 8vw, 7.5rem); font-weight: 400; line-height: .86; }
+.site h2 { font-family: var(--font-parisienne), cursive; font-size: clamp(3.8rem, 8vw, 7.5rem); font-weight: 400; line-height: 1.1; }
 .eyebrow { margin-bottom: 1rem !important; font-size: .68rem; font-weight: 700; letter-spacing: .26em; text-transform: uppercase; }
 .cover { object-fit: cover; }
 .contain { object-fit: contain; }
@@ -22,7 +22,7 @@
 .heroSage { position: absolute; top: 2%; left: 50%; z-index: -2; width: 100vw; max-width: none; height: auto; opacity: .72; transform: translateX(-50%); }
 .heroCopy { width: min(900px, 94vw); padding: 8rem 1rem 5rem; text-align: center; }
 .heroCopy > p:first-child { font-size: .72rem; font-weight: 700; letter-spacing: .46em; text-transform: uppercase; }
-.hero h1 { display: flex; margin: 1rem 0 1.5rem; flex-direction: column; font-family: var(--font-parisienne), cursive; font-size: clamp(5.1rem, 13vw, 10.5rem); font-weight: 400; line-height: .57; }
+.hero h1 { display: flex; margin: 1rem 0 1.5rem; flex-direction: column; font-family: var(--font-parisienne), cursive; font-size: clamp(5.1rem, 13vw, 10.5rem); font-weight: 400; line-height: .75; }
 .hero h1 i { margin: .02em 0 -.08em; color: #f4bf9f; font-size: .58em; font-weight: 400; }
 .heroDate { font-family: var(--font-cormorant), serif; font-size: clamp(1rem, 2vw, 1.35rem); letter-spacing: .14em; text-transform: uppercase; }
 .scrollCue { position: absolute; bottom: 1.8rem; color: inherit; font-size: .62rem; letter-spacing: .2em; text-decoration: none; text-transform: uppercase; }
@@ -117,7 +117,7 @@
 .footer time { font-family: var(--font-cormorant), serif; font-size: 1.1rem; text-transform: uppercase; }
 
 @media (max-width: 760px) {
-  .hero h1 { line-height: .7; }
+  .hero h1 { line-height: .95; }
   .storyGrid, .placeGrid, .tableSection { grid-template-columns: 1fr; }
   .storyGrid { gap: 3.2rem; }
   .storyPhotoSecond { grid-column: 1; width: 82%; margin: 1rem auto 0; }

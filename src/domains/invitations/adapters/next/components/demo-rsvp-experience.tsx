@@ -198,7 +198,7 @@ export function DemoRsvpExperience({
               <div className="p-8">
                 <Image draggable="false" src={step === "success" ? mariaDanielaAssets.discoBallLight : mariaDanielaAssets.checklist} alt="" width={150} height={150} className="w-32 h-auto mx-auto object-contain" />
                 <p className="mt-6 mb-[0.8rem] text-[0.64rem] font-black tracking-[0.3em]">RSVP</p>
-                <strong className="block [font-family:var(--font-parisienne),cursive] text-[3.2rem] font-normal leading-[0.9]">{title}</strong>
+                <strong className="block [font-family:var(--font-parisienne),cursive] text-[3.2rem] font-normal leading-[1.1]">{title}</strong>
               </div>
             </div>
 
@@ -206,7 +206,7 @@ export function DemoRsvpExperience({
               <Dialog.Close className="self-end py-[0.3rem] border-0 border-b border-current bg-transparent text-inherit text-[0.6rem] font-extrabold tracking-[0.15em] uppercase cursor-pointer" aria-label="Cerrar">Cerrar</Dialog.Close>
               <div className="h-0.5 mt-[1.6rem] mb-[2.8rem] bg-[rgba(91,77,71,0.15)] max-[700px]:mt-[1.1rem] max-[700px]:mb-8" aria-label={`Progreso ${progress}%`}><span className="block h-full bg-[#d5764d] transition-[width] duration-[350ms] ease-out" style={{ width: `${progress}%` }} /></div>
 
-              <Dialog.Title className="m-0 [font-family:var(--font-parisienne),cursive] text-[clamp(3rem,5vw,4.5rem)] font-normal leading-[0.9]">{stepTitle(step)}</Dialog.Title>
+              <Dialog.Title className="m-0 [font-family:var(--font-parisienne),cursive] text-[clamp(3rem,5vw,4.5rem)] font-normal leading-[1.1]">{stepTitle(step)}</Dialog.Title>
               <Dialog.Description className="min-h-[2.8rem] mt-[0.9rem] mb-[1.6rem] text-[rgba(91,77,71,0.66)] [font-family:var(--font-cormorant),serif] text-[1.08rem] leading-[1.4]">
                 {step === "attendance" ? subtitle : stepDescription(step)}
               </Dialog.Description>

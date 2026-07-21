@@ -67,8 +67,10 @@ export function ImportGuestsDialog({
 
     try {
       const XLSX = await import("xlsx")
-      const buffer = await file.arrayBuffer()
-      const workbook = XLSX.read(buffer, { type: "array" })
+      const isCsv = file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv"
+      const workbook = isCsv
+        ? XLSX.read(await file.text(), { type: "string" })
+        : XLSX.read(await file.arrayBuffer(), { type: "array" })
       const sheetName = workbook.SheetNames[0]
 
       if (!sheetName) {
