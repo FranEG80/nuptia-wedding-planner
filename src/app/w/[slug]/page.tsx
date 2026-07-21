@@ -15,9 +15,47 @@ export async function generateMetadata({
     return { title: "Boda | Nuptia" }
   }
 
+
+  const title = `${wedding.displayName} · ${wedding.dateLabel}`
+  const description = `Toda la información de la boda de ${wedding.displayName} en ${wedding.city}.`
+
+  let [domain, protocol] = process.env.APP_URL.split("://"), baseUrl, customOgImage;
+  if (wedding.partnerNames[0] === "María Daniela" && wedding.partnerNames[1] === "Nacho") {
+    domain = "bodamariadanielaynacho.es"
+    protocol = "https"
+    baseUrl = `${protocol}://${domain}`
+    customOgImage = `${baseUrl}/images/templates/maria-daniela/ogimage.png`
+  }
+  
+  if (customOgImage) {
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        type: "website",
+        images: [
+          {
+            url: customOgImage,
+            width: 1200,
+            height: 630,
+            alt: title,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: [customOgImage],
+      },
+    }
+  }
+
   return {
-    title: `${wedding.displayName} · ${wedding.dateLabel}`,
-    description: `Toda la información de la boda de ${wedding.displayName} en ${wedding.city}.`,
+    title,
+    description,
   }
 }
 
