@@ -187,3 +187,16 @@
     transform: translateY(0);
   }
 }
+
+@keyframes rsvp-modal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rsvp-modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(.98);
+  }
+}

@@ -1,6 +1,6 @@
 "use client"
 
-import { Armchair, LayoutList, UserPlus } from "lucide-react"
+import { Armchair, LayoutList, Upload, UserPlus } from "lucide-react"
 import { useState, useTransition } from "react"
 
 import {
@@ -14,6 +14,7 @@ import {
   InvitationPartyDialog,
   type PartyMemberDraft,
 } from "@/domains/guests/adapters/next/components/invitation-party-dialog"
+import { ImportGuestsDialog } from "@/domains/guests/adapters/next/components/import-guests-dialog"
 import { InvitationDetailDialog } from "@/domains/guests/adapters/next/components/invitation-detail-dialog"
 import { InvitationsTable } from "@/domains/guests/adapters/next/components/invitations-table"
 import { SeatingBoard } from "@/domains/guests/adapters/next/components/seating-board"
@@ -49,6 +50,7 @@ export function GuestsView({
   ])
   const [formError, setFormError] = useState<string | null>(null)
   const [isSaving, startSaving] = useTransition()
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
 
   function openCreateDialog() {
     setEditingParty(null)
@@ -324,14 +326,24 @@ export function GuestsView({
           </TabButton>
         </div>
         {tab === "lista" ? (
-          <button
-            type="button"
-            onClick={openCreateDialog}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50"
-          >
-            <UserPlus className="h-4 w-4" />
-            Nueva invitación
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setImportDialogOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50"
+            >
+              <Upload className="h-4 w-4" />
+              Importar
+            </button>
+            <button
+              type="button"
+              onClick={openCreateDialog}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50"
+            >
+              <UserPlus className="h-4 w-4" />
+              Nueva invitación
+            </button>
+          </div>
         ) : null}
       </div>
 
@@ -381,6 +393,19 @@ export function GuestsView({
           if (!open) {
             setDetailParty(null)
           }
+        }}
+      />
+
+      <ImportGuestsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        parties={parties}
+        isDemo={isDemo}
+        onImported={(newParties) => {
+          if (newParties.length === 0) {
+            return
+          }
+          setParties((current) => [...current, ...newParties])
         }}
       />
     </div>
