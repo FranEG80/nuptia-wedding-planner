@@ -15,10 +15,10 @@ describe("parseGuestImportRows", () => {
     assert.equal(result.rows[0].status, "ok")
   })
 
-  it("groups two rows sharing the same Grupo into one invitation", () => {
+  it("groups two rows sharing the same 'Invitación conjunta' into one invitation", () => {
     const result = parseGuestImportRows([
-      { Grupo: "Familia Ruiz", Nombre: "Ana", Teléfono: "600111222", Destinatario: "Sí" },
-      { Grupo: "Familia Ruiz", Nombre: "Luis", Teléfono: "600333444", Destinatario: "No" },
+      { "Invitación conjunta": "F1", Nombre: "Ana", Teléfono: "600111222", Destinatario: "Sí" },
+      { "Invitación conjunta": "F1", Nombre: "Luis", Teléfono: "600333444", Destinatario: "No" },
     ])
 
     assert.equal(result.parties.length, 1)
@@ -28,10 +28,39 @@ describe("parseGuestImportRows", () => {
     assert.equal(party.guests.find((g) => g.firstName === "Luis")?.isRecipient, false)
   })
 
+  it("does not pair rows just because they share the same Grupo label", () => {
+    const result = parseGuestImportRows([
+      { Grupo: "Trabajo", Nombre: "Ana", Teléfono: "600111222" },
+      { Grupo: "Trabajo", Nombre: "Luis", Teléfono: "600333444" },
+      { Grupo: "Trabajo", Nombre: "Eva", Teléfono: "600555666" },
+    ])
+
+    assert.equal(result.parties.length, 3)
+    assert.ok(result.parties.every((party) => party.guests.length === 1))
+    assert.ok(result.rows.every((row) => row.status === "ok"))
+  })
+
+  it("supports a Grupo with several couples and singles, each with their own invitation", () => {
+    const result = parseGuestImportRows([
+      { Grupo: "Familia Novio", "Invitación conjunta": "F1", Nombre: "Ana", Teléfono: "600111222", Destinatario: "Sí" },
+      { Grupo: "Familia Novio", "Invitación conjunta": "F1", Nombre: "Luis", Destinatario: "No" },
+      { Grupo: "Familia Novio", "Invitación conjunta": "F2", Nombre: "Eva", Teléfono: "600555666", Destinatario: "Sí" },
+      { Grupo: "Familia Novio", "Invitación conjunta": "F2", Nombre: "Mario", Destinatario: "No" },
+      { Grupo: "Familia Novio", Nombre: "Pedro", Teléfono: "600777888" },
+    ])
+
+    assert.equal(result.parties.length, 3)
+    assert.ok(result.parties.every((party) => party.groupName === "Familia Novio"))
+    const soloParty = result.parties.find((party) => party.guests.length === 1)
+    assert.equal(soloParty?.guests[0].firstName, "Pedro")
+    assert.equal(soloParty?.guests[0].isRecipient, true)
+    assert.ok(result.rows.every((row) => row.status === "ok"))
+  })
+
   it("auto-picks the recipient with contact info when none is marked", () => {
     const result = parseGuestImportRows([
-      { Grupo: "Pareja", Nombre: "Ana", Teléfono: "", Email: "" },
-      { Grupo: "Pareja", Nombre: "Luis", Teléfono: "600333444", Email: "" },
+      { "Invitación conjunta": "Pareja", Nombre: "Ana", Teléfono: "", Email: "" },
+      { "Invitación conjunta": "Pareja", Nombre: "Luis", Teléfono: "600333444", Email: "" },
     ])
 
     const [party] = result.parties
@@ -39,17 +68,27 @@ describe("parseGuestImportRows", () => {
     assert.equal(party.guests.find((g) => g.firstName === "Ana")?.isRecipient, false)
   })
 
-  it("rejects a third person sharing the same Grupo", () => {
+  it("rejects a third person sharing the same 'Invitación conjunta'", () => {
     const result = parseGuestImportRows([
-      { Grupo: "Trio", Nombre: "Ana", Teléfono: "600111222" },
-      { Grupo: "Trio", Nombre: "Luis", Teléfono: "600333444" },
-      { Grupo: "Trio", Nombre: "Eva", Teléfono: "600555666" },
+      { "Invitación conjunta": "Trio", Nombre: "Ana", Teléfono: "600111222" },
+      { "Invitación conjunta": "Trio", Nombre: "Luis", Teléfono: "600333444" },
+      { "Invitación conjunta": "Trio", Nombre: "Eva", Teléfono: "600555666" },
     ])
 
     assert.equal(result.parties.length, 1)
     assert.equal(result.parties[0].guests.length, 2)
     const errorRow = result.rows.find((row) => row.rowNumber === 4)
     assert.equal(errorRow?.status, "error")
+  })
+
+  it("warns when the two people of a joint invitation disagree on Grupo", () => {
+    const result = parseGuestImportRows([
+      { Grupo: "Familia", "Invitación conjunta": "F1", Nombre: "Ana", Teléfono: "600111222" },
+      { Grupo: "Amigos", "Invitación conjunta": "F1", Nombre: "Luis", Teléfono: "600333444" },
+    ])
+
+    assert.equal(result.parties.length, 1)
+    assert.ok(result.rows.every((row) => row.status === "warning"))
   })
 
   it("flags a row missing the first name", () => {

@@ -27,7 +27,7 @@ const coupleArt = {
 }
 
 const kickerBase = "my-0 mb-4! text-[0.65rem] font-extrabold tracking-[0.24em] uppercase"
-const scriptHeading = "my-0 [font-family:var(--font-parisienne),cursive] text-[clamp(3.8rem,8vw,7rem)] font-normal leading-[1.1]"
+const scriptHeading = "my-0 [font-family:var(--font-parisienne),cursive] text-[clamp(3.8rem,8vw,7rem)] font-normal leading-[1.1] pb-[12px]"
 const linkUnderline = "inline-block mt-3 border-b border-current text-inherit text-[0.62rem] font-extrabold tracking-[0.15em] no-underline uppercase"
 const scheduleMeta = "block my-[0.35rem] text-[rgba(91,77,71,0.72)] text-[0.76rem] leading-[1.5]"
 const venueCopy = "my-0 text-[rgba(48,61,56,0.68)] text-[0.85rem] leading-[1.6]"
@@ -102,8 +102,8 @@ export function MariaDanielaInvitationTemplate({
         {visible.schedule && (
           <section className="relative text-center py-[clamp(7rem,12vw,11rem)] px-[max(4vw,1.25rem)] bg-[#fbf4ea] bg-[url('/images/templates/maria-daniela/sage-watercolor-wash.webp')] bg-center bg-cover ">
             <p className={cn(kickerBase, "relative")} data-reveal>Guarda la fecha</p>
-            <div className="relative">
-              <Image draggable="false" src={mariaDanielaAssets.terracottaBrush} alt="" width={500} height={130} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(30rem,80vw)] h-20 opacity-60" />
+            <div className="relative inline-block max-w-full px-[1.6rem] py-[0.35rem]">
+              <Image draggable="false" src={mariaDanielaAssets.terracottaBrush} alt="" fill sizes="(max-width: 720px) 90vw, 40rem" className="absolute inset-0 object-cover opacity-60" />
               <h2 className={cn(scriptHeading, "relative")} data-script-reveal>{content.scheduleTitle}</h2>
             </div>
             <div className="grid w-[min(1180px,100%)] mt-20 mx-auto gap-px grid-cols-3 max-[720px]:grid-cols-1">
