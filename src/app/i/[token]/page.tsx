@@ -1,11 +1,23 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { cache } from "react"
 
 import { getRepositories } from "@/composition/repositories"
 import { ResolvedInvitationTemplate } from "@/domains/invitations/adapters/next/components/resolve-invitation-template"
 import { PublicRsvpPanel } from "@/domains/invitations/adapters/next/components/public-rsvp-panel"
 import { getPublicInvitationByTokenUseCase } from "@/domains/invitations/application/use-cases/get-public-invitation-by-token.use-case"
 import { normalizeInvitationTemplateId } from "@/domains/invitations/domain/invitation-template-options"
+
+const getInvitationByToken = cache(async (token: string) => {
+  const repositories = await getRepositories()
+
+  return getPublicInvitationByTokenUseCase({
+    guestRepository: repositories.guest,
+    invitationRepository: repositories.invitation,
+    weddingRepository: repositories.wedding,
+    token,
+  })
+})
 
 function formatWeddingDate(date: string) {
   return new Date(date).toLocaleDateString("es-ES", {
@@ -21,13 +33,7 @@ export async function generateMetadata({
   params: Promise<{ token: string }>
 }): Promise<Metadata> {
   const { token } = await params
-  const repositories = await getRepositories()
-  const invitation = await getPublicInvitationByTokenUseCase({
-    guestRepository: repositories.guest,
-    invitationRepository: repositories.invitation,
-    weddingRepository: repositories.wedding,
-    token,
-  })
+  const invitation = await getInvitationByToken(token)
 
   if (!invitation) {
     return { title: "Invitación | Nuptia" }
@@ -51,14 +57,8 @@ export default async function PublicInvitationRoutePage({
 }: {
   params: Promise<{ token: string }>
 }) {
-  const repositories = await getRepositories()
   const { token } = await params
-  const invitation = await getPublicInvitationByTokenUseCase({
-    guestRepository: repositories.guest,
-    invitationRepository: repositories.invitation,
-    weddingRepository: repositories.wedding,
-    token,
-  })
+  const invitation = await getInvitationByToken(token)
 
   if (!invitation) {
     notFound()

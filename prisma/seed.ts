@@ -117,9 +117,11 @@ const demoMenuId = "demo-menu"
 const nachoAuthUserId = "auth-user-nacho"
 const mariaAuthUserId = "auth-user-maria-daniela"
 const adminAuthUserId = "auth-user-admin"
+const plannerAuthUserId = "auth-user-planner-nuptia"
 const nachoAppUserId = "app-user-nacho"
 const mariaAppUserId = "app-user-maria-daniela"
 const adminAppUserId = "app-user-admin"
+const plannerAppUserId = "app-user-planner-nuptia"
 const nachoWeddingId = "wedding-nacho-y-maria-daniela"
 
 const demoSeed: NachoWeddingSeed = {
@@ -556,9 +558,10 @@ interface AuthAccountSeed {
 async function seedAuthAccount(prisma: PrismaClient, account: AuthAccountSeed) {
   const password = await hashPassword(account.password)
   const authUser = await prisma.user.upsert({
-    where: { email: account.email.toLowerCase() },
+    where: { id: account.authUserId },
     update: {
       name: account.name,
+      email: account.email.toLowerCase(),
       emailVerified: true,
       role: account.role,
       banned: false,
@@ -592,8 +595,8 @@ async function seedAuthAccount(prisma: PrismaClient, account: AuthAccountSeed) {
   })
 
   const appUser = await prisma.appUser.upsert({
-    where: { email: account.email.toLowerCase() },
-    update: { name: account.name, imageUrl: null },
+    where: { id: account.appUserId },
+    update: { name: account.name, email: account.email.toLowerCase(), imageUrl: null },
     create: {
       id: account.appUserId,
       email: account.email.toLowerCase(),
@@ -846,6 +849,7 @@ async function seedNachoWedding(
   seed: NachoWeddingSeed,
   nacho: Awaited<ReturnType<typeof seedAuthAccount>>,
   maria: Awaited<ReturnType<typeof seedAuthAccount>>,
+  planner: Awaited<ReturnType<typeof seedAuthAccount>>,
 ) {
   const restaurant = await prisma.restaurant.upsert({
     where: { id: "nacho-restaurant" },
@@ -920,11 +924,15 @@ async function seedNachoWedding(
     },
   })
 
+  // "nacho-wedding-owner-member" quedó huérfano tras fusionar el rol de
+  // propietario con el de novio (Nacho ya tiene acceso vía wedding.ownerId).
+  await prisma.weddingMember.deleteMany({ where: { id: "nacho-wedding-owner-member" } })
+
   for (const member of [
     {
-      id: "nacho-wedding-owner-member",
+      id: "nacho-wedding-groom-member",
       appUserId: nacho.id,
-      roleId: "role-owner",
+      roleId: "role-groom",
       displayName: seed.husband.name,
       sortOrder: 0,
     },
@@ -934,6 +942,13 @@ async function seedNachoWedding(
       roleId: "role-bride",
       displayName: seed.wife.name,
       sortOrder: 1,
+    },
+    {
+      id: "nacho-wedding-planner-member",
+      appUserId: planner.id,
+      roleId: "role-planner",
+      displayName: planner.name,
+      sortOrder: 2,
     },
   ]) {
     await prisma.weddingMember.upsert({
@@ -1023,13 +1038,21 @@ async function main(prisma: PrismaClient, seed: NachoWeddingSeed) {
     authUserId: adminAuthUserId,
     appUserId: adminAppUserId,
     name: "Admin Fenrig",
-    email: "admin@nuptia.local",
+    email: "admin@fenrig.dev",
     password: "AdminFenrig26",
     role: "admin",
   })
+  const planner = await seedAuthAccount(prisma, {
+    authUserId: plannerAuthUserId,
+    appUserId: plannerAppUserId,
+    name: "Admin Nuptia",
+    email: "admin.nuptia@fenrig.dev",
+    password: "nuptiaFenrig26",
+    role: "user",
+  })
 
   await seedDemoWedding(prisma, demoSeed, demo)
-  await seedNachoWedding(prisma, seed, nacho, maria)
+  await seedNachoWedding(prisma, seed, nacho, maria, planner)
 }
 
 async function runRemote() {

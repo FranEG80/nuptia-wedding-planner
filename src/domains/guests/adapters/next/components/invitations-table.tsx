@@ -46,7 +46,7 @@ function rsvpSummary(party: InvitationPartyDto) {
   return { label: "Sin respuesta", style: RSVP_STYLES["Sin respuesta"] }
 }
 
-function InvitationRow({
+function InvitationActions({
   party,
   onViewDetail,
   onEdit,
@@ -61,8 +61,143 @@ function InvitationRow({
 }) {
   const [isDeleting, startDelete] = useTransition()
   const [isSending, startSend] = useTransition()
-  const summary = rsvpSummary(party)
   const canSend = Boolean(party.recipient.phone)
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onViewDetail(party)}
+        aria-label={`Ver detalle de ${party.displayName}`}
+        title="Ver detalle"
+        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      >
+        <Eye className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onEdit(party)}
+        aria-label={`Editar ${party.displayName}`}
+        title="Editar"
+        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      >
+        <Pencil className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        disabled={isDeleting}
+        onClick={() => startDelete(() => onDelete(party))}
+        aria-label={`Borrar ${party.displayName}`}
+        title="Borrar"
+        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {isDeleting ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Trash2 className="h-4 w-4" />
+        )}
+      </button>
+      <button
+        type="button"
+        disabled={!canSend || isSending}
+        onClick={() => startSend(() => onSend(party))}
+        aria-label={`Enviar por WhatsApp a ${party.displayName}`}
+        title={canSend ? "Enviar por WhatsApp" : "Añade teléfono al destinatario"}
+        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {isSending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <MessageCircle className="h-4 w-4" />
+        )}
+      </button>
+      <button
+        type="button"
+        disabled
+        aria-label={`Enviar por web a ${party.displayName}`}
+        title="Próximamente"
+        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground opacity-40"
+      >
+        <Globe className="h-4 w-4" />
+      </button>
+    </div>
+  )
+}
+
+function InvitationCard({
+  party,
+  onViewDetail,
+  onEdit,
+  onDelete,
+  onSend,
+}: {
+  party: InvitationPartyDto
+  onViewDetail: (party: InvitationPartyDto) => void
+  onEdit: (party: InvitationPartyDto) => void
+  onDelete: (party: InvitationPartyDto) => Promise<void>
+  onSend: (party: InvitationPartyDto) => Promise<void>
+}) {
+  const summary = rsvpSummary(party)
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <p className="font-medium text-foreground">{party.inviteeNames}</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {party.guests.map((guest) => (
+          <span
+            key={guest.id}
+            className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs text-secondary-foreground"
+          >
+            {guest.name}
+            {guest.isRecipient ? (
+              <UserRoundCheck className="h-3.5 w-3.5 text-primary" aria-label="Destinatario" />
+            ) : null}
+          </span>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span>{party.group || "—"}</span>
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-1",
+            party.invite === "Enviada"
+              ? "bg-primary/10 text-primary"
+              : "bg-accent/15 text-accent",
+          )}
+        >
+          {party.invite}
+        </span>
+        <span className={cn("rounded-full px-2.5 py-1", summary.style)}>
+          {summary.label}
+        </span>
+      </div>
+      <div className="mt-3 border-t border-border/60 pt-3">
+        <InvitationActions
+          party={party}
+          onViewDetail={onViewDetail}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onSend={onSend}
+        />
+      </div>
+    </div>
+  )
+}
+
+function InvitationRow({
+  party,
+  onViewDetail,
+  onEdit,
+  onDelete,
+  onSend,
+}: {
+  party: InvitationPartyDto
+  onViewDetail: (party: InvitationPartyDto) => void
+  onEdit: (party: InvitationPartyDto) => void
+  onDelete: (party: InvitationPartyDto) => Promise<void>
+  onSend: (party: InvitationPartyDto) => Promise<void>
+}) {
+  const summary = rsvpSummary(party)
 
   return (
     <tr className="border-b border-border/60 align-top last:border-0 hover:bg-secondary/30">
@@ -101,63 +236,13 @@ function InvitationRow({
         </span>
       </td>
       <td className="px-4 py-4">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => onViewDetail(party)}
-            aria-label={`Ver detalle de ${party.displayName}`}
-            title="Ver detalle"
-            className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onEdit(party)}
-            aria-label={`Editar ${party.displayName}`}
-            title="Editar"
-            className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            disabled={isDeleting}
-            onClick={() => startDelete(() => onDelete(party))}
-            aria-label={`Borrar ${party.displayName}`}
-            title="Borrar"
-            className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {isDeleting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-          </button>
-          <button
-            type="button"
-            disabled={!canSend || isSending}
-            onClick={() => startSend(() => onSend(party))}
-            aria-label={`Enviar por WhatsApp a ${party.displayName}`}
-            title={canSend ? "Enviar por WhatsApp" : "Añade teléfono al destinatario"}
-            className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {isSending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <MessageCircle className="h-4 w-4" />
-            )}
-          </button>
-          <button
-            type="button"
-            disabled
-            aria-label={`Enviar por web a ${party.displayName}`}
-            title="Próximamente"
-            className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground opacity-40"
-          >
-            <Globe className="h-4 w-4" />
-          </button>
-        </div>
+        <InvitationActions
+          party={party}
+          onViewDetail={onViewDetail}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onSend={onSend}
+        />
       </td>
     </tr>
   )
@@ -233,7 +318,25 @@ export function InvitationsTable({
         </div>
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="mt-3 flex flex-col gap-3 md:hidden">
+        {filteredParties.map((party) => (
+          <InvitationCard
+            key={party.id}
+            party={party}
+            onViewDetail={onViewDetail}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onSend={onSend}
+          />
+        ))}
+        {!filteredParties.length ? (
+          <p className="rounded-2xl border border-border bg-card px-4 py-12 text-center text-sm text-muted-foreground">
+            No se encontraron invitaciones.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="mt-3 hidden overflow-hidden rounded-2xl border border-border bg-card shadow-sm md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-sm">
             <thead>
