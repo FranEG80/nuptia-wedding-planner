@@ -13,7 +13,6 @@ import { getInvitationPhotoAsset } from "@/domains/invitations/domain/invitation
 import { MariaDanielaCountdown } from "@/domains/invitations/adapters/next/components/maria-daniela-countdown"
 import type { WeddingDto } from "@/domains/weddings/application/dtos/wedding.dto"
 import { EditorialMotion } from "@/shared/components/editorial-motion"
-import { mariaDanielaFontVariables } from "@/shared/fonts/maria-daniela-fonts"
 import { cn } from "@/shared/lib/utils"
 
 const ACCOMMODATION_CODE = "BODAD&N2026"
@@ -71,7 +70,7 @@ export function MariaDanielaInvitationTemplate({
     : []
 
   return (
-    <EditorialMotion className={cn("min-h-svh overflow-hidden bg-[#fbf4ea] text-[#5b4d47] [font-family:var(--font-manrope),sans-serif]", mariaDanielaFontVariables, className)}>
+    <EditorialMotion className={cn("min-h-svh overflow-hidden bg-[#fbf4ea] text-[#5b4d47] [font-family:var(--font-manrope),sans-serif]", className)}>
       <header className="relative grid min-h-svh place-items-center isolate text-center">
         <Image draggable="false" src={mariaDanielaAssets.watercolorFrame} alt="" fill priority={!preview} className="z-[-2] object-cover" sizes="100vw" />
         <Image draggable="false" src={mariaDanielaAssets.botanicalSprig} alt="" width={280} height={450} className="absolute right-[-4rem] bottom-[-4rem] z-[-1] w-[clamp(12rem,28vw,23rem)] h-auto" />

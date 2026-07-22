@@ -1,16 +1,92 @@
 import type { Metadata, Viewport } from 'next'
 import {
+  Allura,
+  Bodoni_Moda,
+  Cinzel,
+  Cormorant_Garamond,
+  Fraunces,
   Geist_Mono,
   Inter,
+  Lato,
+  Libre_Baskerville,
+  Manrope,
+  Marcellus,
+  Montserrat,
+  Mulish,
+  Nunito_Sans,
   Playfair_Display,
+  Prata,
+  Quicksand,
+  Source_Sans_3,
+  Work_Sans,
+  Parisienne,
 } from 'next/font/google'
 import './globals.css'
+
+const allura = Allura({
+  variable: '--font-allura',
+  subsets: ['latin'],
+  weight: '400',
+})
+
+const parisienne = Parisienne({
+  variable: '--font-parisienne',
+  subsets: ['latin'],
+  weight: '400',
+})
 
 const playfair = Playfair_Display({
   variable: '--font-playfair',
   subsets: ['latin'],
 })
 const inter = Inter({ variable: '--font-inter', subsets: ['latin'] })
+const cormorant = Cormorant_Garamond({
+  variable: '--font-cormorant',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+})
+const lato = Lato({
+  variable: '--font-lato',
+  subsets: ['latin'],
+  weight: ['400', '700'],
+})
+const libreBaskerville = Libre_Baskerville({
+  variable: '--font-libre-baskerville',
+  subsets: ['latin'],
+  weight: ['400', '700'],
+})
+const manrope = Manrope({ variable: '--font-manrope', subsets: ['latin'] })
+const marcellus = Marcellus({
+  variable: '--font-marcellus',
+  subsets: ['latin'],
+  weight: '400',
+})
+const mulish = Mulish({ variable: '--font-mulish', subsets: ['latin'] })
+const fraunces = Fraunces({ variable: '--font-fraunces', subsets: ['latin'] })
+const sourceSans = Source_Sans_3({
+  variable: '--font-source-sans',
+  subsets: ['latin'],
+})
+const cinzel = Cinzel({ variable: '--font-cinzel', subsets: ['latin'] })
+const montserrat = Montserrat({
+  variable: '--font-montserrat',
+  subsets: ['latin'],
+})
+const bodoni = Bodoni_Moda({
+  variable: '--font-bodoni',
+  subsets: ['latin'],
+})
+const nunito = Nunito_Sans({
+  variable: '--font-nunito',
+  subsets: ['latin'],
+})
+const prata = Prata({
+  variable: '--font-prata',
+  subsets: ['latin'],
+  weight: '400',
+})
+const workSans = Work_Sans({ variable: '--font-work-sans', subsets: ['latin'] })
+const quicksand = Quicksand({ variable: '--font-quicksand', subsets: ['latin'] })
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
@@ -52,7 +128,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`light ${playfair.variable} ${inter.variable} ${geistMono.variable} bg-background`}
+      className={`light ${allura.variable} ${parisienne.variable} ${playfair.variable} ${inter.variable} ${cormorant.variable} ${lato.variable} ${libreBaskerville.variable} ${manrope.variable} ${marcellus.variable} ${mulish.variable} ${fraunces.variable} ${sourceSans.variable} ${cinzel.variable} ${montserrat.variable} ${bodoni.variable} ${nunito.variable} ${prata.variable} ${workSans.variable} ${quicksand.variable} ${geistMono.variable} bg-background`}
     >
       <body className="font-sans antialiased">
         {children}
