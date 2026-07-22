@@ -56,7 +56,7 @@ test("las mesas y los asientos se crean, reasignan y borran correctamente", asyn
     const tableB = await tableRepository.create({
       weddingId: "demo-wedding",
       name: "Mesa test B",
-      capacity: 2,
+      capacity: 1,
     })
     tableIds.push(tableB.id)
 
@@ -89,6 +89,26 @@ test("las mesas y los asientos se crean, reasignan y borran correctamente", asyn
       tableA.id,
     )
     assert.equal(reassignedAgain?.seat?.tableId, tableA.id)
+
+    const secondParty = await guestRepository.createInvitationParty({
+      weddingId: "demo-wedding",
+      groupName: "Prueba asientos 2",
+      guests: [
+        {
+          firstName: "Segundo",
+          lastName: "Asientos",
+          email: "segundo.asientos@example.com",
+          isRecipient: true,
+        },
+      ],
+    })
+    partyIds.push(secondParty.id)
+    await guestRepository.assignSeat(secondParty.guests[0].id, "demo-wedding", tableB.id)
+
+    await assert.rejects(
+      () => guestRepository.assignSeat(guest.id, "demo-wedding", tableB.id),
+      /está llena/i,
+    )
 
     const deletedTable = await tableRepository.delete(tableA.id, "demo-wedding")
     assert.equal(deletedTable, true)

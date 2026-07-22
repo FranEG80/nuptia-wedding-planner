@@ -39,6 +39,9 @@ const guestInclude = {
     },
   },
   menuSelections: true,
+  messages: {
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  },
 } as const satisfies Prisma.GuestInclude
 
 const partyInclude = {
@@ -148,17 +151,28 @@ function toGuest(record: PrismaGuestRecord): Guest {
       menuDishId: selection.menuDishId,
       dishOptionId: selection.dishOptionId,
     })),
+    messages: record.messages.map((message) => ({
+      id: message.id,
+      weddingId: message.weddingId,
+      guestId: message.guestId,
+      message: message.message,
+      status: message.status,
+      createdAt: message.createdAt.toISOString(),
+    })),
   }
 }
 
 function toGuestParty(record: PrismaGuestPartyRecord): GuestInviteParty {
+  const guests = record.guests.map(toGuest)
+
   return {
     id: record.id,
     weddingId: record.weddingId,
     inviteToken: record.inviteToken,
     groupName: record.groupName ?? "",
     invite: inviteFromDb[record.inviteStatus] ?? "Pendiente",
-    guests: record.guests.map(toGuest),
+    guests,
+    messages: guests.flatMap((guest) => guest.messages),
   }
 }
 
@@ -809,6 +823,35 @@ export class PrismaGuestRepository implements GuestRepository {
     weddingId: string,
     tableId: string,
   ): Promise<Guest | null> {
+    const [guestRecord, table, currentSeat] = await Promise.all([
+      this.prisma.guest.findFirst({
+        where: { id: guestId, weddingId },
+        select: { id: true },
+      }),
+      this.prisma.weddingTable.findFirst({
+        where: { id: tableId, weddingId },
+        select: { id: true, name: true, capacity: true },
+      }),
+      this.prisma.weddingSeat.findUnique({
+        where: { guestId },
+        select: { tableId: true },
+      }),
+    ])
+
+    if (!guestRecord || !table) {
+      return null
+    }
+
+    if (table.capacity !== null && currentSeat?.tableId !== tableId) {
+      const occupied = await this.prisma.weddingSeat.count({
+        where: { tableId },
+      })
+
+      if (occupied >= table.capacity) {
+        throw new Error(`La mesa "${table.name}" está llena.`)
+      }
+    }
+
     const now = new Date().toISOString()
 
     await this.d1.batch([

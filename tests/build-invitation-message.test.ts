@@ -61,6 +61,7 @@ function makeParty(overrides: {
     inviteeNames,
     recipient,
     guests: overrides.guests,
+    messages: [],
     compositionLocked: false,
   }
 }

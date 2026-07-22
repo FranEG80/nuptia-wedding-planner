@@ -105,6 +105,16 @@ export function InvitationDetailDialog({
                         ))}
                     </div>
                   ) : null}
+                  {party.messages.length > 0 ? (
+                    <div className="rounded-xl border border-border bg-background/50 px-4 py-3 text-sm">
+                      <p className="font-medium text-foreground">Comentarios</p>
+                      <div className="mt-2 space-y-2 text-muted-foreground">
+                        {party.messages.map((message) => (
+                          <p key={message.id}>{message.message}</p>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </>
             ) : null}

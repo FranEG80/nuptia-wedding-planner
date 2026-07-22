@@ -56,6 +56,7 @@ function demoGuest(input: {
       : null,
     invitedBy: [],
     menuSelections: [],
+    messages: [],
   }
 }
 
@@ -431,5 +432,6 @@ function partyByInviteToken(inviteToken: string): GuestInviteParty | null {
     groupName: firstGuest.party.groupName,
     invite: firstGuest.party.invite,
     guests,
+    messages: [],
   }
 }

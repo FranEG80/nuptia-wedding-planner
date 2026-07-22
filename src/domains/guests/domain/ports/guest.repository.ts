@@ -1,4 +1,4 @@
-import type { Guest } from "@/domains/guests/domain/guest"
+import type { Guest, GuestMessage } from "@/domains/guests/domain/guest"
 
 export interface CreateGuestInput {
   weddingId: string
@@ -24,6 +24,7 @@ export interface GuestInviteParty {
   groupName: string
   invite: Guest["party"]["invite"]
   guests: Guest[]
+  messages: GuestMessage[]
 }
 
 export interface PublicGuestInvite {

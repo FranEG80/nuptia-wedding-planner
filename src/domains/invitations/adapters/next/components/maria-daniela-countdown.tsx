@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { Fragment, useEffect, useState } from "react"
+import { Fragment, useSyncExternalStore } from "react"
 
 import { mariaDanielaAssets } from "@/domains/wedding-sites/adapters/next/components/maria-daniela-assets"
 
@@ -15,8 +15,8 @@ const UNITS: { key: "days" | "hours" | "minutes" | "seconds"; label: string }[] 
   { key: "seconds", label: "Segundos" },
 ]
 
-function getTimeLeft(target: number) {
-  const diff = Math.max(0, target - Date.now())
+function getTimeLeft(target: number, now = Date.now()) {
+  const diff = Math.max(0, target - now)
   return {
     days: Math.floor(diff / 86_400_000),
     hours: Math.floor(diff / 3_600_000) % 24,
@@ -27,13 +27,15 @@ function getTimeLeft(target: number) {
 
 export function MariaDanielaCountdown({ weddingDate }: { weddingDate: string }) {
   const target = new Date(weddingDate).getTime()
-  const [timeLeft, setTimeLeft] = useState<ReturnType<typeof getTimeLeft> | null>(null)
-
-  useEffect(() => {
-    setTimeLeft(getTimeLeft(target))
-    const id = setInterval(() => setTimeLeft(getTimeLeft(target)), 1000)
-    return () => clearInterval(id)
-  }, [target])
+  const now = useSyncExternalStore(
+    (onStoreChange) => {
+      const id = setInterval(onStoreChange, 1000)
+      return () => clearInterval(id)
+    },
+    () => Math.floor(Date.now() / 1000),
+    () => null,
+  )
+  const timeLeft = now === null ? null : getTimeLeft(target, now * 1000)
 
   return (
     <section className="relative isolate overflow-hidden text-center py-[clamp(4rem,7vw,4rem)] px-[max(4vw,1.25rem)]">

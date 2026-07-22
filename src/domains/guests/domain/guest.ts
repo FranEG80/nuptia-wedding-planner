@@ -28,6 +28,15 @@ export interface GuestMenuSelection {
   dishOptionId: string
 }
 
+export interface GuestMessage {
+  id: string
+  weddingId: string
+  guestId: string
+  message: string
+  status: string
+  createdAt: string
+}
+
 export interface Guest {
   id: string
   partyId: string
@@ -46,4 +55,5 @@ export interface Guest {
   seat: GuestSeat | null
   invitedBy: GuestInvitedBy[]
   menuSelections: GuestMenuSelection[]
+  messages: GuestMessage[]
 }

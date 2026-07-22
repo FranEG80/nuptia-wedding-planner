@@ -140,6 +140,17 @@ describe("parseGuestImportRows", () => {
     assert.equal(result.rows.find((row) => row.rowNumber === 3)?.status, "warning")
   })
 
+  it("warns about a phone repeated against an existing invitation", () => {
+    const result = parseGuestImportRows(
+      [{ Grupo: "", Nombre: "Ana", Teléfono: "+34 600 111 222" }],
+      { existingPhones: new Set(["0034 600 111 222"]) },
+    )
+
+    assert.equal(result.parties.length, 1)
+    assert.equal(result.rows[0].status, "warning")
+    assert.match(result.rows[0].message, /teléfono/i)
+  })
+
   it("rejects a joint invitation with two people both marked as recipient", () => {
     const result = parseGuestImportRows([
       { "Invitación conjunta": "F1", Nombre: "Ana", Teléfono: "600111222", Destinatario: "Sí" },

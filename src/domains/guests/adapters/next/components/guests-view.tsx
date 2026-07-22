@@ -198,6 +198,7 @@ export function GuestsView({
         inviteeNames,
         recipient: recipientGuest,
         guests,
+        messages: [],
         compositionLocked: Boolean(editingParty?.compositionLocked),
       }
 
@@ -401,11 +402,19 @@ export function GuestsView({
         onOpenChange={setImportDialogOpen}
         parties={parties}
         isDemo={isDemo}
-        onImported={(newParties) => {
-          if (newParties.length === 0) {
+        onImported={(result) => {
+          if (result.parties.length === 0) {
             return
           }
-          setParties((current) => [...current, ...newParties])
+          setParties((current) => {
+            const byId = new Map(current.map((party) => [party.id, party]))
+
+            for (const party of result.parties) {
+              byId.set(party.id, party)
+            }
+
+            return [...byId.values()]
+          })
         }}
       />
     </div>
