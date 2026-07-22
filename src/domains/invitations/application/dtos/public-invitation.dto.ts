@@ -1,4 +1,4 @@
-import type { GuestInviteParty } from "@/domains/guests/domain/ports/guest.repository"
+import type { PublicGuestInviteParty } from "@/domains/guests/domain/ports/guest.repository"
 import type { Guest } from "@/domains/guests/domain/guest"
 import type { InvitationDesign } from "@/domains/invitations/domain/invitation-design"
 import {
@@ -55,7 +55,7 @@ export interface PublicInvitationDto {
 }
 
 export function toPublicInvitationDto(input: {
-  party: GuestInviteParty
+  party: PublicGuestInviteParty
   wedding: Wedding
   design: InvitationDesign
   menu: WeddingMenuDetails | null

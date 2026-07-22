@@ -8,6 +8,7 @@ import {
   getInvitationFontPair,
   getInvitationPhotoAsset,
 } from "@/domains/invitations/domain/invitation-template-options"
+import { getInvitationFontVariables } from "@/domains/invitations/adapters/next/components/invitation-font-pair-fonts"
 import type { WeddingDto } from "@/domains/weddings/application/dtos/wedding.dto"
 import { cn } from "@/shared/lib/utils"
 import { InvitationMenuDrawer } from "@/domains/invitations/adapters/next/components/invitation-menu-drawer"
@@ -34,6 +35,7 @@ export function LegacyDemoInvitationTemplate({
   const mapsUrl =
     wedding.ceremonyLocation?.mapsUrl ?? wedding.restaurant?.mapsUrl ?? ""
   const fontPair = getInvitationFontPair(content.fontPairId)
+  const fontVariables = getInvitationFontVariables(content.fontPairId)
   const colorPreset = getInvitationColorPreset(content.colorPresetId)
   const heroPhoto = getInvitationPhotoAsset(content.photoAssetId)
   const visible = content.visibleSections
@@ -42,6 +44,7 @@ export function LegacyDemoInvitationTemplate({
     <div
       className={cn(
         "min-h-svh bg-[var(--invite-page)] text-[var(--invite-text)] lg:h-svh lg:overflow-hidden",
+        fontVariables,
         className,
       )}
       style={{

@@ -8,6 +8,7 @@ import {
 import { WeddingCountdown } from "@/domains/wedding-sites/adapters/next/components/wedding-countdown"
 import type { WeddingExperienceContent } from "@/domains/wedding-sites/application/dtos/wedding-experience.dto"
 import { EditorialMotion } from "@/shared/components/editorial-motion"
+import { mariaDanielaFontVariables } from "@/shared/fonts/maria-daniela-fonts"
 
 import styles from "./wedding-experience.module.css"
 
@@ -32,7 +33,7 @@ export function WeddingExperience({
   const [firstName, secondName] = content.partnerNames
 
   return (
-    <EditorialMotion className={styles.site}>
+    <EditorialMotion className={`${styles.site} ${mariaDanielaFontVariables}`}>
       <header className={styles.hero}>
         <Image draggable="false" src={mariaDanielaAssets.sageWash} alt="" width={1920} height={1080} priority sizes="100vw" className={styles.heroSage} />
         <Image draggable="false"

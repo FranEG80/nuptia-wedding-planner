@@ -20,8 +20,12 @@ export interface UpdateWeddingInput {
 export interface WeddingRepository {
   findCurrentByAppUserId(appUserId: string): Promise<Wedding | null>
   findById(id: string): Promise<Wedding | null>
+  findPublicById(id: string): Promise<Wedding | null>
   findBySlug(slug: string): Promise<Wedding | null>
   findMenuDetailsByWeddingId(weddingId: string): Promise<WeddingMenuDetails | null>
+  findPublicMenuDetails(
+    menu: NonNullable<Wedding["menu"]>,
+  ): Promise<WeddingMenuDetails | null>
   create(input: CreateWeddingInput): Promise<Wedding>
   update(id: string, input: UpdateWeddingInput): Promise<Wedding | null>
 }

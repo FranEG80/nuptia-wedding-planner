@@ -26,6 +26,26 @@ export interface GuestInviteParty {
   guests: Guest[]
 }
 
+export interface PublicGuestInvite {
+  id: string
+  role: Guest["role"]
+  name: string
+  email: string | null
+  phone: string | null
+  notes: string
+  rsvp: Guest["rsvp"]
+  menuSelections: Guest["menuSelections"]
+}
+
+export interface PublicGuestInviteParty {
+  id: string
+  weddingId: string
+  inviteToken: string
+  groupName: string
+  invite: Guest["party"]["invite"]
+  guests: PublicGuestInvite[]
+}
+
 export interface InvitationPartyGuestInput {
   id?: string
   firstName: string
@@ -63,6 +83,9 @@ export interface GuestRepository {
   listByWeddingId(weddingId: string): Promise<Guest[]>
   listPartiesByWeddingId(weddingId: string): Promise<GuestInviteParty[]>
   findPartyByInviteToken(inviteToken: string): Promise<GuestInviteParty | null>
+  findPublicPartyByInviteToken(
+    inviteToken: string,
+  ): Promise<PublicGuestInviteParty | null>
   findById(id: string): Promise<Guest | null>
   create(input: CreateGuestInput): Promise<Guest>
   update(id: string, input: UpdateGuestInput): Promise<Guest | null>

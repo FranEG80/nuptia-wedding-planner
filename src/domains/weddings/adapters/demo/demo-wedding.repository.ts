@@ -146,12 +146,20 @@ export const demoWeddingRepository: WeddingRepository = {
     return demoWedding.id === id ? demoWedding : null
   },
 
+  async findPublicById(id) {
+    return demoWedding.id === id ? demoWedding : null
+  },
+
   async findBySlug(slug) {
     return demoWedding.slug === slug ? demoWedding : null
   },
 
   async findMenuDetailsByWeddingId(weddingId) {
     return demoWedding.id === weddingId ? demoMenuDetails : null
+  },
+
+  async findPublicMenuDetails(menu) {
+    return demoMenuDetails.id === menu.id ? demoMenuDetails : null
   },
 
   async create(input: CreateWeddingInput) {

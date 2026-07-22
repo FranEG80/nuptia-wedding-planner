@@ -98,6 +98,30 @@ export const demoGuestRepository: GuestRepository = {
     return partyByInviteToken(inviteToken)
   },
 
+  async findPublicPartyByInviteToken(inviteToken) {
+    const party = partyByInviteToken(inviteToken)
+
+    return party
+      ? {
+          id: party.id,
+          weddingId: party.weddingId,
+          inviteToken: party.inviteToken,
+          groupName: party.groupName,
+          invite: party.invite,
+          guests: party.guests.map((guest) => ({
+            id: guest.id,
+            role: guest.role,
+            name: guest.name,
+            email: guest.email,
+            phone: guest.phone,
+            notes: guest.notes,
+            rsvp: guest.rsvp,
+            menuSelections: guest.menuSelections,
+          })),
+        }
+      : null
+  },
+
   async findById(id) {
     return demoGuests.find((guest) => guest.id === id) ?? null
   },

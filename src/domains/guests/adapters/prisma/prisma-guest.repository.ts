@@ -9,6 +9,7 @@ import type {
   GuestInviteParty,
   GuestRepository,
   InvitationPartyGuestInput,
+  PublicGuestInviteParty,
   RespondToPartyGuestInput,
   UpdateInvitationPartyInput,
   UpdateGuestInput,
@@ -46,6 +47,32 @@ const partyInclude = {
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   },
 } as const satisfies Prisma.GuestPartyInclude
+
+const publicPartySelect = {
+  id: true,
+  weddingId: true,
+  inviteToken: true,
+  groupName: true,
+  inviteStatus: true,
+  guests: {
+    select: {
+      id: true,
+      role: true,
+      name: true,
+      email: true,
+      phone: true,
+      notes: true,
+      rsvpStatus: true,
+      menuSelections: {
+        select: {
+          menuDishId: true,
+          dishOptionId: true,
+        },
+      },
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  },
+} as const satisfies Prisma.GuestPartySelect
 
 type PrismaGuestRecord = NonNullable<
   Awaited<ReturnType<PrismaGuestRepository["findRecordById"]>>
@@ -135,6 +162,32 @@ function toGuestParty(record: PrismaGuestPartyRecord): GuestInviteParty {
   }
 }
 
+type PrismaPublicGuestPartyRecord = Prisma.GuestPartyGetPayload<{
+  select: typeof publicPartySelect
+}>
+
+function toPublicGuestParty(
+  record: PrismaPublicGuestPartyRecord,
+): PublicGuestInviteParty {
+  return {
+    id: record.id,
+    weddingId: record.weddingId,
+    inviteToken: record.inviteToken,
+    groupName: record.groupName ?? "",
+    invite: inviteFromDb[record.inviteStatus] ?? "Pendiente",
+    guests: record.guests.map((guest) => ({
+      id: guest.id,
+      role: roleFromDb(guest.role),
+      name: guest.name,
+      email: guest.email,
+      phone: guest.phone,
+      notes: guest.notes ?? "",
+      rsvp: rsvpFromDb[guest.rsvpStatus] ?? "Sin respuesta",
+      menuSelections: guest.menuSelections,
+    })),
+  }
+}
+
 function normalizeContact(value: string | null | undefined) {
   const normalized = value?.trim()
   return normalized ? normalized : null
@@ -216,6 +269,17 @@ export class PrismaGuestRepository implements GuestRepository {
     }
 
     return toGuestParty(party)
+  }
+
+  async findPublicPartyByInviteToken(
+    inviteToken: string,
+  ): Promise<PublicGuestInviteParty | null> {
+    const party = await this.prisma.guestParty.findUnique({
+      where: { inviteToken },
+      select: publicPartySelect,
+    })
+
+    return party ? toPublicGuestParty(party) : null
   }
 
   async findById(id: string): Promise<Guest | null> {

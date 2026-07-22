@@ -12,21 +12,26 @@ export async function getPublicInvitationByTokenUseCase(input: {
   weddingRepository: WeddingRepository
   token: string
 }): Promise<PublicInvitationDto | null> {
-  const party = await input.guestRepository.findPartyByInviteToken(input.token)
+  const party = await input.guestRepository.findPublicPartyByInviteToken(
+    input.token,
+  )
 
   if (!party) {
     return null
   }
 
-  const [wedding, design, menu] = await Promise.all([
-    input.weddingRepository.findById(party.weddingId),
+  const [wedding, design] = await Promise.all([
+    input.weddingRepository.findPublicById(party.weddingId),
     input.invitationRepository.findCurrentDesignByWeddingId(party.weddingId),
-    input.weddingRepository.findMenuDetailsByWeddingId(party.weddingId),
   ])
 
   if (!wedding || !design) {
     return null
   }
+
+  const menu = wedding.menu
+    ? await input.weddingRepository.findPublicMenuDetails(wedding.menu)
+    : null
 
   return toPublicInvitationDto({ party, wedding, design, menu })
 }
