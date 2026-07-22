@@ -16,6 +16,21 @@ export interface GuestImportParseResult {
   rows: GuestImportRowResult[]
 }
 
+export function normalizeGuestEmail(
+  value: string | null | undefined,
+): string | null {
+  const normalized = value?.trim().toLowerCase()
+  return normalized || null
+}
+
+export function normalizeGuestPhone(
+  value: string | null | undefined,
+): string | null {
+  const digits = value?.replace(/\D/g, "") ?? ""
+  const normalized = digits.replace(/^00/, "")
+  return normalized || null
+}
+
 interface NormalizedRow {
   rowNumber: number
   groupLabel: string
@@ -131,7 +146,7 @@ function isBlankRow(row: NormalizedRow): boolean {
 
 export function parseGuestImportRows(
   rawRows: RawGuestImportRow[],
-  options: { existingEmails?: Set<string> } = {},
+  options: { existingEmails?: Set<string>; existingPhones?: Set<string> } = {},
 ): GuestImportParseResult {
   const rowResults: GuestImportRowResult[] = []
   const parties: CreateInvitationPartyDto[] = []
@@ -139,7 +154,14 @@ export function parseGuestImportRows(
   // archivo, así detecta tanto duplicados contra invitaciones previas como
   // duplicados entre dos filas de esta misma importación.
   const seenEmails = new Set(
-    Array.from(options.existingEmails ?? []).map((email) => email.toLowerCase()),
+    Array.from(options.existingEmails ?? [])
+      .map(normalizeGuestEmail)
+      .filter((email): email is string => Boolean(email)),
+  )
+  const seenPhones = new Set(
+    Array.from(options.existingPhones ?? [])
+      .map(normalizeGuestPhone)
+      .filter((phone): phone is string => Boolean(phone)),
   )
 
   const normalizedRows = rawRows
@@ -220,13 +242,23 @@ export function parseGuestImportRows(
       parties.push(parsed.data)
 
       for (const member of members) {
-        const emailKey = member.email?.toLowerCase() ?? null
-        const isDuplicate = emailKey !== null && seenEmails.has(emailKey)
+        const emailKey = normalizeGuestEmail(member.email)
+        const phoneKey = normalizeGuestPhone(member.phone)
+        const duplicateEmail = emailKey !== null && seenEmails.has(emailKey)
+        const duplicatePhone = phoneKey !== null && seenPhones.has(phoneKey)
+        const isDuplicate = duplicateEmail || duplicatePhone
         const groupMismatch = groupLabels.size > 1
 
         if (emailKey !== null) {
           seenEmails.add(emailKey)
         }
+        if (phoneKey !== null) {
+          seenPhones.add(phoneKey)
+        }
+
+        const duplicateContact = duplicateEmail
+          ? `el email ${member.email}`
+          : `el teléfono ${member.phone}`
 
         rowResults.push({
           rowNumber: member.rowNumber,
@@ -234,7 +266,7 @@ export function parseGuestImportRows(
           message: groupMismatch
             ? `Se importará con el grupo "${groupName}"; las dos personas de esta invitación tienen grupos distintos.`
             : isDuplicate
-              ? `Se importará, pero el email ${member.email} ya está en otra invitación (de esta lista o ya existente).`
+              ? `El contacto ${duplicateContact} ya existe; se omitirá la persona repetida o se añadirá su acompañante a la invitación existente.`
               : "Lista para importar.",
         })
       }

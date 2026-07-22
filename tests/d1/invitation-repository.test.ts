@@ -132,6 +132,8 @@ test("el repositorio gestiona una invitación individual y una pareja completa",
       .first<{ guestId: string }>()
 
     assert.equal(message?.guestId, secondGuest.id)
+    assert.equal(pair.messages.length, 1)
+    assert.equal(pair.messages[0].message, "Respondemos los dos")
 
     for (const [firstAttends, secondAttends] of [
       [true, false],

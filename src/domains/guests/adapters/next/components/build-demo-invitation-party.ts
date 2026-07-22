@@ -51,6 +51,7 @@ export function buildDemoInvitationParty(
     inviteeNames,
     recipient,
     guests,
+    messages: [],
     compositionLocked: false,
   }
 }

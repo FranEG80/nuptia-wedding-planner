@@ -85,6 +85,14 @@ export interface InvitationPartyGuestDto extends GuestDto {
   isRecipient: boolean
 }
 
+export interface InvitationPartyMessageDto {
+  id: string
+  guestId: string
+  message: string
+  status: string
+  createdAt: string
+}
+
 export interface InvitationPartyDto {
   id: string
   weddingId: string
@@ -95,6 +103,7 @@ export interface InvitationPartyDto {
   inviteeNames: string
   recipient: InvitationPartyGuestDto
   guests: InvitationPartyGuestDto[]
+  messages: InvitationPartyMessageDto[]
   compositionLocked: boolean
 }
 
@@ -123,6 +132,13 @@ export function toInvitationPartyDto(
     inviteeNames,
     recipient,
     guests,
+    messages: party.messages.map((message) => ({
+      id: message.id,
+      guestId: message.guestId,
+      message: message.message,
+      status: message.status,
+      createdAt: message.createdAt,
+    })),
     compositionLocked:
       party.invite === "Enviada" ||
       guests.some((guest) => guest.rsvp !== "Sin respuesta"),

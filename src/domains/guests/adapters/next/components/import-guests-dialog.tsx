@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 import { useRef, useState } from "react"
 
-import { createInvitationPartyAction } from "@/domains/guests/adapters/next/actions"
+import { importInvitationPartiesAction } from "@/domains/guests/adapters/next/actions"
 import { buildDemoInvitationParty } from "@/domains/guests/adapters/next/components/build-demo-invitation-party"
 import { downloadGuestImportTemplate } from "@/domains/guests/adapters/next/components/guest-import-template"
 import {
@@ -23,6 +23,7 @@ import {
   type GuestImportParseResult,
 } from "@/domains/guests/application/guest-import"
 import type { InvitationPartyDto } from "@/domains/guests/application/dtos/invitation-party.dto"
+import type { ImportInvitationPartiesResult } from "@/domains/guests/application/use-cases/import-invitation-parties.use-case"
 import { cn } from "@/shared/lib/utils"
 
 export function ImportGuestsDialog({
@@ -36,7 +37,7 @@ export function ImportGuestsDialog({
   onOpenChange: (open: boolean) => void
   parties: InvitationPartyDto[]
   isDemo: boolean
-  onImported: (newParties: InvitationPartyDto[]) => void
+  onImported: (result: ImportInvitationPartiesResult) => void
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -100,8 +101,15 @@ export function ImportGuestsDialog({
             .filter((email): email is string => Boolean(email)),
         ),
       )
+      const existingPhones = new Set(
+        parties.flatMap((party) =>
+          party.guests
+            .map((guest) => guest.phone?.replace(/\D/g, ""))
+            .filter((phone): phone is string => Boolean(phone)),
+        ),
+      )
 
-      setParseResult(parseGuestImportRows(rows, { existingEmails }))
+      setParseResult(parseGuestImportRows(rows, { existingEmails, existingPhones }))
     } catch {
       setParseError(
         "No se pudo leer el archivo. Comprueba que sea un .xlsx, .csv o .ods válido.",
@@ -120,36 +128,46 @@ export function ImportGuestsDialog({
 
     if (isDemo) {
       const created = parseResult.parties.map(buildDemoInvitationParty)
-      onImported(created)
+      onImported({
+        parties: created,
+        created: created.length,
+        merged: 0,
+        skipped: 0,
+        warnings: [],
+      })
       setImportSummary(`Se importaron ${created.length} invitaciones.`)
       setIsImporting(false)
       return
     }
 
-    const created: InvitationPartyDto[] = []
-    let failed = 0
+    try {
+      const imported = await importInvitationPartiesAction(parseResult.parties)
 
-    for (const input of parseResult.parties) {
-      try {
-        const party = await createInvitationPartyAction(input)
-
-        if (party) {
-          created.push(party)
-        } else {
-          failed += 1
-        }
-      } catch {
-        failed += 1
+      if (!imported) {
+        setImportSummary("No se pudo completar la importación.")
+        return
       }
-    }
 
-    onImported(created)
-    setImportSummary(
-      failed > 0
-        ? `Se importaron ${created.length} invitaciones. ${failed} no se pudieron guardar.`
-        : `Se importaron ${created.length} invitaciones.`,
-    )
-    setIsImporting(false)
+      onImported(imported)
+      setImportSummary(
+        [
+          `Se crearon ${imported.created} invitaciones`,
+          imported.merged > 0 ? `se añadieron ${imported.merged} acompañantes` : null,
+          imported.skipped > 0 ? `se omitieron ${imported.skipped} repetidas` : null,
+          imported.warnings.length > 0 ? imported.warnings.join(" ") : null,
+        ]
+          .filter(Boolean)
+          .join("; ") + ".",
+      )
+    } catch (error) {
+      setImportSummary(
+        error instanceof Error
+          ? error.message
+          : "No se pudo completar la importación.",
+      )
+    } finally {
+      setIsImporting(false)
+    }
   }
 
   const okRows = parseResult?.rows.filter((row) => row.status === "ok") ?? []

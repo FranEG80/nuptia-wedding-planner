@@ -81,9 +81,13 @@ export function SeatingBoard({
         updateGuestSeat(guestId, previousSeat)
         setSeatError("No se pudo actualizar la mesa del invitado.")
       }
-    } catch {
+    } catch (error) {
       updateGuestSeat(guestId, previousSeat)
-      setSeatError("No se pudo actualizar la mesa del invitado.")
+      setSeatError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar la mesa del invitado.",
+      )
     }
   }
 
