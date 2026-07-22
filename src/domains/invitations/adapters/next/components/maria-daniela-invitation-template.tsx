@@ -78,7 +78,7 @@ export function MariaDanielaInvitationTemplate({
           <p className="my-0 py-6 text-md md:text-xl font-extrabold tracking-[0.34em] uppercase">{content.eyebrow}</p>
           <h1 className="flex flex-col mt-[1.8rem] mb-[2.5rem] [font-family:var(--font-parisienne),cursive] text-[clamp(5.4rem,15vw,10.5rem)] font-normal leading-[0.75] max-[720px]:leading-[0.95]">
             <span>{firstName}</span>
-            <i className="text-[#d5764d] text-[1.2em] font-normal leading-15 z-[-2]">&amp;</i>
+            <i className="text-[#d5764d] text-[0.75em] font-normal leading-15 z-[-2]">&amp;</i>
             <span>{secondName}</span>
           </h1>
           <time className="block [font-family:var(--font-cormorant),serif] text-[clamp(1.25rem,3vw,1.7rem)] uppercase">{formatDate(wedding.date)}</time>
@@ -208,7 +208,7 @@ export function MariaDanielaInvitationTemplate({
             <div className="relative w-[min(1050px,100%)] flex flex-col md:items-center md:flex-row md:gap-14 " data-reveal>
               {/* <p className={kickerBase}>Vuestra presencia es el mejor regalo</p> */}
               {/* <h2 className={scriptHeading} data-script-reveal>{content.registryTitle}</h2> */}
-              <h2 className={cn(scriptHeading, "px-4")} data-script-reveal>Vuestra presencia es el mejor regalo</h2>
+              <h2 className={cn(scriptHeading, "px-4")} data-script-reveal>Vuestra presencia es el mayor regalo</h2>
               {/* <p className="mt-8 mb-4 mx-auto [font-family:var(--font-cormorant),serif] text-[1.3rem]">{content.registryIntro}</p> */}
               <div className="mt-8 mx-auto [font-family:var(--font-cormorant),serif] text-[1.3rem] w-full">
                 <p>Lo importante es que vengáis con ilusión, alegría y ganas de pasarlo bien.</p>
