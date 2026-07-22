@@ -9,9 +9,8 @@ import {
 } from "@/domains/wedding-sites/adapters/next/components/maria-daniela-assets"
 import { NACHO_WEDDING_SLUG } from "@/domains/wedding-sites/application/dtos/wedding-experience.dto"
 import type { InvitationContentDto } from "@/domains/invitations/application/dtos/invitation-design.dto"
-import { getInvitationPhotoAsset } from "@/domains/invitations/domain/invitation-template-options"
 import { MariaDanielaCountdown } from "@/domains/invitations/adapters/next/components/maria-daniela-countdown"
-import type { WeddingDto } from "@/domains/weddings/application/dtos/wedding.dto"
+import type { PublicInvitationWeddingDto } from "@/domains/invitations/application/dtos/public-invitation.dto"
 import { EditorialMotion } from "@/shared/components/editorial-motion"
 import { cn } from "@/shared/lib/utils"
 
@@ -46,7 +45,7 @@ export function MariaDanielaInvitationTemplate({
   className,
   preview = false,
 }: {
-  wedding: WeddingDto
+  wedding: PublicInvitationWeddingDto
   content: InvitationContentDto
   rsvpSlot?: ReactNode
   className?: string
@@ -54,7 +53,6 @@ export function MariaDanielaInvitationTemplate({
 }) {
   const visible = content.visibleSections
   const [firstName = "Nuestra", secondName = "boda"] = wedding.partnerNames
-  const selectedPhoto = getInvitationPhotoAsset(content.photoAssetId)
   const ceremony = wedding.ceremonyLocation
   const reception = wedding.restaurant
   const publicRegistryNote = sanitizePublicRegistryNote(content.registryNote)

@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og"
 
-import { getRepositories } from "@/composition/repositories"
+import { getPublicInvitationQuery } from "@/composition/repositories"
 import { getPublicInvitationByTokenUseCase } from "@/domains/invitations/application/use-cases/get-public-invitation-by-token.use-case"
 import {
   getInvitationColorPreset,
@@ -43,11 +43,9 @@ export default async function Image({
   params: Promise<{ token: string }>
 }) {
   const { token } = await params
-  const repositories = await getRepositories()
+  const publicInvitationQuery = await getPublicInvitationQuery()
   const invitation = await getPublicInvitationByTokenUseCase({
-    guestRepository: repositories.guest,
-    invitationRepository: repositories.invitation,
-    weddingRepository: repositories.wedding,
+    publicInvitationQuery,
     token,
   })
 

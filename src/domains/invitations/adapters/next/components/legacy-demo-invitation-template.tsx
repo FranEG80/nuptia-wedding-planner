@@ -8,7 +8,7 @@ import {
   getInvitationFontPair,
   getInvitationPhotoAsset,
 } from "@/domains/invitations/domain/invitation-template-options"
-import type { WeddingDto } from "@/domains/weddings/application/dtos/wedding.dto"
+import type { PublicInvitationWeddingDto } from "@/domains/invitations/application/dtos/public-invitation.dto"
 import { cn } from "@/shared/lib/utils"
 import { InvitationMenuDrawer } from "@/domains/invitations/adapters/next/components/invitation-menu-drawer"
 
@@ -19,7 +19,7 @@ export function LegacyDemoInvitationTemplate({
   className,
   preview = false,
 }: {
-  wedding: WeddingDto
+  wedding: PublicInvitationWeddingDto
   content: InvitationContentDto
   rsvpSlot?: ReactNode
   className?: string

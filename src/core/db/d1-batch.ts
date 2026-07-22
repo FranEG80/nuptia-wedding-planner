@@ -5,7 +5,11 @@ export interface D1BatchStatement {
 
 export interface D1BatchDatabase {
   prepare(sql: string): D1BatchPreparedStatement
-  batch(statements: readonly D1BatchStatement[]): Promise<void>
+  batch(statements: readonly D1BatchStatement[]): Promise<D1BatchResult[]>
+}
+
+export interface D1BatchResult {
+  results: Record<string, unknown>[]
 }
 
 export interface D1BatchPreparedStatement extends D1BatchStatement {
@@ -24,6 +28,7 @@ interface D1ApiError {
 
 interface D1ApiResult {
   success?: boolean
+  results?: Record<string, unknown>[]
 }
 
 interface D1ApiResponse {
@@ -79,7 +84,11 @@ export function createBindingD1BatchDatabase(
         database.prepare(statement.sql).bind(...statement.params),
       )
 
-      await database.batch(preparedStatements)
+      const results = await database.batch(preparedStatements)
+
+      return results.map((result) => ({
+        results: (result.results ?? []) as Record<string, unknown>[],
+      }))
     },
   }
 }
@@ -128,6 +137,10 @@ export function createHttpD1BatchDatabase(
       ) {
         throw new Error("Cloudflare D1 devolvió un resultado de batch incompleto")
       }
+
+      return payload.result.map((result) => ({
+        results: result.results ?? [],
+      }))
     },
   }
 }

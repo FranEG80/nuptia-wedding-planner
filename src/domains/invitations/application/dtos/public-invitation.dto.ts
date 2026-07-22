@@ -14,6 +14,18 @@ import {
   type WeddingDto,
 } from "@/domains/weddings/application/dtos/wedding.dto"
 
+export type PublicInvitationWeddingDto = Pick<
+  WeddingDto,
+  | "id"
+  | "slug"
+  | "date"
+  | "partnerNames"
+  | "displayName"
+  | "ceremonyLocation"
+  | "restaurant"
+  | "primaryCity"
+>
+
 export interface PublicInvitationGuestDto {
   id: string
   role: Guest["role"]
@@ -48,7 +60,7 @@ export interface PublicInvitationDto {
   token: string
   partyId: string
   groupName: string
-  wedding: WeddingDto
+  wedding: PublicInvitationWeddingDto
   design: InvitationDesignDto
   guests: PublicInvitationGuestDto[]
   menu: PublicInvitationMenuDto | null
@@ -60,11 +72,22 @@ export function toPublicInvitationDto(input: {
   design: InvitationDesign
   menu: WeddingMenuDetails | null
 }): PublicInvitationDto {
+  const wedding = toWeddingDto(input.wedding)
+
   return {
     token: input.party.inviteToken,
     partyId: input.party.id,
     groupName: input.party.groupName,
-    wedding: toWeddingDto(input.wedding),
+    wedding: {
+      id: wedding.id,
+      slug: wedding.slug,
+      date: wedding.date,
+      partnerNames: wedding.partnerNames,
+      displayName: wedding.displayName,
+      ceremonyLocation: wedding.ceremonyLocation,
+      restaurant: wedding.restaurant,
+      primaryCity: wedding.primaryCity,
+    },
     design: toInvitationDesignDto(input.design),
     guests: input.party.guests.map((guest) => ({
       id: guest.id,

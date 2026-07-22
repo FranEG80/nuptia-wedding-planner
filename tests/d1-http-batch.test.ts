@@ -18,12 +18,15 @@ test("D1 HTTP envía los statements como un único batch autenticado", async () 
 
     return Response.json({
       success: true,
-      result: [{ success: true }, { success: true }],
+      result: [
+        { success: true, results: [{ id: "1" }] },
+        { success: true, results: [] },
+      ],
     })
   }) as typeof fetch
   const database = createHttpD1BatchDatabase(credentials, request)
 
-  await database.batch([
+  const results = await database.batch([
     database.prepare("UPDATE guests SET name = ? WHERE id = ?").bind("Ana", "1"),
     database.prepare("DELETE FROM guests WHERE id = ?").bind("2"),
   ])
@@ -48,6 +51,7 @@ test("D1 HTTP envía los statements como un único batch autenticado", async () 
       },
     ],
   })
+  assert.deepEqual(results, [{ results: [{ id: "1" }] }, { results: [] }])
 })
 
 test("D1 HTTP propaga los errores legibles de Cloudflare", async () => {

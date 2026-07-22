@@ -2,19 +2,17 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { cache } from "react"
 
-import { getRepositories } from "@/composition/repositories"
+import { getPublicInvitationQuery } from "@/composition/repositories"
 import { ResolvedInvitationTemplate } from "@/domains/invitations/adapters/next/components/resolve-invitation-template"
 import { PublicRsvpPanel } from "@/domains/invitations/adapters/next/components/public-rsvp-panel"
 import { getPublicInvitationByTokenUseCase } from "@/domains/invitations/application/use-cases/get-public-invitation-by-token.use-case"
 import { normalizeInvitationTemplateId } from "@/domains/invitations/domain/invitation-template-options"
 
 const getInvitationByToken = cache(async (token: string) => {
-  const repositories = await getRepositories()
+  const publicInvitationQuery = await getPublicInvitationQuery()
 
   return getPublicInvitationByTokenUseCase({
-    guestRepository: repositories.guest,
-    invitationRepository: repositories.invitation,
-    weddingRepository: repositories.wedding,
+    publicInvitationQuery,
     token,
   })
 })
