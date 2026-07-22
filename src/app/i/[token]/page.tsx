@@ -48,7 +48,7 @@ export async function generateMetadata({
     domain = "bodamariadanielaynacho.es"
     protocol = "https"
     baseUrl = `${protocol}://${domain}`
-    customOgImage = `${baseUrl}/images/templates/maria-daniela/ogimage.png`
+    customOgImage = `${baseUrl}/images/templates/maria-daniela/ogimage/opengraph_image.jpg`
   }
 
   if (customOgImage) {
