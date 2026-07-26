@@ -23,6 +23,8 @@ export const publicInvitationResponseSchema = z.object({
       z.object({
         guestId: z.string().min(1),
         attending: z.boolean(),
+        firstName: z.string().trim().min(1).max(120).optional(),
+        lastName: z.string().trim().min(1).max(120).optional(),
         email: optionalEmailSchema,
         phone: optionalPhoneSchema,
         notes: z

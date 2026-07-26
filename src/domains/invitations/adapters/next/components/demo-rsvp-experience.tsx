@@ -23,6 +23,7 @@ interface GuestDraft {
   id: string
   role: PublicInvitationGuestDto["role"]
   name: string
+  lastName: string
   email: string
   phone: string
   notes: string
@@ -38,10 +39,13 @@ const actionButtonBase = "py-[0.85rem] px-[1.2rem] border border-[#5b4d47] round
 const attendanceButtonBase = "py-[0.85rem] px-4 border border-[rgba(91,77,71,0.18)] rounded-full bg-[rgba(255,255,255,0.45)] text-inherit text-[0.75rem] cursor-pointer"
 
 function guestDraft(guest: PublicInvitationGuestDto): GuestDraft {
+  const [firstName] = guest.name.trim().split(/\s+/)
+
   return {
     id: guest.id,
     role: guest.role,
-    name: guest.name,
+    name: firstName || "Invitado",
+    lastName: "",
     email: guest.email ?? "",
     phone: guest.phone ?? "",
     notes: guest.notes,
@@ -106,12 +110,12 @@ export function DemoRsvpExperience({
 
     if (step === "details") {
       for (const guest of attending) {
-        if (guest.role === "primary" && !guest.email.trim() && !guest.phone.trim()) {
-          setError(`Añade un teléfono o email para ${guest.name}.`)
+        if (!guest.lastName.trim()) {
+          setError(`Añade los apellidos de ${guest.name}.`)
           return false
         }
-        if (guest.email && !/^\S+@\S+\.\S+$/.test(guest.email)) {
-          setError(`Revisa el email de ${guest.name}.`)
+        if (!guest.phone.trim()) {
+          setError(`Añade un teléfono para ${guest.name}.`)
           return false
         }
       }
@@ -138,8 +142,10 @@ export function DemoRsvpExperience({
       guests: drafts.map((guest) => ({
         guestId: guest.id,
         attending: guest.attending === true,
-        email: guest.email.trim() || null,
-        phone: guest.phone.trim() || null,
+        firstName: guest.name.trim(),
+        lastName: guest.lastName.trim(),
+        email: null,
+        phone: guest.phone.trim(),
         notes: guest.attending ? guest.notes.trim() : "",
         menuSelections: guest.attending
           ? Object.entries(guest.menuSelections).filter(([, option]) => Boolean(option)).map(([menuDishId, dishOptionId]) => ({ menuDishId, dishOptionId }))
@@ -273,8 +279,8 @@ export function DemoRsvpExperience({
                 {step === "details" && attending.map((guest) => (
                   <fieldset key={guest.id} className={cn(fieldsetBase, "grid-cols-2 max-[700px]:grid-cols-1")}>
                     <legend className={cn(legendBase, "col-span-full")}>{guest.name}</legend>
-                    <label className={labelBase}>Teléfono{guest.role !== "primary" ? " (opcional)" : ""}<input type="tel" inputMode="tel" autoComplete="tel" placeholder="+34 600 000 000" className={inputBase} value={guest.phone} onChange={(event) => updateGuest(guest.id, { phone: event.target.value })} /></label>
-                    <label className={labelBase}>Email (opcional)<input type="email" className={inputBase} value={guest.email} onChange={(event) => updateGuest(guest.id, { email: event.target.value })} /></label>
+                    <label className={labelBase}>Apellidos *<input type="text" autoComplete="family-name" required className={inputBase} value={guest.lastName} onChange={(event) => updateGuest(guest.id, { lastName: event.target.value })} /></label>
+                    <label className={labelBase}>Teléfono *<input type="tel" inputMode="tel" autoComplete="tel" required placeholder="+34 600 000 000" className={inputBase} value={guest.phone} onChange={(event) => updateGuest(guest.id, { phone: event.target.value })} /></label>
                   </fieldset>
                 ))}
 
@@ -341,11 +347,11 @@ export function DemoRsvpExperience({
 }
 
 function stepTitle(step: Step) {
-  return ({ attendance: "¿Contamos contigo?", details: "Tus datos", menu: "Elige el menú", notes: "Cuidamos cada detalle", message: "Déjales unas palabras", review: "Todo listo", success: "Confirmación recibida" })[step]
+  return ({ attendance: "¿Contamos contigo?", details: "Confirma tus datos", menu: "Elige el menú", notes: "Cuidamos cada detalle", message: "Déjales unas palabras", review: "Todo listo", success: "Confirmación recibida" })[step]
 }
 
 function stepDescription(step: Step) {
-  return ({ attendance: "", details: "Un teléfono o email será suficiente para mantenerte al día.", menu: "Selecciona una opción para cada asistente.", notes: "Indica alergias, intolerancias o cualquier necesidad especial.", message: "Es opcional, pero seguro que les encantará leerlo.", review: "Revisa tu respuesta antes de enviarla.", success: "" })[step]
+  return ({ attendance: "", details: "Necesitamos tus apellidos y un teléfono para mantenerte al día.", menu: "Selecciona una opción para cada asistente.", notes: "Indica alergias, intolerancias o cualquier necesidad especial.", message: "Es opcional, pero seguro que les encantará leerlo.", review: "Revisa tu respuesta antes de enviarla.", success: "" })[step]
 }
 
 function demoAttendanceChoice(guests: GuestDraft[]) {

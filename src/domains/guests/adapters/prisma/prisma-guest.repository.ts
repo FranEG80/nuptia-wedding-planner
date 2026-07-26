@@ -916,6 +916,7 @@ export class PrismaGuestRepository implements GuestRepository {
           select: {
             id: true,
             role: true,
+            name: true,
             email: true,
             phone: true,
             notes: true,
@@ -1031,10 +1032,16 @@ export class PrismaGuestRepository implements GuestRepository {
         this.d1
           .prepare(
             `UPDATE guests
-             SET email = ?, phone = ?, notes = ?, rsvpStatus = ?, updatedAt = ?
+             SET name = ?, email = ?, phone = ?, notes = ?, rsvpStatus = ?, updatedAt = ?
              WHERE id = ? AND partyId = ?`,
           )
           .bind(
+            response.firstName !== undefined && response.lastName !== undefined
+              ? [response.firstName, response.lastName]
+                  .map((part) => part?.trim())
+                  .filter(Boolean)
+                  .join(" ")
+              : guest.name,
             response.email === undefined
               ? guest.email
               : normalizeContact(response.email),

@@ -10,6 +10,8 @@ test("acepta la respuesta pública con contactos y mensaje nulos", () => {
       {
         guestId: "guest-id",
         attending: true,
+        firstName: "Ana",
+        lastName: "Ruiz Burgos",
         email: null,
         phone: "622943008",
         notes: "",
@@ -20,6 +22,8 @@ test("acepta la respuesta pública con contactos y mensaje nulos", () => {
   })
 
   assert.equal(parsed.guests[0].email, null)
+  assert.equal(parsed.guests[0].firstName, "Ana")
+  assert.equal(parsed.guests[0].lastName, "Ruiz Burgos")
   assert.equal(parsed.guests[0].phone, "622943008")
   assert.equal(parsed.message, null)
 })

@@ -83,6 +83,8 @@ export interface UpdateInvitationPartyInput {
 export interface RespondToPartyGuestInput {
   guestId: string
   attending: boolean
+  firstName?: string | null
+  lastName?: string | null
   email?: string | null
   phone?: string | null
   notes?: string
