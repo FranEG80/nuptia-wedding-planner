@@ -20,6 +20,7 @@ import { InvitationDetailDialog } from "@/domains/guests/adapters/next/component
 import { InvitationsTable } from "@/domains/guests/adapters/next/components/invitations-table"
 import { SeatingBoard } from "@/domains/guests/adapters/next/components/seating-board"
 import { buildInvitationMessage } from "@/domains/guests/application/build-invitation-message"
+import { joinSpanishNames } from "@/domains/guests/application/format-guest-names"
 import { normalizePhoneForWhatsapp } from "@/domains/guests/application/normalize-phone"
 import type {
   InvitationPartyDto,
@@ -206,7 +207,7 @@ export function GuestsView({
         }
       })
       const recipientGuest = guests.find((guest) => guest.isRecipient)!
-      const inviteeNames = guests.map((guest) => guest.name).join(" y ")
+      const inviteeNames = joinSpanishNames(guests.map((guest) => guest.name))
       const savedParty: InvitationPartyDto = {
         id: partyId,
         weddingId: "demo",
@@ -237,7 +238,7 @@ export function GuestsView({
                 inviteToken: savedParty.inviteToken,
               },
             ]
-            const inviteeNames = guests.map((guest) => guest.name).join(" y ")
+            const inviteeNames = joinSpanishNames(guests.map((guest) => guest.name))
 
             return {
               ...savedParty,

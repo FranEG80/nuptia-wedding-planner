@@ -190,7 +190,7 @@ export function InvitationPartyDialog({
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <label className="grid gap-2 text-sm">
-                      Teléfono
+                      Teléfono{member.isRecipient ? "" : " (opcional)"}
                       <input
                         type="tel"
                         value={member.phone}
@@ -204,7 +204,7 @@ export function InvitationPartyDialog({
                       />
                     </label>
                     <label className="grid gap-2 text-sm">
-                      Email
+                      Email{member.isRecipient ? "" : " (opcional)"}
                       <input
                         type="email"
                         value={member.email}

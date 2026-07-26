@@ -339,7 +339,7 @@ const HELP_RULES = [
   "Una invitación conjunta admite como máximo 5 personas; la 6ª fila con la misma clave da error.",
   "Nombre invitación conjunta es opcional: si existe, aparece en el mensaje y en la invitación pública; si está vacío, se muestran los nombres de las personas.",
   "Marca con Sí, en Destinatario, a quien recibirá el enlace. Si no marcas a nadie, se elige automáticamente a quien tenga teléfono o email.",
-  "El destinatario necesita al menos un teléfono o un email; si no lo tiene, esa fila da error.",
+  "El destinatario necesita al menos un teléfono o un email; las demás personas de una invitación conjunta pueden dejar ambos campos vacíos.",
   "El nombre es obligatorio; los apellidos son opcionales.",
   "Las filas completamente vacías se ignoran sin avisar.",
 ]

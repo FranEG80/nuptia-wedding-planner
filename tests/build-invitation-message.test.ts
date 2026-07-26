@@ -5,6 +5,7 @@ import {
   buildInvitationGreeting,
   buildInvitationMessage,
 } from "@/domains/guests/application/build-invitation-message"
+import { joinSpanishNames } from "@/domains/guests/application/format-guest-names"
 import type {
   InvitationPartyDto,
   InvitationPartyGuestDto,
@@ -50,7 +51,9 @@ function makeParty(overrides: {
     throw new Error("La party de prueba necesita un destinatario")
   }
 
-  const inviteeNames = overrides.guests.map((guest) => guest.name).join(" y ")
+  const inviteeNames = joinSpanishNames(
+    overrides.guests.map((guest) => guest.name),
+  )
 
   return {
     id: "party-1",
@@ -151,6 +154,27 @@ describe("buildInvitationMessage", () => {
         "https://example.com/i/token-1",
       ),
       "Hola Ana, nos hace mucha ilusión invitarte.",
+    )
+  })
+
+  it("separa correctamente los nombres de una invitación de cinco personas", () => {
+    const party = makeParty({
+      guests: [
+        makeGuest({ firstName: "Eva", lastName: "López", isRecipient: true }),
+        makeGuest({ firstName: "Mario", lastName: "Ruiz" }),
+        makeGuest({ firstName: "Nuria", lastName: "Díaz" }),
+        makeGuest({ firstName: "Pablo", lastName: "Sanz" }),
+        makeGuest({ firstName: "Sara", lastName: "Vega" }),
+      ],
+    })
+
+    assert.equal(
+      buildInvitationMessage(
+        party,
+        "Hola {guestName}: {inviteeNames}",
+        "https://example.com/i/token-1",
+      ),
+      "Hola Eva, Mario, Nuria, Pablo y Sara: Eva, Mario, Nuria, Pablo y Sara",
     )
   })
 })

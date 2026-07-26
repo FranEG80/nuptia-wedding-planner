@@ -1,13 +1,14 @@
 import type { InvitationPartyDto } from "@/domains/guests/application/dtos/invitation-party.dto"
+import { joinSpanishNames } from "@/domains/guests/application/format-guest-names"
 
 export function buildInvitationGreeting(party: InvitationPartyDto): string {
   if (party.guests.length <= 1) {
     return party.recipient.firstName || party.recipient.name || "invitado"
   }
 
-  const firstNames = party.guests
-    .map((guest) => guest.firstName.trim() || guest.name)
-    .join(" y ")
+  const firstNames = joinSpanishNames(
+    party.guests.map((guest) => guest.firstName.trim() || guest.name),
+  )
 
   return party.invitationName.trim() || firstNames
 }
@@ -18,9 +19,9 @@ export function buildInvitationMessage(
   inviteUrl: string,
 ): string {
   const invitationVerb = party.guests.length > 1 ? "invitaros" : "invitarte"
-  const firstNames = party.guests
-    .map((guest) => guest.firstName.trim() || guest.name)
-    .join(" y ")
+  const firstNames = joinSpanishNames(
+    party.guests.map((guest) => guest.firstName.trim() || guest.name),
+  )
 
   return template
     .replaceAll("{guestName}", buildInvitationGreeting(party))

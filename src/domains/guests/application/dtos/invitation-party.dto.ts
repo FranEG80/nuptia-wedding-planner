@@ -6,6 +6,7 @@ import {
   type GuestDto,
   type GuestInviteStatusDto,
 } from "@/domains/guests/application/dtos/guest.dto"
+import { joinSpanishNames } from "@/domains/guests/application/format-guest-names"
 import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 
 const nullableContactSchema = z
@@ -134,7 +135,7 @@ export function toInvitationPartyDto(
     throw new Error(`La invitación ${party.id} no tiene destinatario`)
   }
 
-  const inviteeNames = guests.map((guest) => guest.name).join(" y ")
+  const inviteeNames = joinSpanishNames(guests.map((guest) => guest.name))
 
   return {
     id: party.id,
