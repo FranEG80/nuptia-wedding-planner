@@ -18,6 +18,13 @@ export interface CreateGuestInput {
 
 export type UpdateGuestInput = Partial<Omit<CreateGuestInput, "weddingId">>
 
+export interface GuestRsvpSummary {
+  confirmed: number
+  pending: number
+  declined: number
+  total: number
+}
+
 export interface GuestInviteParty {
   id: string
   weddingId: string
@@ -87,6 +94,7 @@ export interface RespondToPartyGuestInput {
 
 export interface GuestRepository {
   listByWeddingId(weddingId: string): Promise<Guest[]>
+  getRsvpSummaryByWeddingId(weddingId: string): Promise<GuestRsvpSummary>
   listPartiesByWeddingId(weddingId: string): Promise<GuestInviteParty[]>
   findPartyByInviteToken(inviteToken: string): Promise<GuestInviteParty | null>
   findPublicPartyByInviteToken(

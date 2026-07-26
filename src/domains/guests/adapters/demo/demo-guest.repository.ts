@@ -83,6 +83,17 @@ export const demoGuestRepository: GuestRepository = {
     return demoGuests.filter((guest) => guest.weddingId === weddingId)
   },
 
+  async getRsvpSummaryByWeddingId(weddingId) {
+    const guests = demoGuests.filter((guest) => guest.weddingId === weddingId)
+
+    return {
+      confirmed: guests.filter((guest) => guest.rsvp === "Confirmado").length,
+      pending: guests.filter((guest) => guest.rsvp === "Sin respuesta").length,
+      declined: guests.filter((guest) => guest.rsvp === "Declinado").length,
+      total: guests.length,
+    }
+  },
+
   async listPartiesByWeddingId(weddingId) {
     const tokens = [
       ...new Set(

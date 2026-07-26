@@ -7,6 +7,7 @@ import type {
   CreateGuestInput,
   CreateInvitationPartyInput,
   GuestInviteParty,
+  GuestRsvpSummary,
   GuestRepository,
   InvitationPartyGuestInput,
   PublicGuestInviteParty,
@@ -56,6 +57,7 @@ const partyInclude = {
 // expands relation includes into additional IN clauses, so a seemingly small
 // root query can exceed that limit once all guest relations are hydrated.
 const D1_READ_BATCH_SIZE = 25
+const D1_PARTY_READ_BATCH_SIZE = 10
 const guestListOrderBy = [
   { party: { groupName: "asc" } },
   { name: "asc" },
@@ -276,10 +278,13 @@ export class PrismaGuestRepository implements GuestRepository {
     let offset = 0
     let batchIndex = 0
 
-    console.info("[nuptia:guests]", {
-      event: "listByWeddingId:start",
-      batchSize: D1_READ_BATCH_SIZE,
-    })
+    console.info(
+      "[nuptia:guests]",
+      JSON.stringify({
+        event: "listByWeddingId:start",
+        batchSize: D1_READ_BATCH_SIZE,
+      }),
+    )
 
     while (true) {
       const page = await this.prisma.guest.findMany({
@@ -313,11 +318,14 @@ export class PrismaGuestRepository implements GuestRepository {
         guests.push(guest)
       }
 
-      console.info("[nuptia:guests]", {
-        event: "listByWeddingId:batch",
-        batchIndex,
-        batchCount: page.length,
-      })
+      console.info(
+        "[nuptia:guests]",
+        JSON.stringify({
+          event: "listByWeddingId:batch",
+          batchIndex,
+          batchCount: page.length,
+        }),
+      )
 
       batchIndex += 1
       offset += page.length
@@ -327,14 +335,63 @@ export class PrismaGuestRepository implements GuestRepository {
       }
     }
 
-    console.info("[nuptia:guests]", {
-      event: "listByWeddingId:complete",
-      guestCount: guests.length,
-      batchCount: batchIndex,
-      durationMs: Date.now() - startedAt,
-    })
+    console.info(
+      "[nuptia:guests]",
+      JSON.stringify({
+        event: "listByWeddingId:complete",
+        guestCount: guests.length,
+        batchCount: batchIndex,
+        durationMs: Date.now() - startedAt,
+      }),
+    )
 
     return guests.map(toGuest)
+  }
+
+  async getRsvpSummaryByWeddingId(
+    weddingId: string,
+  ): Promise<GuestRsvpSummary> {
+    const startedAt = Date.now()
+    const [result] = await this.d1.batch([
+      this.d1
+        .prepare(
+          `SELECT rsvpStatus AS status, COUNT(*) AS count
+           FROM guests
+           WHERE weddingId = ?
+           GROUP BY rsvpStatus`,
+        )
+        .bind(weddingId),
+    ])
+    const summary: GuestRsvpSummary = {
+      confirmed: 0,
+      pending: 0,
+      declined: 0,
+      total: 0,
+    }
+
+    for (const row of result?.results ?? []) {
+      const count = Number(row.count)
+      summary.total += Number.isFinite(count) ? count : 0
+
+      if (row.status === "confirmed") {
+        summary.confirmed = count
+      } else if (row.status === "no_response") {
+        summary.pending = count
+      } else if (row.status === "declined") {
+        summary.declined = count
+      }
+    }
+
+    console.info(
+      "[nuptia:guests]",
+      JSON.stringify({
+        event: "getRsvpSummaryByWeddingId:complete",
+        ...summary,
+        durationMs: Date.now() - startedAt,
+      }),
+    )
+
+    return summary
   }
 
   async listPartiesByWeddingId(
@@ -349,7 +406,7 @@ export class PrismaGuestRepository implements GuestRepository {
         select: { id: true },
         orderBy: partyListOrderBy,
         skip: offset,
-        take: D1_READ_BATCH_SIZE,
+        take: D1_PARTY_READ_BATCH_SIZE,
       })
 
       if (page.length === 0) {
@@ -377,7 +434,7 @@ export class PrismaGuestRepository implements GuestRepository {
 
       offset += page.length
 
-      if (page.length < D1_READ_BATCH_SIZE) {
+      if (page.length < D1_PARTY_READ_BATCH_SIZE) {
         break
       }
     }
