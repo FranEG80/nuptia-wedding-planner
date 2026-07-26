@@ -890,6 +890,23 @@ export class PrismaGuestRepository implements GuestRepository {
       message?: string | null
     },
   ): Promise<GuestInviteParty | null> {
+    const traceId = crypto.randomUUID()
+
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:start",
+        traceId,
+        guestCount: input.guests.length,
+        attendingCount: input.guests.filter((guest) => guest.attending).length,
+        selectionCount: input.guests.reduce(
+          (count, guest) => count + (guest.menuSelections?.length ?? 0),
+          0,
+        ),
+        hasMessage: Boolean(input.message?.trim()),
+      }),
+    )
+
     const party = await this.prisma.guestParty.findUnique({
       where: { inviteToken },
       select: {
@@ -907,6 +924,16 @@ export class PrismaGuestRepository implements GuestRepository {
         },
       },
     })
+
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:party-loaded",
+        traceId,
+        partyFound: Boolean(party),
+        guestCount: party?.guests.length ?? 0,
+      }),
+    )
 
     if (!party) {
       return null
@@ -970,6 +997,16 @@ export class PrismaGuestRepository implements GuestRepository {
     ) {
       throw new Error("La selección de menú no pertenece a esta boda")
     }
+
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:input-validated",
+        traceId,
+        requestedSelectionCount: requestedSelections.length,
+        menuDishCount: menuDishes.length,
+      }),
+    )
 
     const responsesByGuestId = new Map(
       input.guests.map((guest) => [guest.guestId, guest]),
@@ -1063,9 +1100,39 @@ export class PrismaGuestRepository implements GuestRepository {
       )
     }
 
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:batch-start",
+        traceId,
+        statementCount: statements.length,
+      }),
+    )
+
     await this.d1.batch(statements)
 
-    return this.findPartyByInviteToken(inviteToken)
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:batch-complete",
+        traceId,
+        statementCount: statements.length,
+      }),
+    )
+
+    const result = await this.findPartyByInviteToken(inviteToken)
+
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:complete",
+        traceId,
+        partyFound: Boolean(result),
+        guestCount: result?.guests.length ?? 0,
+      }),
+    )
+
+    return result
   }
 
   async assignSeat(

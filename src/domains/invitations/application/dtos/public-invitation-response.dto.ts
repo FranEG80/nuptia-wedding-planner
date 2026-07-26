@@ -5,14 +5,14 @@ import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-
 const optionalEmailSchema = z
   .preprocess(
     (value) => (typeof value === "string" ? value.trim() : value),
-    z.union([z.string().email(), z.literal("")]).optional(),
+    z.union([z.string().email(), z.literal(""), z.null()]).optional(),
   )
   .transform((value) => value || null)
 
 const optionalPhoneSchema = z
   .preprocess(
     (value) => (typeof value === "string" ? value.trim() : value),
-    z.union([z.string().min(3).max(40), z.literal("")]).optional(),
+    z.union([z.string().min(3).max(40), z.literal(""), z.null()]).optional(),
   )
   .transform((value) => value || null)
 
@@ -58,6 +58,7 @@ export const publicInvitationResponseSchema = z.object({
     .string()
     .trim()
     .max(1400)
+    .nullable()
     .optional()
     .transform((value) => (value ? value : null)),
 })
