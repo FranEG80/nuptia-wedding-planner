@@ -52,6 +52,21 @@ const partyInclude = {
   },
 } as const satisfies Prisma.GuestPartyInclude
 
+// D1 enforces a low bound-parameter limit for SQLite statements. Prisma
+// expands relation includes into additional IN clauses, so a seemingly small
+// root query can exceed that limit once all guest relations are hydrated.
+const D1_READ_BATCH_SIZE = 25
+const guestListOrderBy = [
+  { party: { groupName: "asc" } },
+  { name: "asc" },
+  { id: "asc" },
+] as const satisfies Prisma.GuestOrderByWithRelationInput[]
+const partyListOrderBy = [
+  { groupName: "asc" },
+  { createdAt: "asc" },
+  { id: "asc" },
+] as const satisfies Prisma.GuestPartyOrderByWithRelationInput[]
+
 const publicPartySelect = {
   id: true,
   weddingId: true,
@@ -256,10 +271,67 @@ export class PrismaGuestRepository implements GuestRepository {
   }
 
   async listByWeddingId(weddingId: string): Promise<Guest[]> {
-    const guests = await this.prisma.guest.findMany({
-      where: { weddingId },
-      include: guestInclude,
-      orderBy: [{ party: { groupName: "asc" } }, { name: "asc" }],
+    const startedAt = Date.now()
+    const guests: PrismaGuestRecord[] = []
+    let offset = 0
+    let batchIndex = 0
+
+    console.info("[nuptia:guests]", {
+      event: "listByWeddingId:start",
+      batchSize: D1_READ_BATCH_SIZE,
+    })
+
+    while (true) {
+      const page = await this.prisma.guest.findMany({
+        where: { weddingId },
+        select: { id: true },
+        orderBy: guestListOrderBy,
+        skip: offset,
+        take: D1_READ_BATCH_SIZE,
+      })
+
+      if (page.length === 0) {
+        break
+      }
+
+      const pageGuests = await this.prisma.guest.findMany({
+        where: {
+          weddingId,
+          id: { in: page.map((guest) => guest.id) },
+        },
+        include: guestInclude,
+      })
+      const guestById = new Map(pageGuests.map((guest) => [guest.id, guest]))
+
+      for (const { id } of page) {
+        const guest = guestById.get(id)
+
+        if (!guest) {
+          throw new Error("No se pudo hidratar uno de los invitados")
+        }
+
+        guests.push(guest)
+      }
+
+      console.info("[nuptia:guests]", {
+        event: "listByWeddingId:batch",
+        batchIndex,
+        batchCount: page.length,
+      })
+
+      batchIndex += 1
+      offset += page.length
+
+      if (page.length < D1_READ_BATCH_SIZE) {
+        break
+      }
+    }
+
+    console.info("[nuptia:guests]", {
+      event: "listByWeddingId:complete",
+      guestCount: guests.length,
+      batchCount: batchIndex,
+      durationMs: Date.now() - startedAt,
     })
 
     return guests.map(toGuest)
@@ -268,11 +340,47 @@ export class PrismaGuestRepository implements GuestRepository {
   async listPartiesByWeddingId(
     weddingId: string,
   ): Promise<GuestInviteParty[]> {
-    const parties = await this.prisma.guestParty.findMany({
-      where: { weddingId },
-      include: partyInclude,
-      orderBy: [{ groupName: "asc" }, { createdAt: "asc" }],
-    })
+    const parties: PrismaGuestPartyRecord[] = []
+    let offset = 0
+
+    while (true) {
+      const page = await this.prisma.guestParty.findMany({
+        where: { weddingId },
+        select: { id: true },
+        orderBy: partyListOrderBy,
+        skip: offset,
+        take: D1_READ_BATCH_SIZE,
+      })
+
+      if (page.length === 0) {
+        break
+      }
+
+      const pageParties = await this.prisma.guestParty.findMany({
+        where: {
+          weddingId,
+          id: { in: page.map((party) => party.id) },
+        },
+        include: partyInclude,
+      })
+      const partyById = new Map(pageParties.map((party) => [party.id, party]))
+
+      for (const { id } of page) {
+        const party = partyById.get(id)
+
+        if (!party) {
+          throw new Error("No se pudo hidratar una de las invitaciones")
+        }
+
+        parties.push(party)
+      }
+
+      offset += page.length
+
+      if (page.length < D1_READ_BATCH_SIZE) {
+        break
+      }
+    }
 
     return parties.map(toGuestParty)
   }
