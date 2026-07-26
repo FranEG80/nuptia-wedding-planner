@@ -6,6 +6,7 @@ import { useState, useTransition } from "react"
 import {
   createInvitationPartyAction,
   deleteInvitationPartyAction,
+  linkInvitationPartyAction,
   markGuestPartiesInvitedAction,
   updateInvitationPartyAction,
 } from "@/domains/guests/adapters/next/actions"
@@ -19,11 +20,14 @@ import { InvitationDetailDialog } from "@/domains/guests/adapters/next/component
 import { InvitationsTable } from "@/domains/guests/adapters/next/components/invitations-table"
 import { SeatingBoard } from "@/domains/guests/adapters/next/components/seating-board"
 import { buildInvitationMessage } from "@/domains/guests/application/build-invitation-message"
+import { joinSpanishNames } from "@/domains/guests/application/format-guest-names"
+import { normalizePhoneForWhatsapp } from "@/domains/guests/application/normalize-phone"
 import type {
   InvitationPartyDto,
   InvitationPartyGuestDto,
 } from "@/domains/guests/application/dtos/invitation-party.dto"
 import type { TableDto } from "@/domains/guests/application/dtos/table.dto"
+import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 import { useDemoState } from "@/core/demo/use-demo-state"
 import { cn } from "@/shared/lib/utils"
 
@@ -45,6 +49,8 @@ export function GuestsView({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingParty, setEditingParty] = useState<InvitationPartyDto | null>(null)
   const [groupName, setGroupName] = useState("")
+  const [invitationName, setInvitationName] = useState("")
+  const [linkedPartyId, setLinkedPartyId] = useState("")
   const [memberDrafts, setMemberDrafts] = useState<PartyMemberDraft[]>([
     { ...EMPTY_MEMBER },
   ])
@@ -55,6 +61,8 @@ export function GuestsView({
   function openCreateDialog() {
     setEditingParty(null)
     setGroupName("")
+    setInvitationName("")
+    setLinkedPartyId("")
     setMemberDrafts([{ ...EMPTY_MEMBER }])
     setFormError(null)
     setDialogOpen(true)
@@ -63,6 +71,8 @@ export function GuestsView({
   function openEditDialog(party: InvitationPartyDto) {
     setEditingParty(party)
     setGroupName(party.group)
+    setInvitationName(party.invitationName)
+    setLinkedPartyId("")
     setMemberDrafts(
       party.guests.map((guest) => ({
         id: guest.id,
@@ -96,7 +106,10 @@ export function GuestsView({
   }
 
   function addMember() {
-    if (memberDrafts.length === 2 || editingParty?.compositionLocked) {
+    if (
+      memberDrafts.length >= MAX_INVITATION_GUESTS ||
+      editingParty?.compositionLocked
+    ) {
       return
     }
 
@@ -139,6 +152,13 @@ export function GuestsView({
 
     if (!recipient.phone.trim() && !recipient.email.trim()) {
       setFormError("El destinatario necesita teléfono o email.")
+      return
+    }
+
+    if (linkedPartyId && memberDrafts.length >= MAX_INVITATION_GUESTS) {
+      setFormError(
+        `Una invitación conjunta admite como máximo ${MAX_INVITATION_GUESTS} personas.`,
+      )
       return
     }
 
@@ -187,12 +207,13 @@ export function GuestsView({
         }
       })
       const recipientGuest = guests.find((guest) => guest.isRecipient)!
-      const inviteeNames = guests.map((guest) => guest.name).join(" y ")
+      const inviteeNames = joinSpanishNames(guests.map((guest) => guest.name))
       const savedParty: InvitationPartyDto = {
         id: partyId,
         weddingId: "demo",
         inviteToken,
         group: groupName,
+        invitationName,
         invite: editingParty?.invite ?? "Pendiente",
         displayName: `Invitación para ${inviteeNames}`,
         inviteeNames,
@@ -202,10 +223,41 @@ export function GuestsView({
         compositionLocked: Boolean(editingParty?.compositionLocked),
       }
 
+      const linkedParty = parties.find((party) => party.id === linkedPartyId)
+      const partyToStore = linkedParty
+        ? (() => {
+            const linkedGuest = linkedParty.guests[0]!
+            const guests = [
+              ...savedParty.guests,
+              {
+                ...linkedGuest,
+                partyId: savedParty.id,
+                role: "companion" as const,
+                isRecipient: false,
+                group: groupName,
+                inviteToken: savedParty.inviteToken,
+              },
+            ]
+            const inviteeNames = joinSpanishNames(guests.map((guest) => guest.name))
+
+            return {
+              ...savedParty,
+              guests,
+              inviteeNames,
+              displayName: `Invitación para ${inviteeNames}`,
+            }
+          })()
+        : savedParty
+
       setParties((current) =>
-        editingParty
-          ? current.map((party) => (party.id === savedParty.id ? savedParty : party))
-          : [...current, savedParty],
+        current
+          .filter((party) => party.id !== linkedParty?.id)
+          .map((party) => (party.id === partyToStore.id ? partyToStore : party))
+          .concat(
+            editingParty || current.some((party) => party.id === partyToStore.id)
+              ? []
+              : [partyToStore],
+          ),
       )
       setDialogOpen(false)
       return
@@ -217,10 +269,12 @@ export function GuestsView({
           ? await updateInvitationPartyAction({
               partyId: editingParty.id,
               groupName,
+              invitationName,
               guests: guestsInput,
             })
           : await createInvitationPartyAction({
               groupName,
+              invitationName,
               guests: guestsInput,
             })
 
@@ -229,10 +283,27 @@ export function GuestsView({
           return
         }
 
+        const linked = linkedPartyId
+          ? await linkInvitationPartyAction({
+              targetPartyId: saved.id,
+              sourcePartyId: linkedPartyId,
+            })
+          : saved
+
+        if (!linked) {
+          setFormError("No se pudo vincular la invitación seleccionada.")
+          return
+        }
+
         setParties((current) =>
-          editingParty
-            ? current.map((party) => (party.id === saved.id ? saved : party))
-            : [...current, saved],
+          current
+            .filter((party) => party.id !== linkedPartyId)
+            .map((party) => (party.id === linked.id ? linked : party))
+            .concat(
+              editingParty || current.some((party) => party.id === linked.id)
+                ? []
+                : [linked],
+            ),
         )
         setDialogOpen(false)
       } catch (error) {
@@ -271,7 +342,7 @@ export function GuestsView({
   }
 
   async function handleSendWhatsapp(party: InvitationPartyDto) {
-    const phone = party.recipient.phone?.replace(/[^\d]/g, "")
+    const phone = normalizePhoneForWhatsapp(party.recipient.phone)
 
     if (!phone) {
       return
@@ -378,6 +449,16 @@ export function GuestsView({
         editingParty={editingParty}
         groupName={groupName}
         onGroupNameChange={setGroupName}
+        invitationName={invitationName}
+        onInvitationNameChange={setInvitationName}
+        linkableParties={parties.filter(
+          (party) =>
+            party.id !== editingParty?.id &&
+            party.guests.length === 1 &&
+            !party.compositionLocked,
+        )}
+        linkedPartyId={linkedPartyId}
+        onLinkedPartyChange={setLinkedPartyId}
         members={memberDrafts}
         onMemberChange={updateMember}
         onSelectRecipient={selectRecipient}

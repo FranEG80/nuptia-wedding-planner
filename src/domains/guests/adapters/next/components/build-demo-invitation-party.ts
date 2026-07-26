@@ -3,6 +3,7 @@ import type {
   InvitationPartyDto,
   InvitationPartyGuestDto,
 } from "@/domains/guests/application/dtos/invitation-party.dto"
+import { joinSpanishNames } from "@/domains/guests/application/format-guest-names"
 
 export function buildDemoInvitationParty(
   input: CreateInvitationPartyDto,
@@ -10,6 +11,7 @@ export function buildDemoInvitationParty(
   const partyId = crypto.randomUUID()
   const inviteToken = crypto.randomUUID()
   const groupName = input.groupName ?? ""
+  const invitationName = input.invitationName ?? ""
 
   const guests: InvitationPartyGuestDto[] = input.guests.map((draft) => {
     const firstName = draft.firstName.trim()
@@ -39,13 +41,14 @@ export function buildDemoInvitationParty(
   })
 
   const recipient = guests.find((guest) => guest.isRecipient) ?? guests[0]
-  const inviteeNames = guests.map((guest) => guest.name).join(" y ")
+  const inviteeNames = joinSpanishNames(guests.map((guest) => guest.name))
 
   return {
     id: partyId,
     weddingId: "demo",
     inviteToken,
     group: groupName,
+    invitationName,
     invite: "Pendiente",
     displayName: `Invitación para ${inviteeNames}`,
     inviteeNames,

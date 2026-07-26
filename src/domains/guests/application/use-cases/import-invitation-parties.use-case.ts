@@ -8,12 +8,14 @@ import {
   normalizeGuestEmail,
   normalizeGuestPhone,
 } from "@/domains/guests/application/guest-import"
+import { joinSpanishNames } from "@/domains/guests/application/format-guest-names"
 import type { Guest } from "@/domains/guests/domain/guest"
 import type {
   GuestInviteParty,
   GuestRepository,
   InvitationPartyGuestInput,
 } from "@/domains/guests/domain/ports/guest.repository"
+import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 
 interface IndexedGuest {
   partyId: string
@@ -122,9 +124,9 @@ export async function importInvitationPartiesUseCase(input: {
     if (hasRepeatedInputContact) {
       result.skipped += 1
       result.warnings.push(
-        `Se omitió la invitación de ${data.guests
-          .map((guest) => guest.firstName)
-          .join(" y ")}: contiene un email o teléfono repetido entre sus personas.`,
+        `Se omitió la invitación de ${joinSpanishNames(
+          data.guests.map((guest) => guest.firstName),
+        )}: contiene un email o teléfono repetido entre sus personas.`,
       )
       continue
     }
@@ -154,9 +156,9 @@ export async function importInvitationPartiesUseCase(input: {
     if (matchedPartyIds.length > 1) {
       result.skipped += 1
       result.warnings.push(
-        `Se omitió la invitación de ${data.guests
-          .map((guest) => guest.firstName)
-          .join(" y ")}: sus contactos coinciden con invitaciones distintas.`,
+        `Se omitió la invitación de ${joinSpanishNames(
+          data.guests.map((guest) => guest.firstName),
+        )}: sus contactos coinciden con invitaciones distintas.`,
       )
       continue
     }
@@ -165,6 +167,7 @@ export async function importInvitationPartiesUseCase(input: {
       const created = await input.guestRepository.createInvitationParty({
         weddingId: input.weddingId,
         groupName: data.groupName,
+        invitationName: data.invitationName,
         guests: data.guests,
       })
       const createdDto = toInvitationPartyDto(created)
@@ -181,9 +184,9 @@ export async function importInvitationPartiesUseCase(input: {
     if (!existingParty) {
       result.skipped += 1
       result.warnings.push(
-        `Se omitió la invitación de ${data.guests
-          .map((guest) => guest.firstName)
-          .join(" y ")}: el invitado ya no está disponible.`,
+        `Se omitió la invitación de ${joinSpanishNames(
+          data.guests.map((guest) => guest.firstName),
+        )}: el invitado ya no está disponible.`,
       )
       continue
     }
@@ -195,19 +198,22 @@ export async function importInvitationPartiesUseCase(input: {
     if (newGuests.length === 0) {
       result.skipped += 1
       result.warnings.push(
-        `Se omitió la invitación de ${data.guests
-          .map((guest) => guest.firstName)
-          .join(" y ")}: todos sus contactos ya estaban importados.`,
+        `Se omitió la invitación de ${joinSpanishNames(
+          data.guests.map((guest) => guest.firstName),
+        )}: todos sus contactos ya estaban importados.`,
       )
       continue
     }
 
-    if (existingParty.guests.length >= 2 || newGuests.length !== 1) {
+    if (
+      existingParty.guests.length >= MAX_INVITATION_GUESTS ||
+      newGuests.length !== 1
+    ) {
       result.skipped += 1
       result.warnings.push(
-        `Se omitió el acompañante de ${data.guests
-          .map((guest) => guest.firstName)
-          .join(" y ")}: la invitación existente ya tiene dos personas.`,
+        `Se omitió el acompañante de ${joinSpanishNames(
+          data.guests.map((guest) => guest.firstName),
+        )}: la invitación existente ya tiene ${MAX_INVITATION_GUESTS} personas o no se puede añadir exactamente un acompañante.`,
       )
       continue
     }
@@ -217,6 +223,8 @@ export async function importInvitationPartiesUseCase(input: {
       { ...newGuests[0], isRecipient: false },
     ]
     const groupName = existingParty.groupName || data.groupName
+    const invitationName =
+      existingParty.invitationName || data.invitationName
 
     try {
       const updated = await input.guestRepository.updateInvitationParty(
@@ -224,6 +232,7 @@ export async function importInvitationPartiesUseCase(input: {
         {
           weddingId: input.weddingId,
           groupName,
+          invitationName,
           guests: mergedInput,
         },
       )
@@ -239,9 +248,9 @@ export async function importInvitationPartiesUseCase(input: {
     } catch (error) {
       result.skipped += 1
       result.warnings.push(
-        `No se añadió el acompañante de ${data.guests
-          .map((guest) => guest.firstName)
-          .join(" y ")}: ${
+        `No se añadió el acompañante de ${joinSpanishNames(
+          data.guests.map((guest) => guest.firstName),
+        )}: ${
           error instanceof Error
             ? error.message
             : "la invitación no se puede modificar"

@@ -7,6 +7,7 @@ export interface GuestParty {
   weddingId: string
   inviteToken: string
   groupName: string
+  invitationName: string
   invite: GuestInviteStatus
 }
 

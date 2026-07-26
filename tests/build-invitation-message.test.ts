@@ -5,6 +5,7 @@ import {
   buildInvitationGreeting,
   buildInvitationMessage,
 } from "@/domains/guests/application/build-invitation-message"
+import { joinSpanishNames } from "@/domains/guests/application/format-guest-names"
 import type {
   InvitationPartyDto,
   InvitationPartyGuestDto,
@@ -41,6 +42,7 @@ function makeGuest(
 
 function makeParty(overrides: {
   group?: string
+  invitationName?: string
   guests: InvitationPartyGuestDto[]
 }): InvitationPartyDto {
   const recipient = overrides.guests.find((guest) => guest.isRecipient)
@@ -49,13 +51,16 @@ function makeParty(overrides: {
     throw new Error("La party de prueba necesita un destinatario")
   }
 
-  const inviteeNames = overrides.guests.map((guest) => guest.name).join(" y ")
+  const inviteeNames = joinSpanishNames(
+    overrides.guests.map((guest) => guest.name),
+  )
 
   return {
     id: "party-1",
     weddingId: "wedding-1",
     inviteToken: "token-1",
     group: overrides.group ?? "",
+    invitationName: overrides.invitationName ?? "",
     invite: "Pendiente",
     displayName: `Invitación para ${inviteeNames}`,
     inviteeNames,
@@ -75,19 +80,34 @@ describe("buildInvitationGreeting", () => {
     assert.equal(buildInvitationGreeting(party), "Ana")
   })
 
-  it("usa el nombre de grupo cuando la invitación es para dos personas", () => {
+  it("usa el nombre de la invitación conjunta y no el Grupo interno", () => {
     const party = makeParty({
       group: "Familia Novia",
+      invitationName: "Ana y Luis",
       guests: [
         makeGuest({ firstName: "Ana", lastName: "Santos", isRecipient: true }),
         makeGuest({ firstName: "Luis", lastName: "Santos", isRecipient: false }),
       ],
     })
 
-    assert.equal(buildInvitationGreeting(party), "Familia Novia")
+    assert.equal(buildInvitationGreeting(party), "Ana y Luis")
   })
 
-  it("recurre a los nombres combinados si la pareja no tiene grupo asignado", () => {
+  it("recurre a los nombres combinados si no hay nombre conjunto", () => {
+    const party = makeParty({
+      group: "Familia interna",
+      guests: [
+        makeGuest({ firstName: "Ana", lastName: "Santos", isRecipient: true }),
+        makeGuest({ firstName: "Luis", lastName: "Santos", isRecipient: false }),
+      ],
+    })
+
+    assert.equal(buildInvitationGreeting(party), "Ana y Luis")
+  })
+})
+
+describe("buildInvitationMessage", () => {
+  it("usa el plural y solo los nombres cuando la invitación es para dos personas", () => {
     const party = makeParty({
       group: "",
       guests: [
@@ -95,26 +115,66 @@ describe("buildInvitationGreeting", () => {
         makeGuest({ firstName: "Luis", lastName: "Santos", isRecipient: false }),
       ],
     })
+    const template =
+      "Hola {guestName}, nos hace mucha ilusión invitarte a nuestra boda. {inviteUrl}"
 
-    assert.equal(buildInvitationGreeting(party), "Ana Santos y Luis Santos")
+    assert.equal(
+      buildInvitationMessage(party, template, "https://example.com/i/token-1"),
+      "Hola Ana y Luis, nos hace mucha ilusión invitaros a nuestra boda. https://example.com/i/token-1",
+    )
   })
-})
 
-describe("buildInvitationMessage", () => {
-  it("sustituye el saludo, los nombres combinados, el grupo y el enlace", () => {
+  it("mantiene el nombre visible y adapta el verbo al plural", () => {
     const party = makeParty({
       group: "Familia Novia",
+      invitationName: "Familia Santos",
       guests: [
         makeGuest({ firstName: "Ana", lastName: "Santos", isRecipient: true }),
         makeGuest({ firstName: "Luis", lastName: "Santos", isRecipient: false }),
       ],
     })
     const template =
-      "Hola {guestName} ({inviteeNames} / {groupName}), confirma aquí: {inviteUrl}"
+      "Hola {guestName}, nos hace mucha ilusión invitarte ({inviteeNames} / {groupName}): {inviteUrl}"
 
     assert.equal(
       buildInvitationMessage(party, template, "https://example.com/i/token-1"),
-      "Hola Familia Novia (Ana Santos y Luis Santos / Familia Novia), confirma aquí: https://example.com/i/token-1",
+      "Hola Familia Santos, nos hace mucha ilusión invitaros (Ana y Luis / Familia Santos): https://example.com/i/token-1",
+    )
+  })
+
+  it("mantiene el singular para una invitación individual", () => {
+    const party = makeParty({
+      guests: [makeGuest({ firstName: "Ana", lastName: "Santos", isRecipient: true })],
+    })
+
+    assert.equal(
+      buildInvitationMessage(
+        party,
+        "Hola {guestName}, nos hace mucha ilusión invitarte.",
+        "https://example.com/i/token-1",
+      ),
+      "Hola Ana, nos hace mucha ilusión invitarte.",
+    )
+  })
+
+  it("separa correctamente los nombres de una invitación de cinco personas", () => {
+    const party = makeParty({
+      guests: [
+        makeGuest({ firstName: "Eva", lastName: "López", isRecipient: true }),
+        makeGuest({ firstName: "Mario", lastName: "Ruiz" }),
+        makeGuest({ firstName: "Nuria", lastName: "Díaz" }),
+        makeGuest({ firstName: "Pablo", lastName: "Sanz" }),
+        makeGuest({ firstName: "Sara", lastName: "Vega" }),
+      ],
+    })
+
+    assert.equal(
+      buildInvitationMessage(
+        party,
+        "Hola {guestName}: {inviteeNames}",
+        "https://example.com/i/token-1",
+      ),
+      "Hola Eva, Mario, Nuria, Pablo y Sara: Eva, Mario, Nuria, Pablo y Sara",
     )
   })
 })

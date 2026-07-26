@@ -4,6 +4,7 @@ import { Dialog } from "@base-ui/react/dialog"
 import { LockKeyhole, Plus, X } from "lucide-react"
 
 import type { InvitationPartyDto } from "@/domains/guests/application/dtos/invitation-party.dto"
+import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 
 export interface PartyMemberDraft {
   id?: string
@@ -28,6 +29,11 @@ export function InvitationPartyDialog({
   editingParty,
   groupName,
   onGroupNameChange,
+  invitationName,
+  onInvitationNameChange,
+  linkableParties,
+  linkedPartyId,
+  onLinkedPartyChange,
   members,
   onMemberChange,
   onSelectRecipient,
@@ -42,6 +48,11 @@ export function InvitationPartyDialog({
   editingParty: InvitationPartyDto | null
   groupName: string
   onGroupNameChange: (value: string) => void
+  invitationName: string
+  onInvitationNameChange: (value: string) => void
+  linkableParties: InvitationPartyDto[]
+  linkedPartyId: string
+  onLinkedPartyChange: (value: string) => void
   members: PartyMemberDraft[]
   onMemberChange: (index: number, patch: Partial<PartyMemberDraft>) => void
   onSelectRecipient: (index: number) => void
@@ -64,7 +75,7 @@ export function InvitationPartyDialog({
                 {editingParty ? "Editar invitación" : "Nueva invitación"}
               </Dialog.Title>
               <Dialog.Description className="mt-1 text-sm leading-6 text-muted-foreground">
-                Añade una o dos personas y elige quién recibirá el enlace.
+                Añade hasta cinco personas y elige quién recibirá el enlace.
               </Dialog.Description>
             </div>
             <Dialog.Close
@@ -92,7 +103,48 @@ export function InvitationPartyDialog({
                 placeholder="Familia, amigos, trabajo..."
                 className="h-11 rounded-xl border border-border bg-background px-3 outline-none focus:border-accent"
               />
+              <span className="text-xs font-normal leading-5 text-muted-foreground">
+                Solo organiza el panel de invitados; no aparecerá en el mensaje.
+              </span>
             </label>
+
+            <label className="mt-4 grid gap-2 text-sm font-medium">
+              Nombre de invitación conjunta (opcional)
+              <input
+                value={invitationName}
+                onChange={(event) => onInvitationNameChange(event.target.value)}
+                placeholder="Familia García, Ana y Luis..."
+                className="h-11 rounded-xl border border-border bg-background px-3 outline-none focus:border-accent"
+              />
+              <span className="text-xs font-normal leading-5 text-muted-foreground">
+                Se usará en el mensaje y en la invitación pública. Si lo dejas vacío,
+                aparecerán los nombres de las personas.
+              </span>
+            </label>
+
+            {!compositionLocked &&
+            linkableParties.length > 0 &&
+            members.length < MAX_INVITATION_GUESTS ? (
+              <label className="mt-4 grid gap-2 text-sm font-medium">
+                Vincular invitado existente (opcional)
+                <select
+                  value={linkedPartyId}
+                  onChange={(event) => onLinkedPartyChange(event.target.value)}
+                  className="h-11 rounded-xl border border-border bg-background px-3 outline-none focus:border-accent"
+                >
+                  <option value="">No vincular ahora</option>
+                  {linkableParties.map((party) => (
+                    <option key={party.id} value={party.id}>
+                      {party.guests[0]?.name ?? party.inviteeNames}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs font-normal leading-5 text-muted-foreground">
+                  Une aquí a una persona que ahora tiene una invitación individual.
+                  Su invitación anterior se eliminará al guardar.
+                </span>
+              </label>
+            ) : null}
 
             <div className="mt-5 grid gap-4">
               {members.map((member, index) => (
@@ -104,7 +156,7 @@ export function InvitationPartyDialog({
                     <legend className="font-medium">
                       {members.length === 1 ? "Invitado" : `Invitado ${index + 1}`}
                     </legend>
-                    {!compositionLocked && members.length === 2 ? (
+                    {!compositionLocked && members.length > 1 ? (
                       <button
                         type="button"
                         onClick={() => onRemoveMember(index)}
@@ -138,10 +190,13 @@ export function InvitationPartyDialog({
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <label className="grid gap-2 text-sm">
-                      Teléfono
+                      Teléfono{member.isRecipient ? "" : " (opcional)"}
                       <input
                         type="tel"
                         value={member.phone}
+                        autoComplete="tel"
+                        inputMode="tel"
+                        placeholder="+34 600 000 000"
                         onChange={(event) =>
                           onMemberChange(index, { phone: event.target.value })
                         }
@@ -149,7 +204,7 @@ export function InvitationPartyDialog({
                       />
                     </label>
                     <label className="grid gap-2 text-sm">
-                      Email
+                      Email{member.isRecipient ? "" : " (opcional)"}
                       <input
                         type="email"
                         value={member.email}
@@ -179,14 +234,14 @@ export function InvitationPartyDialog({
               ))}
             </div>
 
-            {!compositionLocked && members.length === 1 ? (
+            {!compositionLocked && members.length < MAX_INVITATION_GUESTS ? (
               <button
                 type="button"
                 onClick={onAddMember}
                 className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-accent hover:text-foreground"
               >
                 <Plus className="h-4 w-4" />
-                Añadir segunda persona
+                Añadir otra persona
               </button>
             ) : null}
 

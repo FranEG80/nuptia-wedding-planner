@@ -13,6 +13,7 @@ export interface CreateGuestInput {
   rsvp?: Guest["rsvp"]
   notes?: string
   uploadToken?: string | null
+  invitationName?: string
 }
 
 export type UpdateGuestInput = Partial<Omit<CreateGuestInput, "weddingId">>
@@ -22,6 +23,7 @@ export interface GuestInviteParty {
   weddingId: string
   inviteToken: string
   groupName: string
+  invitationName: string
   invite: Guest["party"]["invite"]
   guests: Guest[]
   messages: GuestMessage[]
@@ -43,6 +45,7 @@ export interface PublicGuestInviteParty {
   weddingId: string
   inviteToken: string
   groupName: string
+  invitationName: string
   invite: Guest["party"]["invite"]
   guests: PublicGuestInvite[]
 }
@@ -59,12 +62,14 @@ export interface InvitationPartyGuestInput {
 export interface CreateInvitationPartyInput {
   weddingId: string
   groupName?: string
+  invitationName?: string
   guests: InvitationPartyGuestInput[]
 }
 
 export interface UpdateInvitationPartyInput {
   weddingId: string
   groupName?: string
+  invitationName?: string
   guests: InvitationPartyGuestInput[]
 }
 
@@ -96,6 +101,11 @@ export interface GuestRepository {
   updateInvitationParty(
     partyId: string,
     input: UpdateInvitationPartyInput,
+  ): Promise<GuestInviteParty | null>
+  linkInvitationParty(
+    targetPartyId: string,
+    sourcePartyId: string,
+    weddingId: string,
   ): Promise<GuestInviteParty | null>
   markPartiesInvited(weddingId: string, partyIds: string[]): Promise<Guest[]>
   respondToParty(

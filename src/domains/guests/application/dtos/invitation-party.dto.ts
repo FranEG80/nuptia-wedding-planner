@@ -6,6 +6,8 @@ import {
   type GuestDto,
   type GuestInviteStatusDto,
 } from "@/domains/guests/application/dtos/guest.dto"
+import { joinSpanishNames } from "@/domains/guests/application/format-guest-names"
+import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 
 const nullableContactSchema = z
   .preprocess(
@@ -63,7 +65,13 @@ function validatePartyMembers(
 export const createInvitationPartySchema = z
   .object({
     groupName: z.string().trim().max(140).optional().transform((value) => value ?? ""),
-    guests: z.array(invitationGuestSchema).min(1).max(2),
+    invitationName: z
+      .string()
+      .trim()
+      .max(140)
+      .optional()
+      .transform((value) => value ?? ""),
+    guests: z.array(invitationGuestSchema).min(1).max(MAX_INVITATION_GUESTS),
   })
   .superRefine(validatePartyMembers)
 
@@ -71,10 +79,16 @@ export const updateInvitationPartySchema = z
   .object({
     partyId: z.string().min(1),
     groupName: z.string().trim().max(140).optional().transform((value) => value ?? ""),
+    invitationName: z
+      .string()
+      .trim()
+      .max(140)
+      .optional()
+      .transform((value) => value ?? ""),
     guests: z
       .array(invitationGuestSchema.extend({ id: z.string().min(1).optional() }))
       .min(1)
-      .max(2),
+      .max(MAX_INVITATION_GUESTS),
   })
   .superRefine(validatePartyMembers)
 
@@ -98,6 +112,7 @@ export interface InvitationPartyDto {
   weddingId: string
   inviteToken: string
   group: string
+  invitationName: string
   invite: GuestInviteStatusDto
   displayName: string
   inviteeNames: string
@@ -120,13 +135,14 @@ export function toInvitationPartyDto(
     throw new Error(`La invitación ${party.id} no tiene destinatario`)
   }
 
-  const inviteeNames = guests.map((guest) => guest.name).join(" y ")
+  const inviteeNames = joinSpanishNames(guests.map((guest) => guest.name))
 
   return {
     id: party.id,
     weddingId: party.weddingId,
     inviteToken: party.inviteToken,
     group: party.groupName,
+    invitationName: party.invitationName,
     invite: party.invite,
     displayName: `Invitación para ${inviteeNames}`,
     inviteeNames,

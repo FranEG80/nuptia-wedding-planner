@@ -80,8 +80,8 @@ test("la importación D1 es idempotente y fusiona el acompañante nuevo", async 
             {
               firstName: "Rafa",
               lastName: "Acompañante",
-              email: "import-idempotent-rafa@example.com",
-              phone: "+34 611 200 003",
+              email: null,
+              phone: null,
               isRecipient: false,
             },
           ],

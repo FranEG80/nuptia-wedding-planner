@@ -13,6 +13,8 @@ import type {
   RsvpSubmitPayload,
   RsvpSubmitResult,
 } from "@/domains/invitations/adapters/next/components/rsvp-experience"
+import { getAttendanceGroupLabel } from "@/domains/invitations/application/attendance-label"
+import { applyAttendanceChoice } from "@/domains/invitations/application/attendance-selection"
 import { cn } from "@/shared/lib/utils"
 
 type Step = "attendance" | "details" | "menu" | "notes" | "message" | "review" | "success"
@@ -87,15 +89,7 @@ export function DemoRsvpExperience({
   }
 
   function changeAttendance(choice: string) {
-    setDrafts((current) =>
-      current.map((guest) => ({
-        ...guest,
-        attending:
-          choice === "all" || choice === `guest:${guest.id}`
-            ? true
-            : false,
-      })),
-    )
+    setDrafts((current) => applyAttendanceChoice(current, choice))
     setError(null)
   }
 
@@ -215,23 +209,71 @@ export function DemoRsvpExperience({
                 {step === "attendance" && (
                   <fieldset className={fieldsetBase}>
                     <legend className={legendBase}>¿Quién asistirá?</legend>
-                    {demoAttendanceOptions(drafts).map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={cn(attendanceButtonBase, demoAttendanceChoice(drafts) === option.value && "border-[#d5764d] bg-[#d5764d] text-white")}
-                        onClick={() => changeAttendance(option.value)}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+                    {drafts.length > 2 ? (
+                      <>
+                        <p className="m-0 text-[rgba(91,77,71,0.68)] text-[0.9rem] leading-[1.45]">
+                          Marca a las personas que asistirán.
+                        </p>
+                        <div className="grid gap-2">
+                          {drafts.map((guest) => (
+                            <label
+                              key={guest.id}
+                              className={cn(
+                                "group flex cursor-pointer items-center gap-3 rounded-[0.9rem] border px-4 py-3 text-[0.95rem] transition-colors",
+                                guest.attending === true
+                                  ? "border-[#d5764d] bg-[#d5764d]/10 text-[#5b4d47]"
+                                  : "border-[rgba(91,77,71,0.18)] bg-[rgba(255,255,255,0.45)] hover:border-[#d5764d]/70",
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                name="attendance-guest"
+                                checked={guest.attending === true}
+                                onChange={() => changeAttendance(`toggle:${guest.id}`)}
+                                className="peer sr-only"
+                                aria-label={`Asistirá ${guest.name}`}
+                              />
+                              <span
+                                aria-hidden="true"
+                                className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-[rgba(91,77,71,0.3)] text-transparent transition-colors peer-checked:border-[#d5764d] peer-checked:bg-[#d5764d] peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#d5764d]"
+                              >
+                                ✓
+                              </span>
+                              <span>{guest.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          className={cn(
+                            attendanceButtonBase,
+                            "text-left",
+                            demoAttendanceChoice(drafts) === "none" && "border-[#d5764d] bg-[#d5764d] text-white",
+                          )}
+                          onClick={() => changeAttendance("none")}
+                        >
+                          No podremos asistir ninguno
+                        </button>
+                      </>
+                    ) : (
+                      demoAttendanceOptions(drafts).map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={cn(attendanceButtonBase, demoAttendanceChoice(drafts) === option.value && "border-[#d5764d] bg-[#d5764d] text-white")}
+                          onClick={() => changeAttendance(option.value)}
+                        >
+                          {option.label}
+                        </button>
+                      ))
+                    )}
                   </fieldset>
                 )}
 
                 {step === "details" && attending.map((guest) => (
                   <fieldset key={guest.id} className={cn(fieldsetBase, "grid-cols-2 max-[700px]:grid-cols-1")}>
                     <legend className={cn(legendBase, "col-span-full")}>{guest.name}</legend>
-                    <label className={labelBase}>Teléfono{guest.role !== "primary" ? " (opcional)" : ""}<input type="tel" className={inputBase} value={guest.phone} onChange={(event) => updateGuest(guest.id, { phone: event.target.value })} /></label>
+                    <label className={labelBase}>Teléfono{guest.role !== "primary" ? " (opcional)" : ""}<input type="tel" inputMode="tel" autoComplete="tel" placeholder="+34 600 000 000" className={inputBase} value={guest.phone} onChange={(event) => updateGuest(guest.id, { phone: event.target.value })} /></label>
                     <label className={labelBase}>Email (opcional)<input type="email" className={inputBase} value={guest.email} onChange={(event) => updateGuest(guest.id, { email: event.target.value })} /></label>
                   </fieldset>
                 ))}
@@ -327,7 +369,7 @@ function demoAttendanceOptions(guests: GuestDraft[]) {
   }
 
   return [
-    { value: "all", label: "Asistiremos los dos" },
+    { value: "all", label: getAttendanceGroupLabel(guests.length) },
     ...guests.map((guest) => ({
       value: `guest:${guest.id}`,
       label: `Solo asistirá ${guest.name}`,

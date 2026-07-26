@@ -68,16 +68,20 @@ describe("parseGuestImportRows", () => {
     assert.equal(party.guests.find((g) => g.firstName === "Ana")?.isRecipient, false)
   })
 
-  it("rejects a third person sharing the same 'Invitación conjunta'", () => {
+  it("accepts five people and rejects a sixth sharing the same invitation key", () => {
     const result = parseGuestImportRows([
-      { "Invitación conjunta": "Trio", Nombre: "Ana", Teléfono: "600111222" },
-      { "Invitación conjunta": "Trio", Nombre: "Luis", Teléfono: "600333444" },
-      { "Invitación conjunta": "Trio", Nombre: "Eva", Teléfono: "600555666" },
+      { "Clave invitación conjunta": "Grupo", "Nombre invitación conjunta": "Familia Ruiz", Nombre: "Ana", Teléfono: "600111222" },
+      { "Clave invitación conjunta": "Grupo", "Nombre invitación conjunta": "Familia Ruiz", Nombre: "Luis", Teléfono: "600333444" },
+      { "Clave invitación conjunta": "Grupo", "Nombre invitación conjunta": "Familia Ruiz", Nombre: "Eva", Teléfono: "600555666" },
+      { "Clave invitación conjunta": "Grupo", "Nombre invitación conjunta": "Familia Ruiz", Nombre: "Mario", Teléfono: "600777888" },
+      { "Clave invitación conjunta": "Grupo", "Nombre invitación conjunta": "Familia Ruiz", Nombre: "Nuria", Teléfono: "600999000" },
+      { "Clave invitación conjunta": "Grupo", "Nombre invitación conjunta": "Familia Ruiz", Nombre: "Pablo", Teléfono: "600000111" },
     ])
 
     assert.equal(result.parties.length, 1)
-    assert.equal(result.parties[0].guests.length, 2)
-    const errorRow = result.rows.find((row) => row.rowNumber === 4)
+    assert.equal(result.parties[0].guests.length, 5)
+    assert.equal(result.parties[0].invitationName, "Familia Ruiz")
+    const errorRow = result.rows.find((row) => row.rowNumber === 7)
     assert.equal(errorRow?.status, "error")
   })
 

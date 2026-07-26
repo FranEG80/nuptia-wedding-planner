@@ -1,0 +1,1 @@
+export const MAX_INVITATION_GUESTS = 5

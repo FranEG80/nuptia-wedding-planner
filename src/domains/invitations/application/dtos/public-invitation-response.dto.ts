@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
+
 const optionalEmailSchema = z
   .preprocess(
     (value) => (typeof value === "string" ? value.trim() : value),
@@ -41,7 +43,7 @@ export const publicInvitationResponseSchema = z.object({
       }),
     )
     .min(1)
-    .max(2)
+    .max(MAX_INVITATION_GUESTS)
     .superRefine((guests, context) => {
       const ids = guests.map((guest) => guest.guestId)
 

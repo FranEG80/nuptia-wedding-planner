@@ -18,6 +18,8 @@ import type {
   PublicInvitationMenuDto,
 } from "@/domains/invitations/application/dtos/public-invitation.dto"
 import type { InvitationContentDto } from "@/domains/invitations/application/dtos/invitation-design.dto"
+import { getAttendanceGroupLabel } from "@/domains/invitations/application/attendance-label"
+import { applyAttendanceChoice } from "@/domains/invitations/application/attendance-selection"
 import { cn } from "@/shared/lib/utils"
 
 type ContactPreference = "email" | "phone"
@@ -125,15 +127,7 @@ export function RsvpExperience({
     })
 
   function changeAttendance(choice: string) {
-    setFormGuests((current) =>
-      current.map((guest) => ({
-        ...guest,
-        attending:
-          choice === "all" || choice === `guest:${guest.id}`
-            ? true
-            : false,
-      })),
-    )
+    setFormGuests((current) => applyAttendanceChoice(current, choice))
 
     if (choice === "none" && (step === "details" || step === "menu" || step === "allergies")) {
       setStep("message")
@@ -525,6 +519,64 @@ function AttendanceStep({
   value: string | null
   onChange: (choice: string) => void
 }) {
+  if (guests.length > 2) {
+    return (
+      <fieldset className="grid gap-4">
+        <legend className="text-3xl font-bold text-[var(--invite-accent)]">
+          ¿Quién asistirá?
+        </legend>
+        <p className="text-sm uppercase tracking-[0.18em] text-[#6a695f]">
+          Marca a las personas que asistirán
+        </p>
+        <div className="mt-2 grid gap-3">
+          {guests.map((guest, index) => {
+            const name = normalizeName(guest, index)
+
+            return (
+              <label
+                key={guest.localId}
+                className={cn(
+                  "group flex cursor-pointer items-center gap-4 rounded-[8px] border-2 px-5 py-4 text-xl font-bold transition-colors",
+                  guest.attending === true
+                    ? "border-[var(--invite-accent)] bg-white/60 text-[var(--invite-accent)]"
+                    : "border-[#55564d]/45 bg-white/20 text-[#55564d] hover:bg-white/40",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  name="attendance-guest"
+                  checked={guest.attending === true}
+                  onChange={() => onChange(`toggle:${guest.id}`)}
+                  className="peer sr-only"
+                  aria-label={`Asistirá ${name}`}
+                />
+                <span
+                  aria-hidden="true"
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-[#55564d]/50 text-transparent transition-colors peer-checked:border-[var(--invite-accent)] peer-checked:bg-[var(--invite-accent)] peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--invite-accent)]"
+                >
+                  ✓
+                </span>
+                <span>{name}</span>
+              </label>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => onChange("none")}
+            className={cn(
+              "flex cursor-pointer items-center rounded-[8px] border-2 px-5 py-4 text-left text-xl font-bold transition-colors",
+              value === "none"
+                ? "border-[var(--invite-accent)] bg-white/60 text-[var(--invite-accent)]"
+                : "border-[#55564d]/45 bg-white/20 text-[#55564d] hover:bg-white/40",
+            )}
+          >
+            No podremos asistir ninguno
+          </button>
+        </div>
+      </fieldset>
+    )
+  }
+
   const options = attendanceOptions(guests)
 
   return (
@@ -618,6 +670,7 @@ function DetailsStep({
                     type="tel"
                     value={guest.phone}
                     autoComplete="tel"
+                    placeholder="+34 600 000 000"
                     icon={<Phone className="h-7 w-7" aria-hidden="true" />}
                     onChange={(value) => onUpdate(guest.id, { phone: value })}
                   />
@@ -840,6 +893,7 @@ function TextInput({
   onChange,
   type = "text",
   autoComplete,
+  placeholder,
   icon,
 }: {
   label: string
@@ -847,6 +901,7 @@ function TextInput({
   onChange: (value: string) => void
   type?: "text" | "email" | "tel"
   autoComplete?: string
+  placeholder?: string
   icon?: ReactNode
 }) {
   return (
@@ -860,6 +915,8 @@ function TextInput({
           onChange={(event) => onChange(event.target.value)}
           type={type}
           autoComplete={autoComplete}
+          inputMode={type === "tel" ? "tel" : undefined}
+          placeholder={placeholder}
           className={cn(
             "min-h-16 w-full rounded-[8px] border-2 border-[#55564d] bg-transparent px-5 text-2xl text-[#1d1d1b] outline-none placeholder:text-[var(--invite-accent)]/65 focus:border-[var(--invite-accent)] focus:bg-white/30",
             icon && "pr-14",
@@ -944,7 +1001,7 @@ function attendanceOptions(guests: EditableGuest[]) {
   }
 
   return [
-    { value: "all", label: "Asistiremos los dos" },
+    { value: "all", label: getAttendanceGroupLabel(guests.length) },
     ...guests.map((guest, index) => ({
       value: `guest:${guest.id}`,
       label: `Solo asistirá ${normalizeName(guest, index)}`,

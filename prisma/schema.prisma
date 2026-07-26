@@ -215,6 +215,7 @@ model GuestParty {
   weddingId    String
   inviteToken  String   @unique @default(cuid())
   groupName    String?
+  invitationName String?
   inviteStatus String   @default("pending")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
