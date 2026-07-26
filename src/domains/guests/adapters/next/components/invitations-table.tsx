@@ -13,6 +13,7 @@ import {
 import { useMemo, useState, useTransition } from "react"
 
 import type { InvitationPartyDto } from "@/domains/guests/application/dtos/invitation-party.dto"
+import { getInvitationListLabel } from "@/domains/guests/application/format-guest-names"
 import { cn } from "@/shared/lib/utils"
 
 type Filter = "todos" | "confirmados" | "pendientes" | "declinados"
@@ -138,10 +139,11 @@ function InvitationCard({
   onSend: (party: InvitationPartyDto) => Promise<void>
 }) {
   const summary = rsvpSummary(party)
+  const invitationLabel = getInvitationListLabel(party)
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-      <p className="font-medium text-foreground">{party.inviteeNames}</p>
+      <p className="font-medium text-foreground">{invitationLabel}</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {party.guests.map((guest) => (
           <span
@@ -198,11 +200,12 @@ function InvitationRow({
   onSend: (party: InvitationPartyDto) => Promise<void>
 }) {
   const summary = rsvpSummary(party)
+  const invitationLabel = getInvitationListLabel(party)
 
   return (
     <tr className="border-b border-border/60 align-top last:border-0 hover:bg-secondary/30">
       <td className="px-4 py-4">
-        <p className="font-medium text-foreground">{party.inviteeNames}</p>
+        <p className="font-medium text-foreground">{invitationLabel}</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {party.guests.map((guest) => (
             <span
