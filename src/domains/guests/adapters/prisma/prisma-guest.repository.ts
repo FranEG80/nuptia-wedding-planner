@@ -21,6 +21,7 @@ import type {
   GuestRsvpStatus,
 } from "@/domains/guests/domain/guest"
 import { assertExactPartyResponses } from "@/domains/guests/domain/invitation-party-rules"
+import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 
 const guestInclude = {
   party: true,
@@ -56,6 +57,7 @@ const publicPartySelect = {
   weddingId: true,
   inviteToken: true,
   groupName: true,
+  invitationName: true,
   inviteStatus: true,
   guests: {
     select: {
@@ -131,6 +133,7 @@ function toGuest(record: PrismaGuestRecord): Guest {
       weddingId: record.party.weddingId,
       inviteToken: record.party.inviteToken,
       groupName: record.party.groupName ?? "",
+      invitationName: record.party.invitationName ?? "",
       invite: inviteFromDb[record.party.inviteStatus] ?? "Pendiente",
     },
     seat: record.seat
@@ -170,6 +173,7 @@ function toGuestParty(record: PrismaGuestPartyRecord): GuestInviteParty {
     weddingId: record.weddingId,
     inviteToken: record.inviteToken,
     groupName: record.groupName ?? "",
+    invitationName: record.invitationName ?? "",
     invite: inviteFromDb[record.inviteStatus] ?? "Pendiente",
     guests,
     messages: guests.flatMap((guest) => guest.messages),
@@ -188,6 +192,7 @@ function toPublicGuestParty(
     weddingId: record.weddingId,
     inviteToken: record.inviteToken,
     groupName: record.groupName ?? "",
+    invitationName: record.invitationName ?? "",
     invite: inviteFromDb[record.inviteStatus] ?? "Pendiente",
     guests: record.guests.map((guest) => ({
       id: guest.id,
@@ -212,8 +217,10 @@ function composeFullName(firstName: string, lastName: string) {
 }
 
 function assertValidPartyMembers(guests: InvitationPartyGuestInput[]) {
-  if (guests.length < 1 || guests.length > 2) {
-    throw new Error("Una invitación debe contener uno o dos invitados")
+  if (guests.length < 1 || guests.length > MAX_INVITATION_GUESTS) {
+    throw new Error(
+      `Una invitación debe contener entre 1 y ${MAX_INVITATION_GUESTS} invitados`,
+    )
   }
 
   const recipients = guests.filter((guest) => guest.isRecipient)
@@ -311,6 +318,7 @@ export class PrismaGuestRepository implements GuestRepository {
           data: {
             weddingId: input.weddingId,
             groupName: input.groupName,
+            invitationName: input.invitationName,
             inviteStatus,
           },
         })
@@ -367,11 +375,16 @@ export class PrismaGuestRepository implements GuestRepository {
         },
       })
 
-      if (input.groupName !== undefined || input.invite !== undefined) {
+      if (
+        input.groupName !== undefined ||
+        input.invitationName !== undefined ||
+        input.invite !== undefined
+      ) {
         await tx.guestParty.update({
           where: { id: current.partyId },
           data: {
             groupName: input.groupName,
+            invitationName: input.invitationName,
             inviteStatus: input.invite ? inviteToDb[input.invite] : undefined,
           },
         })
@@ -398,14 +411,15 @@ export class PrismaGuestRepository implements GuestRepository {
       this.d1
         .prepare(
           `INSERT INTO guest_parties
-            (id, weddingId, inviteToken, groupName, inviteStatus, createdAt, updatedAt)
-           VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
+            (id, weddingId, inviteToken, groupName, invitationName, inviteStatus, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)`,
         )
         .bind(
           partyId,
           input.weddingId,
           inviteToken,
           input.groupName?.trim() || null,
+          input.invitationName?.trim() || null,
           now,
           now,
         ),
@@ -505,11 +519,12 @@ export class PrismaGuestRepository implements GuestRepository {
       this.d1
         .prepare(
           `UPDATE guest_parties
-           SET groupName = ?, updatedAt = ?
+           SET groupName = ?, invitationName = ?, updatedAt = ?
            WHERE id = ? AND weddingId = ?`,
         )
         .bind(
           input.groupName?.trim() || null,
+          input.invitationName?.trim() || null,
           now,
           partyId,
           input.weddingId,
@@ -602,6 +617,74 @@ export class PrismaGuestRepository implements GuestRepository {
     return updated ? toGuestParty(updated) : null
   }
 
+  async linkInvitationParty(
+    targetPartyId: string,
+    sourcePartyId: string,
+    weddingId: string,
+  ): Promise<GuestInviteParty | null> {
+    if (targetPartyId === sourcePartyId) {
+      throw new Error("No se puede vincular una invitación consigo misma")
+    }
+
+    const [target, source] = await Promise.all([
+      this.prisma.guestParty.findFirst({
+        where: { id: targetPartyId, weddingId },
+        include: partyInclude,
+      }),
+      this.prisma.guestParty.findFirst({
+        where: { id: sourcePartyId, weddingId },
+        include: partyInclude,
+      }),
+    ])
+
+    if (!target || !source) {
+      return null
+    }
+
+    if (source.guests.length !== 1) {
+      throw new Error("Solo se puede vincular una invitación individual")
+    }
+
+    if (target.guests.length + source.guests.length > MAX_INVITATION_GUESTS) {
+      throw new Error(
+        `La invitación no puede superar ${MAX_INVITATION_GUESTS} personas`,
+      )
+    }
+
+    const isLocked = (party: typeof target) =>
+      party.inviteStatus === "sent" ||
+      party.guests.some((guest) =>
+        ["confirmed", "declined"].includes(guest.rsvpStatus),
+      )
+
+    if (isLocked(target) || isLocked(source)) {
+      throw new Error(
+        "No se pueden vincular invitaciones enviadas o respondidas",
+      )
+    }
+
+    const sourceGuest = source.guests[0]
+    const now = new Date().toISOString()
+
+    await this.d1.batch([
+      this.d1
+        .prepare(
+          "UPDATE guests SET partyId = ?, role = 'companion', updatedAt = ? WHERE id = ? AND partyId = ? AND weddingId = ?",
+        )
+        .bind(targetPartyId, now, sourceGuest.id, sourcePartyId, weddingId),
+      this.d1
+        .prepare("DELETE FROM guest_parties WHERE id = ? AND weddingId = ?")
+        .bind(sourcePartyId, weddingId),
+    ])
+
+    const updated = await this.prisma.guestParty.findFirst({
+      where: { id: targetPartyId, weddingId },
+      include: partyInclude,
+    })
+
+    return updated ? toGuestParty(updated) : null
+  }
+
   async markPartiesInvited(
     weddingId: string,
     partyIds: string[],
@@ -664,8 +747,10 @@ export class PrismaGuestRepository implements GuestRepository {
       return null
     }
 
-    if (party.guests.length < 1 || party.guests.length > 2) {
-      throw new Error("La invitación no contiene uno o dos invitados válidos")
+    if (party.guests.length < 1 || party.guests.length > MAX_INVITATION_GUESTS) {
+      throw new Error(
+        `La invitación no contiene entre 1 y ${MAX_INVITATION_GUESTS} invitados válidos`,
+      )
     }
 
     const submittedIds = input.guests.map((guest) => guest.guestId)

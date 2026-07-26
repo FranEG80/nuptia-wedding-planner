@@ -17,6 +17,7 @@ import {
   importInvitationPartiesUseCase,
   type ImportInvitationPartiesResult,
 } from "@/domains/guests/application/use-cases/import-invitation-parties.use-case"
+import { linkInvitationPartyUseCase } from "@/domains/guests/application/use-cases/link-invitation-party.use-case"
 import { updateInvitationPartyUseCase } from "@/domains/guests/application/use-cases/update-invitation-party.use-case"
 import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
 
@@ -75,6 +76,38 @@ export async function updateInvitationPartyAction(
     guestRepository: repositories.guest,
     weddingId: wedding.id,
     data: input,
+  })
+
+  revalidatePath("/app/invitados")
+
+  return party
+}
+
+export async function linkInvitationPartyAction(input: {
+  targetPartyId: string
+  sourcePartyId: string
+}) {
+  const repositories = await getRepositories()
+  const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return null
+  }
+
+  const wedding = await getCurrentWeddingUseCase({
+    weddingRepository: repositories.wedding,
+    appUserId: session.appUser.id,
+  })
+
+  if (!wedding) {
+    return null
+  }
+
+  const party = await linkInvitationPartyUseCase({
+    guestRepository: repositories.guest,
+    weddingId: wedding.id,
+    targetPartyId: input.targetPartyId,
+    sourcePartyId: input.sourcePartyId,
   })
 
   revalidatePath("/app/invitados")

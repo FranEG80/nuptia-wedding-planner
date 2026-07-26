@@ -10,6 +10,7 @@ export function buildDemoInvitationParty(
   const partyId = crypto.randomUUID()
   const inviteToken = crypto.randomUUID()
   const groupName = input.groupName ?? ""
+  const invitationName = input.invitationName ?? ""
 
   const guests: InvitationPartyGuestDto[] = input.guests.map((draft) => {
     const firstName = draft.firstName.trim()
@@ -46,6 +47,7 @@ export function buildDemoInvitationParty(
     weddingId: "demo",
     inviteToken,
     group: groupName,
+    invitationName,
     invite: "Pendiente",
     displayName: `Invitación para ${inviteeNames}`,
     inviteeNames,

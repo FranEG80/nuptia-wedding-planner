@@ -41,6 +41,7 @@ function makeGuest(
 
 function makeParty(overrides: {
   group?: string
+  invitationName?: string
   guests: InvitationPartyGuestDto[]
 }): InvitationPartyDto {
   const recipient = overrides.guests.find((guest) => guest.isRecipient)
@@ -56,6 +57,7 @@ function makeParty(overrides: {
     weddingId: "wedding-1",
     inviteToken: "token-1",
     group: overrides.group ?? "",
+    invitationName: overrides.invitationName ?? "",
     invite: "Pendiente",
     displayName: `Invitación para ${inviteeNames}`,
     inviteeNames,
@@ -75,21 +77,22 @@ describe("buildInvitationGreeting", () => {
     assert.equal(buildInvitationGreeting(party), "Ana")
   })
 
-  it("usa el nombre de grupo cuando la invitación es para dos personas", () => {
+  it("usa el nombre de la invitación conjunta y no el Grupo interno", () => {
     const party = makeParty({
       group: "Familia Novia",
+      invitationName: "Ana y Luis",
       guests: [
         makeGuest({ firstName: "Ana", lastName: "Santos", isRecipient: true }),
         makeGuest({ firstName: "Luis", lastName: "Santos", isRecipient: false }),
       ],
     })
 
-    assert.equal(buildInvitationGreeting(party), "Familia Novia")
+    assert.equal(buildInvitationGreeting(party), "Ana y Luis")
   })
 
-  it("recurre a los nombres combinados si la pareja no tiene grupo asignado", () => {
+  it("recurre a los nombres combinados si no hay nombre conjunto", () => {
     const party = makeParty({
-      group: "",
+      group: "Familia interna",
       guests: [
         makeGuest({ firstName: "Ana", lastName: "Santos", isRecipient: true }),
         makeGuest({ firstName: "Luis", lastName: "Santos", isRecipient: false }),
@@ -118,9 +121,10 @@ describe("buildInvitationMessage", () => {
     )
   })
 
-  it("mantiene el grupo como saludo y adapta el verbo al plural", () => {
+  it("mantiene el nombre visible y adapta el verbo al plural", () => {
     const party = makeParty({
       group: "Familia Novia",
+      invitationName: "Familia Santos",
       guests: [
         makeGuest({ firstName: "Ana", lastName: "Santos", isRecipient: true }),
         makeGuest({ firstName: "Luis", lastName: "Santos", isRecipient: false }),
@@ -131,7 +135,7 @@ describe("buildInvitationMessage", () => {
 
     assert.equal(
       buildInvitationMessage(party, template, "https://example.com/i/token-1"),
-      "Hola Familia Novia, nos hace mucha ilusión invitaros (Ana Santos y Luis Santos / Familia Novia): https://example.com/i/token-1",
+      "Hola Familia Santos, nos hace mucha ilusión invitaros (Ana y Luis / Familia Santos): https://example.com/i/token-1",
     )
   })
 

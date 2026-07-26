@@ -1,6 +1,7 @@
 const TEMPLATE_HEADERS = [
   "Grupo (opcional)",
-  "Invitación conjunta (opcional)",
+  "Clave invitación conjunta (opcional)",
+  "Nombre invitación conjunta (opcional)",
   "Nombre *",
   "Apellidos",
   "Teléfono",
@@ -13,16 +14,19 @@ const INSTRUCTIONS: string[][] = [
   [""],
   ["1. Cada fila es una persona."],
   [
-    "2. Grupo es solo una etiqueta libre para organizar (Familia, Amigos,",
-    "Trabajo...). No combina a nadie: puedes repetirla en tantas filas e",
-    "invitaciones sueltas como quieras.",
+    "2. Grupo es solo una etiqueta interna para organizar el panel (Familia,",
+    "Amigos, Trabajo...). No combina personas y nunca aparece en el mensaje.",
   ],
   [
-    "3. Invitación conjunta sí combina personas: si 2 personas van a recibir",
-    "UNA misma invitación (pareja), pon el mismo texto o número en esa",
-    "columna en sus dos filas. Déjala vacía para invitaciones individuales.",
+    "3. Clave invitación conjunta combina personas: escribe la misma clave",
+    "(por ejemplo F1) en las filas que compartirán UNA invitación. Déjala",
+    "vacía para invitaciones individuales. Admite como máximo 5 personas.",
   ],
-  ["4. Una invitación conjunta admite como máximo 2 personas."],
+  [
+    "4. Nombre invitación conjunta es opcional y sí aparece en el mensaje",
+    "enviado y en la invitación pública. Si lo dejas vacío, se mostrarán los",
+    "nombres de las personas. Repite el mismo nombre en todas sus filas.",
+  ],
   [
     "5. Marca con Sí, en la columna Destinatario, a la persona de cada",
     "invitación conjunta que recibirá el enlace por WhatsApp/email. Si no",
@@ -38,17 +42,17 @@ const INSTRUCTIONS: string[][] = [
     "perder ceros a la izquierda al abrir el archivo en Excel o Sheets.",
   ],
   [""],
-  ["Ejemplo: grupo \"Familia Novio\" con 2 parejas y 1 soltero"],
+  ["Ejemplo: Grupo \"Familia Novio\", dos invitaciones conjuntas y 1 soltero"],
   [""],
 ]
 
 const EXAMPLE_ROWS = [
-  ["Grupo", "Invitación conjunta", "Nombre", "Apellidos", "Teléfono", "Email", "Destinatario"],
-  ["Familia Novio", "F1", "Ana", "Ruiz", "600111222", "ana@correo.com", "Sí"],
-  ["Familia Novio", "F1", "Luis", "Gómez", "600333444", "", "No"],
-  ["Familia Novio", "F2", "Eva", "Ruiz", "600555666", "eva@correo.com", "Sí"],
-  ["Familia Novio", "F2", "Mario", "Díaz", "", "", "No"],
-  ["Familia Novio", "", "Pedro", "Ruiz", "600777888", "", "Sí"],
+  ["Grupo", "Clave invitación conjunta", "Nombre invitación conjunta", "Nombre", "Apellidos", "Teléfono", "Email", "Destinatario"],
+  ["Familia Novio", "F1", "Ana y Luis", "Ana", "Ruiz", "600111222", "ana@correo.com", "Sí"],
+  ["Familia Novio", "F1", "Ana y Luis", "Luis", "Gómez", "600333444", "", "No"],
+  ["Familia Novio", "F2", "", "Eva", "Ruiz", "600555666", "eva@correo.com", "Sí"],
+  ["Familia Novio", "F2", "", "Mario", "Díaz", "", "", "No"],
+  ["Familia Novio", "", "", "Pedro", "Ruiz", "600777888", "", "Sí"],
 ]
 
 export async function downloadGuestImportTemplate() {
@@ -64,6 +68,7 @@ export async function downloadGuestImportTemplate() {
   instructionsSheet["!cols"] = [
     { wch: 90 },
     { wch: 20 },
+    { wch: 28 },
     { wch: 14 },
     { wch: 14 },
     { wch: 14 },

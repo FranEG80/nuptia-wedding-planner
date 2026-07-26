@@ -3,6 +3,7 @@ import {
   type CreateInvitationPartyDto,
 } from "@/domains/guests/application/dtos/invitation-party.dto"
 import { normalizePhoneForWhatsapp } from "@/domains/guests/application/normalize-phone"
+import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 
 export type RawGuestImportRow = Record<string, unknown>
 
@@ -34,6 +35,7 @@ interface NormalizedRow {
   rowNumber: number
   groupLabel: string
   pairKey: string
+  invitationName: string
   firstName: string
   lastName: string
   email: string | null
@@ -99,7 +101,16 @@ function normalizeRow(raw: RawGuestImportRow, rowNumber: number): NormalizedRow 
 
     // Ojo al orden: "invitacion..." se comprueba antes que "grupo" porque
     // ambas columnas son independientes (etiqueta vs. clave de emparejamiento).
-    if (key.startsWith("invitacion") || key.startsWith("pareja")) {
+    if (
+      key.startsWith("nombreinvitacion") ||
+      key.startsWith("nombreconjunta")
+    ) {
+      fields.invitationName = value
+    } else if (
+      key.startsWith("claveinvitacion") ||
+      key.startsWith("invitacion") ||
+      key.startsWith("pareja")
+    ) {
       fields.pairKey = value
     } else if (key.startsWith("grupo")) {
       fields.groupLabel = value
@@ -123,6 +134,7 @@ function normalizeRow(raw: RawGuestImportRow, rowNumber: number): NormalizedRow 
     rowNumber,
     groupLabel: toText(fields.groupLabel),
     pairKey: toText(fields.pairKey),
+    invitationName: toText(fields.invitationName),
     firstName: toText(fields.firstName),
     lastName: toText(fields.lastName),
     email: email || null,
@@ -135,6 +147,7 @@ function isBlankRow(row: NormalizedRow): boolean {
   return (
     !row.groupLabel &&
     !row.pairKey &&
+    !row.invitationName &&
     !row.firstName &&
     !row.lastName &&
     !row.email &&
@@ -193,11 +206,11 @@ export function parseGuestImportRows(
     const key = row.pairKey ? `pair:${row.pairKey.toLowerCase()}` : `solo:${soloCounter++}`
     const members = pairs.get(key) ?? []
 
-    if (row.pairKey && members.length >= 2) {
+    if (row.pairKey && members.length >= MAX_INVITATION_GUESTS) {
       rowResults.push({
         rowNumber: row.rowNumber,
         status: "error",
-        message: `La invitación conjunta "${row.pairKey}" ya tiene 2 personas; esta fila no se importa (máximo 2 por invitación).`,
+        message: `La invitación conjunta "${row.pairKey}" ya tiene ${MAX_INVITATION_GUESTS} personas; esta fila no se importa (máximo ${MAX_INVITATION_GUESTS} por invitación).`,
       })
       continue
     }
@@ -233,8 +246,16 @@ export function parseGuestImportRows(
       members.map((member) => member.groupLabel).filter((label) => label),
     )
     const groupName = members[0].groupLabel
+    const invitationNames = new Set(
+      members.map((member) => member.invitationName).filter((name) => name),
+    )
+    const invitationName = members[0].invitationName
 
-    const parsed = createInvitationPartySchema.safeParse({ groupName, guests })
+    const parsed = createInvitationPartySchema.safeParse({
+      groupName,
+      invitationName,
+      guests,
+    })
     const rowNumbers = members.map((member) => member.rowNumber)
 
     if (parsed.success) {
@@ -247,6 +268,7 @@ export function parseGuestImportRows(
         const duplicatePhone = phoneKey !== null && seenPhones.has(phoneKey)
         const isDuplicate = duplicateEmail || duplicatePhone
         const groupMismatch = groupLabels.size > 1
+        const invitationNameMismatch = invitationNames.size > 1
 
         if (emailKey !== null) {
           seenEmails.add(emailKey)
@@ -261,9 +283,14 @@ export function parseGuestImportRows(
 
         rowResults.push({
           rowNumber: member.rowNumber,
-          status: isDuplicate || groupMismatch ? "warning" : "ok",
+          status:
+            isDuplicate || groupMismatch || invitationNameMismatch
+              ? "warning"
+              : "ok",
           message: groupMismatch
-            ? `Se importará con el grupo "${groupName}"; las dos personas de esta invitación tienen grupos distintos.`
+            ? `Se importará con el grupo "${groupName}"; el Grupo solo organiza el panel y las filas tienen grupos distintos.`
+            : invitationNameMismatch
+              ? `Se importará con el nombre conjunto "${invitationName}"; las filas tienen nombres de invitación distintos.`
             : isDuplicate
               ? `El contacto ${duplicateContact} ya existe; se omitirá la persona repetida o se añadirá su acompañante a la invitación existente.`
               : "Lista para importar.",

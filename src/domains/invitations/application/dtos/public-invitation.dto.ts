@@ -59,7 +59,7 @@ export interface PublicInvitationMenuDto {
 export interface PublicInvitationDto {
   token: string
   partyId: string
-  groupName: string
+  invitationName: string
   wedding: PublicInvitationWeddingDto
   design: InvitationDesignDto
   guests: PublicInvitationGuestDto[]
@@ -77,7 +77,7 @@ export function toPublicInvitationDto(input: {
   return {
     token: input.party.inviteToken,
     partyId: input.party.id,
-    groupName: input.party.groupName,
+    invitationName: input.party.invitationName,
     wedding: {
       id: wedding.id,
       slug: wedding.slug,

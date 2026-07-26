@@ -1,5 +1,7 @@
 import { getPlatformProxy } from "wrangler"
 
+import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
+
 interface OversizedPartyRow {
   id: string
   groupName: string | null
@@ -40,7 +42,7 @@ async function run() {
          FROM guest_parties AS party
          INNER JOIN guests AS guest ON guest.partyId = party.id
          GROUP BY party.id, party.groupName
-         HAVING COUNT(guest.id) > 2
+         HAVING COUNT(guest.id) > ${MAX_INVITATION_GUESTS}
          ORDER BY COUNT(guest.id) DESC, party.id ASC`,
       ).all<OversizedPartyRow>()
       oversizedParties = result.results
@@ -68,7 +70,7 @@ async function run() {
 
     if (oversizedParties.length) {
       console.error(
-        "Migración detenida: hay invitaciones con más de dos invitados.",
+        `Migración detenida: hay invitaciones con más de ${MAX_INVITATION_GUESTS} invitados.`,
       )
 
       for (const party of oversizedParties) {
@@ -82,7 +84,9 @@ async function run() {
       )
     }
 
-    console.info("Auditoría correcta: ninguna invitación supera dos invitados.")
+    console.info(
+      `Auditoría correcta: ninguna invitación supera ${MAX_INVITATION_GUESTS} invitados.`,
+    )
     console.info(
       recipientResult.results.length
         ? `La migración normalizará el destinatario de ${recipientResult.results.length} invitación(es).`

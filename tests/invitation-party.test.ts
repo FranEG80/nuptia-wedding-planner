@@ -26,7 +26,7 @@ const luis = {
 }
 
 describe("invitaciones compartidas", () => {
-  it("acepta invitaciones individuales y de pareja", () => {
+  it("acepta invitaciones individuales, de pareja y de hasta cinco personas", () => {
     assert.equal(
       createInvitationPartySchema.safeParse({ guests: [ana] }).success,
       true,
@@ -40,6 +40,19 @@ describe("invitaciones compartidas", () => {
         guests: [
           { ...ana, isRecipient: false },
           { ...luis, phone: "+34600000000", isRecipient: true },
+        ],
+      }).success,
+      true,
+    )
+    assert.equal(
+      createInvitationPartySchema.safeParse({
+        invitationName: "Familia Ruiz",
+        guests: [
+          ana,
+          luis,
+          { ...luis, firstName: "Eva" },
+          { ...luis, firstName: "Mario" },
+          { ...luis, firstName: "Nuria" },
         ],
       }).success,
       true,
@@ -74,10 +87,17 @@ describe("invitaciones compartidas", () => {
     assert.equal(normalizePhoneForWhatsapp("0044 20 7946 0958"), "442079460958")
   })
 
-  it("rechaza un tercer invitado y grupos sin destinatario válido", () => {
+  it("rechaza un sexto invitado y grupos sin destinatario válido", () => {
     assert.equal(
       createInvitationPartySchema.safeParse({
-        guests: [ana, luis, { ...luis, firstName: "Marta" }],
+        guests: [
+          ana,
+          luis,
+          { ...luis, firstName: "Eva" },
+          { ...luis, firstName: "Mario" },
+          { ...luis, firstName: "Nuria" },
+          { ...luis, firstName: "Marta" },
+        ],
       }).success,
       false,
     )
@@ -161,6 +181,17 @@ describe("invitaciones compartidas", () => {
         ],
       }).success,
       false,
+    )
+
+    assert.equal(
+      publicInvitationResponseSchema.safeParse({
+        token: "token",
+        guests: Array.from({ length: 5 }, (_, index) => ({
+          guestId: `guest-${index + 1}`,
+          attending: index % 2 === 0,
+        })),
+      }).success,
+      true,
     )
   })
 })

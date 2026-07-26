@@ -15,6 +15,7 @@ export async function createInvitationPartyUseCase(input: {
   const party = await input.guestRepository.createInvitationParty({
     weddingId: input.weddingId,
     groupName: data.groupName,
+    invitationName: data.invitationName,
     guests: data.guests,
   })
 

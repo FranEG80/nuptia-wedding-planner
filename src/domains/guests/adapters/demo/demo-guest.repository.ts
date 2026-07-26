@@ -5,6 +5,7 @@ import type {
   GuestRepository,
   UpdateGuestInput,
 } from "@/domains/guests/domain/ports/guest.repository"
+import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 import { DEMO_WEDDING_ID } from "@/domains/weddings/adapters/demo/demo-wedding.repository"
 
 function composeFullName(firstName: string, lastName: string) {
@@ -16,6 +17,7 @@ function demoGuest(input: {
   firstName: string
   lastName?: string
   groupName: string
+  invitationName?: string
   invite: Guest["party"]["invite"]
   rsvp: Guest["rsvp"]
   notes: string
@@ -44,6 +46,7 @@ function demoGuest(input: {
       weddingId: DEMO_WEDDING_ID,
       inviteToken: `demo-token-${input.id}`,
       groupName: input.groupName,
+      invitationName: input.invitationName ?? "",
       invite: input.invite,
     },
     seat: input.table
@@ -108,6 +111,7 @@ export const demoGuestRepository: GuestRepository = {
           weddingId: party.weddingId,
           inviteToken: party.inviteToken,
           groupName: party.groupName,
+          invitationName: party.invitationName,
           invite: party.invite,
           guests: party.guests.map((guest) => ({
             id: guest.id,
@@ -194,6 +198,7 @@ export const demoGuestRepository: GuestRepository = {
         firstName: item.firstName,
         lastName: item.lastName,
         groupName: input.groupName ?? "",
+        invitationName: input.invitationName ?? "",
         invite: "Pendiente",
         rsvp: "Sin respuesta",
         notes: "",
@@ -262,7 +267,8 @@ export const demoGuestRepository: GuestRepository = {
           id,
           firstName: item.firstName,
           lastName: item.lastName,
-          groupName: input.groupName ?? "",
+        groupName: input.groupName ?? "",
+        invitationName: input.invitationName ?? "",
           invite: party.invite,
           rsvp: "Sin respuesta",
           notes: "",
@@ -283,6 +289,7 @@ export const demoGuestRepository: GuestRepository = {
         party: {
           ...party,
           groupName: input.groupName ?? "",
+          invitationName: input.invitationName ?? "",
         },
       }
 
@@ -292,6 +299,55 @@ export const demoGuestRepository: GuestRepository = {
     }
 
     return partyByInviteToken(party.inviteToken)
+  },
+
+  async linkInvitationParty(targetPartyId, sourcePartyId, weddingId) {
+    const targetGuests = demoGuests.filter(
+      (guest) => guest.partyId === targetPartyId && guest.weddingId === weddingId,
+    )
+    const sourceGuests = demoGuests.filter(
+      (guest) => guest.partyId === sourcePartyId && guest.weddingId === weddingId,
+    )
+
+    if (!targetGuests.length || !sourceGuests.length) {
+      return null
+    }
+
+    if (sourceGuests.length !== 1) {
+      throw new Error("Solo se puede vincular una invitación individual")
+    }
+
+    if (targetGuests.length + sourceGuests.length > MAX_INVITATION_GUESTS) {
+      throw new Error(
+        `La invitación no puede superar ${MAX_INVITATION_GUESTS} personas`,
+      )
+    }
+
+    const isLocked = (guests: Guest[]) =>
+      guests[0].party.invite === "Enviada" ||
+      guests.some((guest) => guest.rsvp !== "Sin respuesta")
+
+    if (isLocked(targetGuests) || isLocked(sourceGuests)) {
+      throw new Error(
+        "No se pueden vincular invitaciones enviadas o respondidas",
+      )
+    }
+
+    const sourceGuest = sourceGuests[0]
+    const targetParty = targetGuests[0].party
+    const movedGuest: Guest = {
+      ...sourceGuest,
+      partyId: targetPartyId,
+      role: "companion",
+      party: targetParty,
+    }
+
+    demoGuests = [
+      ...demoGuests.filter((guest) => guest.partyId !== sourcePartyId),
+      movedGuest,
+    ]
+
+    return partyByInviteToken(targetParty.inviteToken)
   },
 
   async markPartiesInvited(weddingId, partyIds) {
@@ -430,6 +486,7 @@ function partyByInviteToken(inviteToken: string): GuestInviteParty | null {
     weddingId: firstGuest.weddingId,
     inviteToken,
     groupName: firstGuest.party.groupName,
+    invitationName: firstGuest.party.invitationName,
     invite: firstGuest.party.invite,
     guests,
     messages: [],

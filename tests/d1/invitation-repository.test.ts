@@ -10,7 +10,7 @@ import { PrismaClient } from "@generated/prisma-seed/client"
 import { createBindingD1BatchDatabase } from "@/core/db/d1-batch"
 import { PrismaGuestRepository } from "@/domains/guests/adapters/prisma/prisma-guest.repository"
 
-test("el repositorio gestiona una invitación individual y una pareja completa", async () => {
+test("el repositorio gestiona invitaciones individuales, conjuntas y vinculadas", async () => {
   const platform = await getPlatformProxy<Pick<CloudflareEnv, "DB">>({
     configPath: "wrangler.jsonc",
     persist: true,
@@ -42,6 +42,47 @@ test("el repositorio gestiona una invitación individual y una pareja completa",
 
     assert.equal(single.guests.length, 1)
     assert.equal(single.guests[0].role, "primary")
+
+    const source = await repository.createInvitationParty({
+      weddingId: "demo-wedding",
+      groupName: "Otro grupo",
+      guests: [
+        {
+          firstName: "Invitado",
+          lastName: "vinculado",
+          phone: "+34611111111",
+          isRecipient: true,
+        },
+      ],
+    })
+    partyIds.push(source.id)
+
+    const linked = await repository.linkInvitationParty(
+      single.id,
+      source.id,
+      "demo-wedding",
+    )
+    assert.equal(linked?.guests.length, 2)
+    assert.equal(linked?.guests[1].role, "companion")
+    assert.equal(
+      await repository.findPartyByInviteToken(source.inviteToken),
+      null,
+    )
+
+    const five = await repository.createInvitationParty({
+      weddingId: "demo-wedding",
+      invitationName: "Familia completa",
+      guests: [
+        { firstName: "Uno", email: "uno@example.com", isRecipient: true },
+        { firstName: "Dos", isRecipient: false },
+        { firstName: "Tres", isRecipient: false },
+        { firstName: "Cuatro", isRecipient: false },
+        { firstName: "Cinco", isRecipient: false },
+      ],
+    })
+    partyIds.push(five.id)
+    assert.equal(five.guests.length, 5)
+    assert.equal(five.invitationName, "Familia completa")
 
     let pair = await repository.createInvitationParty({
       weddingId: "demo-wedding",

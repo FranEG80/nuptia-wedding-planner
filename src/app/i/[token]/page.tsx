@@ -39,7 +39,12 @@ export async function generateMetadata({
 
   const dateLabel = formatWeddingDate(invitation.wedding.date)
   const title = `${invitation.wedding.displayName} · ${dateLabel}`
-  const greeting = invitation.groupName ? `${invitation.groupName}, e` : "E"
+  const invitationGreeting =
+    invitation.invitationName ||
+    invitation.guests
+      .map((guest) => guest.name.trim().split(/\s+/)[0])
+      .join(" y ")
+  const greeting = invitationGreeting ? `${invitationGreeting}, e` : "E"
   const description = `${greeting}stáis invitados a la boda de ${invitation.wedding.displayName} el ${dateLabel} en ${invitation.wedding.primaryCity}.`
   let [domain, protocol] = process.env.APP_URL.split("://"), baseUrl, customOgImage;
   if (invitation.design.templateId === "maria-daniela") {

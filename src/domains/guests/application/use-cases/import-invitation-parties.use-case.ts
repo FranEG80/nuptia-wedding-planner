@@ -14,6 +14,7 @@ import type {
   GuestRepository,
   InvitationPartyGuestInput,
 } from "@/domains/guests/domain/ports/guest.repository"
+import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 
 interface IndexedGuest {
   partyId: string
@@ -165,6 +166,7 @@ export async function importInvitationPartiesUseCase(input: {
       const created = await input.guestRepository.createInvitationParty({
         weddingId: input.weddingId,
         groupName: data.groupName,
+        invitationName: data.invitationName,
         guests: data.guests,
       })
       const createdDto = toInvitationPartyDto(created)
@@ -202,12 +204,15 @@ export async function importInvitationPartiesUseCase(input: {
       continue
     }
 
-    if (existingParty.guests.length >= 2 || newGuests.length !== 1) {
+    if (
+      existingParty.guests.length >= MAX_INVITATION_GUESTS ||
+      newGuests.length !== 1
+    ) {
       result.skipped += 1
       result.warnings.push(
         `Se omitió el acompañante de ${data.guests
           .map((guest) => guest.firstName)
-          .join(" y ")}: la invitación existente ya tiene dos personas.`,
+          .join(" y ")}: la invitación existente ya tiene ${MAX_INVITATION_GUESTS} personas o no se puede añadir exactamente un acompañante.`,
       )
       continue
     }
@@ -217,6 +222,8 @@ export async function importInvitationPartiesUseCase(input: {
       { ...newGuests[0], isRecipient: false },
     ]
     const groupName = existingParty.groupName || data.groupName
+    const invitationName =
+      existingParty.invitationName || data.invitationName
 
     try {
       const updated = await input.guestRepository.updateInvitationParty(
@@ -224,6 +231,7 @@ export async function importInvitationPartiesUseCase(input: {
         {
           weddingId: input.weddingId,
           groupName,
+          invitationName,
           guests: mergedInput,
         },
       )

@@ -23,6 +23,7 @@ const baseInvitationSql = `
     p.weddingId AS wedding_id,
     p.inviteToken AS invite_token,
     p.groupName AS group_name,
+    p.invitationName AS invitation_name,
     p.inviteStatus AS invite_status,
     w.ownerId AS wedding_owner_id,
     w.slug AS wedding_slug,
@@ -201,6 +202,7 @@ function toParty(base: D1Row, guestRows: D1Row[]): PublicGuestInviteParty {
     weddingId: requiredString(base, "wedding_id"),
     inviteToken: requiredString(base, "invite_token"),
     groupName: nullableString(base, "group_name") ?? "",
+    invitationName: nullableString(base, "invitation_name") ?? "",
     invite: base.invite_status === "sent" ? "Enviada" : "Pendiente",
     guests: [...guests.values()],
   }

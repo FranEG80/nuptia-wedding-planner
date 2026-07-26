@@ -15,6 +15,7 @@ export async function updateInvitationPartyUseCase(input: {
   const party = await input.guestRepository.updateInvitationParty(data.partyId, {
     weddingId: input.weddingId,
     groupName: data.groupName,
+    invitationName: data.invitationName,
     guests: data.guests,
   })
 
