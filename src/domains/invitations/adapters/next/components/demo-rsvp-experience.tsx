@@ -231,7 +231,7 @@ export function DemoRsvpExperience({
                 {step === "details" && attending.map((guest) => (
                   <fieldset key={guest.id} className={cn(fieldsetBase, "grid-cols-2 max-[700px]:grid-cols-1")}>
                     <legend className={cn(legendBase, "col-span-full")}>{guest.name}</legend>
-                    <label className={labelBase}>Teléfono{guest.role !== "primary" ? " (opcional)" : ""}<input type="tel" className={inputBase} value={guest.phone} onChange={(event) => updateGuest(guest.id, { phone: event.target.value })} /></label>
+                    <label className={labelBase}>Teléfono{guest.role !== "primary" ? " (opcional)" : ""}<input type="tel" inputMode="tel" autoComplete="tel" placeholder="+34 600 000 000" className={inputBase} value={guest.phone} onChange={(event) => updateGuest(guest.id, { phone: event.target.value })} /></label>
                     <label className={labelBase}>Email (opcional)<input type="email" className={inputBase} value={guest.email} onChange={(event) => updateGuest(guest.id, { email: event.target.value })} /></label>
                   </fieldset>
                 ))}

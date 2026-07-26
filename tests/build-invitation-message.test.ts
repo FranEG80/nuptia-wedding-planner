@@ -96,12 +96,29 @@ describe("buildInvitationGreeting", () => {
       ],
     })
 
-    assert.equal(buildInvitationGreeting(party), "Ana Santos y Luis Santos")
+    assert.equal(buildInvitationGreeting(party), "Ana y Luis")
   })
 })
 
 describe("buildInvitationMessage", () => {
-  it("sustituye el saludo, los nombres combinados, el grupo y el enlace", () => {
+  it("usa el plural y solo los nombres cuando la invitación es para dos personas", () => {
+    const party = makeParty({
+      group: "",
+      guests: [
+        makeGuest({ firstName: "Ana", lastName: "Santos", isRecipient: true }),
+        makeGuest({ firstName: "Luis", lastName: "Santos", isRecipient: false }),
+      ],
+    })
+    const template =
+      "Hola {guestName}, nos hace mucha ilusión invitarte a nuestra boda. {inviteUrl}"
+
+    assert.equal(
+      buildInvitationMessage(party, template, "https://example.com/i/token-1"),
+      "Hola Ana y Luis, nos hace mucha ilusión invitaros a nuestra boda. https://example.com/i/token-1",
+    )
+  })
+
+  it("mantiene el grupo como saludo y adapta el verbo al plural", () => {
     const party = makeParty({
       group: "Familia Novia",
       guests: [
@@ -110,11 +127,26 @@ describe("buildInvitationMessage", () => {
       ],
     })
     const template =
-      "Hola {guestName} ({inviteeNames} / {groupName}), confirma aquí: {inviteUrl}"
+      "Hola {guestName}, nos hace mucha ilusión invitarte ({inviteeNames} / {groupName}): {inviteUrl}"
 
     assert.equal(
       buildInvitationMessage(party, template, "https://example.com/i/token-1"),
-      "Hola Familia Novia (Ana Santos y Luis Santos / Familia Novia), confirma aquí: https://example.com/i/token-1",
+      "Hola Familia Novia, nos hace mucha ilusión invitaros (Ana Santos y Luis Santos / Familia Novia): https://example.com/i/token-1",
+    )
+  })
+
+  it("mantiene el singular para una invitación individual", () => {
+    const party = makeParty({
+      guests: [makeGuest({ firstName: "Ana", lastName: "Santos", isRecipient: true })],
+    })
+
+    assert.equal(
+      buildInvitationMessage(
+        party,
+        "Hola {guestName}, nos hace mucha ilusión invitarte.",
+        "https://example.com/i/token-1",
+      ),
+      "Hola Ana, nos hace mucha ilusión invitarte.",
     )
   })
 })

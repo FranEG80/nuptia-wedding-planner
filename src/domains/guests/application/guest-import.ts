@@ -2,6 +2,7 @@ import {
   createInvitationPartySchema,
   type CreateInvitationPartyDto,
 } from "@/domains/guests/application/dtos/invitation-party.dto"
+import { normalizePhoneForWhatsapp } from "@/domains/guests/application/normalize-phone"
 
 export type RawGuestImportRow = Record<string, unknown>
 
@@ -26,9 +27,7 @@ export function normalizeGuestEmail(
 export function normalizeGuestPhone(
   value: string | null | undefined,
 ): string | null {
-  const digits = value?.replace(/\D/g, "") ?? ""
-  const normalized = digits.replace(/^00/, "")
-  return normalized || null
+  return normalizePhoneForWhatsapp(value)
 }
 
 interface NormalizedRow {

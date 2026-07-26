@@ -142,6 +142,9 @@ export function InvitationPartyDialog({
                       <input
                         type="tel"
                         value={member.phone}
+                        autoComplete="tel"
+                        inputMode="tel"
+                        placeholder="+34 600 000 000"
                         onChange={(event) =>
                           onMemberChange(index, { phone: event.target.value })
                         }

@@ -5,7 +5,12 @@ export function buildInvitationGreeting(party: InvitationPartyDto): string {
     return party.recipient.firstName || party.recipient.name || "invitado"
   }
 
-  return party.group || party.inviteeNames
+  return (
+    party.group.trim() ||
+    party.guests
+      .map((guest) => guest.firstName.trim() || guest.name)
+      .join(" y ")
+  )
 }
 
 export function buildInvitationMessage(
@@ -13,9 +18,13 @@ export function buildInvitationMessage(
   template: string,
   inviteUrl: string,
 ): string {
+  const invitationVerb = party.guests.length > 1 ? "invitaros" : "invitarte"
+
   return template
     .replaceAll("{guestName}", buildInvitationGreeting(party))
     .replaceAll("{inviteeNames}", party.inviteeNames)
     .replaceAll("{groupName}", party.group || party.inviteeNames)
     .replaceAll("{inviteUrl}", inviteUrl)
+    // Keep adapting existing templates that still contain the old literal.
+    .replaceAll("invitarte", invitationVerb)
 }

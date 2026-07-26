@@ -618,6 +618,7 @@ function DetailsStep({
                     type="tel"
                     value={guest.phone}
                     autoComplete="tel"
+                    placeholder="+34 600 000 000"
                     icon={<Phone className="h-7 w-7" aria-hidden="true" />}
                     onChange={(value) => onUpdate(guest.id, { phone: value })}
                   />
@@ -840,6 +841,7 @@ function TextInput({
   onChange,
   type = "text",
   autoComplete,
+  placeholder,
   icon,
 }: {
   label: string
@@ -847,6 +849,7 @@ function TextInput({
   onChange: (value: string) => void
   type?: "text" | "email" | "tel"
   autoComplete?: string
+  placeholder?: string
   icon?: ReactNode
 }) {
   return (
@@ -860,6 +863,8 @@ function TextInput({
           onChange={(event) => onChange(event.target.value)}
           type={type}
           autoComplete={autoComplete}
+          inputMode={type === "tel" ? "tel" : undefined}
+          placeholder={placeholder}
           className={cn(
             "min-h-16 w-full rounded-[8px] border-2 border-[#55564d] bg-transparent px-5 text-2xl text-[#1d1d1b] outline-none placeholder:text-[var(--invite-accent)]/65 focus:border-[var(--invite-accent)] focus:bg-white/30",
             icon && "pr-14",

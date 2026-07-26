@@ -5,6 +5,7 @@ import {
   createInvitationPartySchema,
   updateInvitationPartySchema,
 } from "@/domains/guests/application/dtos/invitation-party.dto"
+import { normalizePhoneForWhatsapp } from "@/domains/guests/application/normalize-phone"
 import { assertExactPartyResponses } from "@/domains/guests/domain/invitation-party-rules"
 import { publicInvitationResponseSchema } from "@/domains/invitations/application/dtos/public-invitation-response.dto"
 
@@ -43,6 +44,34 @@ describe("invitaciones compartidas", () => {
       }).success,
       true,
     )
+  })
+
+  it("acepta teléfonos internacionales, españoles y locales", () => {
+    for (const phone of [
+      "+44 20 7946 0958",
+      "+34 600 111 222",
+      "600 111 222",
+      "700 123 456",
+    ]) {
+      assert.equal(
+        createInvitationPartySchema.safeParse({
+          guests: [{ ...ana, phone }],
+        }).success,
+        true,
+      )
+    }
+
+    assert.equal(
+      normalizePhoneForWhatsapp("+44 20 7946 0958"),
+      "442079460958",
+    )
+    assert.equal(
+      normalizePhoneForWhatsapp("+34 600 111 222"),
+      "34600111222",
+    )
+    assert.equal(normalizePhoneForWhatsapp("600 111 222"), "34600111222")
+    assert.equal(normalizePhoneForWhatsapp("700 123 456"), "34700123456")
+    assert.equal(normalizePhoneForWhatsapp("0044 20 7946 0958"), "442079460958")
   })
 
   it("rechaza un tercer invitado y grupos sin destinatario válido", () => {

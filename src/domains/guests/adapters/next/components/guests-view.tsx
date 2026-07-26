@@ -19,6 +19,7 @@ import { InvitationDetailDialog } from "@/domains/guests/adapters/next/component
 import { InvitationsTable } from "@/domains/guests/adapters/next/components/invitations-table"
 import { SeatingBoard } from "@/domains/guests/adapters/next/components/seating-board"
 import { buildInvitationMessage } from "@/domains/guests/application/build-invitation-message"
+import { normalizePhoneForWhatsapp } from "@/domains/guests/application/normalize-phone"
 import type {
   InvitationPartyDto,
   InvitationPartyGuestDto,
@@ -271,7 +272,7 @@ export function GuestsView({
   }
 
   async function handleSendWhatsapp(party: InvitationPartyDto) {
-    const phone = party.recipient.phone?.replace(/[^\d]/g, "")
+    const phone = normalizePhoneForWhatsapp(party.recipient.phone)
 
     if (!phone) {
       return
