@@ -1,3 +1,5 @@
+import { Loader2 } from "lucide-react"
+
 function SkeletonLine({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-full bg-muted ${className}`} />
 }
@@ -35,6 +37,20 @@ export default function GuestsLoading() {
       aria-label="Cargando invitados"
     >
       <p className="sr-only">Cargando invitados…</p>
+
+      <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center bg-background/25 backdrop-blur-[1px]">
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center gap-3 rounded-2xl border border-border bg-card/95 px-6 py-4 text-foreground shadow-xl"
+        >
+          <Loader2
+            aria-hidden="true"
+            className="h-6 w-6 animate-spin text-primary"
+          />
+          <span className="text-sm font-medium">Cargando invitados…</span>
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1 rounded-lg border border-border bg-card p-1">
