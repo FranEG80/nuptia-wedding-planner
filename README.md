@@ -65,6 +65,12 @@ La demo pública (`/`) muestra el producto con datos reales de ejemplo; la aplic
 - Envío y reenvío de invitaciones en un clic.
 - Notas y alergias por invitado.
 
+#### Importación desde Excel
+
+La plantilla de invitados mantiene la columna histórica `Invitación conjunta (opcional)` para no romper los Excel existentes. Repite el mismo valor en las filas que deban compartir una invitación; ese valor se usa también como nombre visible en el mensaje y en la invitación pública. Si se deja vacío, la fila se importa como una invitación individual.
+
+`Grupo (opcional)` solo organiza el panel y no combina personas. El identificador interno de cada invitación se genera automáticamente, por lo que no hay que añadir una columna de clave. El destinatario debe tener teléfono o email; los acompañantes de una invitación conjunta pueden dejar ambos campos vacíos. Cada invitación admite hasta cinco personas.
+
 ### 📸 Galería en vivo
 
 <p align="center">

@@ -99,19 +99,18 @@ function normalizeRow(raw: RawGuestImportRow, rowNumber: number): NormalizedRow 
   for (const [header, value] of Object.entries(raw)) {
     const key = normalizeHeader(header)
 
-    // Ojo al orden: "invitacion..." se comprueba antes que "grupo" porque
-    // ambas columnas son independientes (etiqueta vs. clave de emparejamiento).
+    // El formato público conserva "Invitación conjunta" por compatibilidad con
+    // los Excel existentes. Los formatos que separaban clave y nombre siguen
+    // leyéndose para no romper archivos ya preparados durante la transición.
     if (
       key.startsWith("nombreinvitacion") ||
       key.startsWith("nombreconjunta")
     ) {
       fields.invitationName = value
-    } else if (
-      key.startsWith("claveinvitacion") ||
-      key.startsWith("invitacion") ||
-      key.startsWith("pareja")
-    ) {
+    } else if (key.startsWith("claveinvitacion")) {
       fields.pairKey = value
+    } else if (key.startsWith("invitacion") || key.startsWith("pareja")) {
+      fields.invitationName = value
     } else if (key.startsWith("grupo")) {
       fields.groupLabel = value
     } else if (key.startsWith("nombre")) {
@@ -196,21 +195,25 @@ export function parseGuestImportRows(
       return true
     })
 
-  // La clave de emparejamiento (pairKey) decide qué filas comparten invitación.
-  // El grupo (groupLabel) es solo una etiqueta libre y nunca combina personas,
-  // así que un mismo grupo puede tener tantas invitaciones sueltas como haga falta.
+  // Invitación conjunta decide qué filas comparten invitación. En el formato
+  // actual el valor también es el nombre visible y la clave interna se deriva
+  // automáticamente. El grupo (groupLabel) es solo una etiqueta libre y nunca
+  // combina personas, así que un mismo grupo puede tener invitaciones sueltas.
   const pairs = new Map<string, NormalizedRow[]>()
   let soloCounter = 0
 
   for (const row of normalizedRows) {
-    const key = row.pairKey ? `pair:${row.pairKey.toLowerCase()}` : `solo:${soloCounter++}`
+    const groupingValue = row.pairKey || row.invitationName
+    const key = groupingValue
+      ? `pair:${groupingValue.toLowerCase()}`
+      : `solo:${soloCounter++}`
     const members = pairs.get(key) ?? []
 
-    if (row.pairKey && members.length >= MAX_INVITATION_GUESTS) {
+    if (groupingValue && members.length >= MAX_INVITATION_GUESTS) {
       rowResults.push({
         rowNumber: row.rowNumber,
         status: "error",
-        message: `La invitación conjunta "${row.pairKey}" ya tiene ${MAX_INVITATION_GUESTS} personas; esta fila no se importa (máximo ${MAX_INVITATION_GUESTS} por invitación).`,
+        message: `La invitación conjunta "${groupingValue}" ya tiene ${MAX_INVITATION_GUESTS} personas; esta fila no se importa (máximo ${MAX_INVITATION_GUESTS} por invitación).`,
       })
       continue
     }
@@ -246,10 +249,12 @@ export function parseGuestImportRows(
       members.map((member) => member.groupLabel).filter((label) => label),
     )
     const groupName = members[0].groupLabel
+    const invitationNameForMember = (member: NormalizedRow) =>
+      member.invitationName || member.pairKey
     const invitationNames = new Set(
-      members.map((member) => member.invitationName).filter((name) => name),
+      members.map(invitationNameForMember).filter((name) => name),
     )
-    const invitationName = members[0].invitationName
+    const invitationName = invitationNameForMember(members[0])
 
     const parsed = createInvitationPartySchema.safeParse({
       groupName,

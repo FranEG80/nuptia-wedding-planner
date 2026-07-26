@@ -335,9 +335,8 @@ export function ImportGuestsDialog({
 const HELP_RULES = [
   "Cada fila es una persona.",
   "Grupo es solo una etiqueta interna para organizar el panel (Familia, Amigos, Trabajo...). No combina personas y nunca aparece en el mensaje.",
-  "Clave invitación conjunta sí combina personas: pon la misma clave (por ejemplo F1) en las filas que compartirán UNA misma invitación. Déjala vacía para invitaciones individuales.",
-  "Una invitación conjunta admite como máximo 5 personas; la 6ª fila con la misma clave da error.",
-  "Nombre invitación conjunta es opcional: si existe, aparece en el mensaje y en la invitación pública; si está vacío, se muestran los nombres de las personas.",
+  "Invitación conjunta combina personas: escribe exactamente el mismo nombre (por ejemplo Ana y Luis) en las filas que compartirán UNA misma invitación. Déjala vacía para invitaciones individuales; ese valor será también el nombre visible.",
+  "Una invitación conjunta admite como máximo 5 personas; la 6ª fila con el mismo nombre da error.",
   "Marca con Sí, en Destinatario, a quien recibirá el enlace. Si no marcas a nadie, se elige automáticamente a quien tenga teléfono o email.",
   "El destinatario necesita al menos un teléfono o un email; las demás personas de una invitación conjunta pueden dejar ambos campos vacíos.",
   "El nombre es obligatorio; los apellidos son opcionales.",
@@ -347,7 +346,6 @@ const HELP_RULES = [
 const HELP_EXAMPLE_ROWS: Array<{
   grupo: string
   conjunta: string
-  nombreConjunto?: string
   nombre: string
   telefono: string
   email: string
@@ -367,8 +365,7 @@ const HELP_EXAMPLE_ROWS: Array<{
   },
   {
     grupo: "Familia Novio",
-    conjunta: "F1",
-    nombreConjunto: "Ana y Luis",
+    conjunta: "Ana y Luis",
     nombre: "Ana",
     telefono: "600111222",
     email: "ana@x.com",
@@ -378,18 +375,17 @@ const HELP_EXAMPLE_ROWS: Array<{
   },
   {
     grupo: "Familia Novio",
-    conjunta: "F1",
-    nombreConjunto: "Ana y Luis",
+    conjunta: "Ana y Luis",
     nombre: "Luis",
     telefono: "600333444",
     email: "",
     destinatario: "No",
-    resultado: "Su pareja en F1; no recibe el enlace.",
+    resultado: "Comparte invitación con Ana; no recibe el enlace.",
     status: "ok",
   },
   {
     grupo: "Familia Novio",
-    conjunta: "F2",
+    conjunta: "Eva y Mario",
     nombre: "Eva",
     telefono: "600555666",
     email: "",
@@ -399,12 +395,12 @@ const HELP_EXAMPLE_ROWS: Array<{
   },
   {
     grupo: "Familia Novio",
-    conjunta: "F2",
+    conjunta: "Eva y Mario",
     nombre: "Mario",
     telefono: "",
     email: "",
     destinatario: "",
-    resultado: "Su pareja en F2, sin contacto, no destinatario.",
+    resultado: "Comparte invitación con Eva; sin contacto, no es destinatario.",
     status: "ok",
   },
   {
@@ -459,27 +455,27 @@ const HELP_EXAMPLE_ROWS: Array<{
   },
   {
     grupo: "Grupo de seis",
-    conjunta: "T1",
+    conjunta: "Grupo de seis",
     nombre: "Seis",
     telefono: "600",
     email: "",
     destinatario: "",
-    resultado: "T1 ya tiene 5 personas; esta 6ª fila no entra.",
+    resultado: "Esta invitación ya tiene 5 personas; esta 6ª fila no entra.",
     status: "error",
   },
   {
     grupo: "X",
-    conjunta: "P1",
+    conjunta: "Bea e Iker",
     nombre: "Bea",
     telefono: "600",
     email: "",
     destinatario: "",
-    resultado: 'Comparte conjunta P1 con Iker pero con Grupo distinto ("X" vs "Y").',
+    resultado: 'Comparte invitación con Iker pero con Grupo distinto ("X" vs "Y").',
     status: "warning",
   },
   {
     grupo: "Y",
-    conjunta: "P1",
+    conjunta: "Bea e Iker",
     nombre: "Iker",
     telefono: "600",
     email: "",
@@ -489,7 +485,7 @@ const HELP_EXAMPLE_ROWS: Array<{
   },
   {
     grupo: "",
-    conjunta: "P2",
+    conjunta: "Uno y Dos",
     nombre: "Uno",
     telefono: "600",
     email: "",
@@ -499,12 +495,12 @@ const HELP_EXAMPLE_ROWS: Array<{
   },
   {
     grupo: "",
-    conjunta: "P2",
+    conjunta: "Uno y Dos",
     nombre: "Dos",
     telefono: "600",
     email: "",
     destinatario: "Sí",
-    resultado: "Misma invitación P2 que Uno; ambas filas dan error hasta que solo una diga Sí.",
+    resultado: "Misma invitación que Uno; ambas filas dan error hasta que solo una diga Sí.",
     status: "error",
   },
 ]
@@ -525,12 +521,11 @@ function ImportHelpPanel() {
       </ol>
 
       <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full min-w-[900px] border-collapse text-left">
+        <table className="w-full min-w-[760px] border-collapse text-left">
           <thead className="bg-secondary/40 text-foreground">
             <tr>
               <th className="px-2 py-1.5 font-medium">Grupo</th>
-              <th className="px-2 py-1.5 font-medium">Clave invitación conjunta</th>
-              <th className="px-2 py-1.5 font-medium">Nombre invitación conjunta</th>
+              <th className="px-2 py-1.5 font-medium">Invitación conjunta</th>
               <th className="px-2 py-1.5 font-medium">Nombre</th>
               <th className="px-2 py-1.5 font-medium">Teléfono</th>
               <th className="px-2 py-1.5 font-medium">Email</th>
@@ -543,7 +538,6 @@ function ImportHelpPanel() {
               <tr key={index} className="border-t border-border/60 align-top">
                 <td className="px-2 py-1.5">{row.grupo}</td>
                 <td className="px-2 py-1.5">{row.conjunta}</td>
-                <td className="px-2 py-1.5">{row.nombreConjunto ?? ""}</td>
                 <td className="px-2 py-1.5">{row.nombre}</td>
                 <td className="px-2 py-1.5">{row.telefono}</td>
                 <td className="px-2 py-1.5">{row.email}</td>

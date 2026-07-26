@@ -22,9 +22,8 @@ Guía manual para validar en el front y mediante Excel la gestión de invitacion
 ## Reglas que se deben validar
 
 - `Grupo` o `Grupo interno` solo organiza el panel de los novios. No aparece en el mensaje enviado.
-- `Clave invitación conjunta` une las filas que compartirán una invitación. La clave puede ser `F1`, `P1`, etc.
-- `Nombre invitación conjunta` es opcional y sí aparece en el mensaje y en la invitación pública.
-- Si no hay `Nombre invitación conjunta`, se muestran únicamente los nombres de pila de las personas unidas.
+- `Invitación conjunta (opcional)` une las filas que compartirán una invitación. Hay que repetir exactamente el mismo nombre en esas filas; ese texto también aparece en el mensaje y en la invitación pública.
+- Si `Invitación conjunta` está vacía, la fila crea una invitación individual. La aplicación genera internamente el identificador de cada invitación; no se necesita una columna adicional.
 - Una invitación conjunta admite entre 1 y 5 personas. La sexta debe rechazarse.
 - Una invitación para más de una persona utiliza `invitaros`; una individual utiliza `invitarte`.
 - El destinatario es la única persona marcada para recibir el enlace y debe tener teléfono o email.
@@ -136,28 +135,27 @@ Resultado esperado:
 - Confirmar que contiene estas columnas:
 
   1. `Grupo (opcional)`
-  2. `Clave invitación conjunta (opcional)`
-  3. `Nombre invitación conjunta (opcional)`
-  4. `Nombre *`
-  5. `Apellidos`
-  6. `Teléfono`
-  7. `Email`
-  8. `Destinatario (Sí/No)`
+  2. `Invitación conjunta (opcional)`
+  3. `Nombre *`
+  4. `Apellidos`
+  5. `Teléfono`
+  6. `Email`
+  7. `Destinatario (Sí/No)`
 
 Resultado esperado:
 
 - La hoja de instrucciones explica que Grupo no combina personas.
-- La clave une filas y el nombre conjunto es el texto visible.
+- `Invitación conjunta` une filas y el mismo texto es el nombre visible; su identificador interno se genera automáticamente.
 - Se indica el máximo de cinco personas.
 
 ### E-02 — Pareja con nombre visible
 
 Crear estas filas:
 
-| Grupo | Clave | Nombre invitación conjunta | Nombre | Apellidos | Teléfono | Destinatario |
+| Grupo | Invitación conjunta | Nombre | Apellidos | Teléfono | Destinatario |
 | --- | --- | --- | --- | --- | --- | --- |
-| QA Familia | F1 | Ana y Luis | Ana | Santos | `600111222` | Sí |
-| QA Familia | F1 | Ana y Luis | Luis | Gómez |  | No |
+| QA Familia | Ana y Luis | Ana | Santos | `600111222` | Sí |
+| QA Familia | Ana y Luis | Luis | Gómez |  | No |
 
 Resultado esperado:
 
@@ -165,19 +163,19 @@ Resultado esperado:
 - El mensaje utiliza `Ana y Luis` como nombre conjunto.
 - Se conserva `QA Familia` únicamente como Grupo del panel.
 
-### E-03 — Invitación conjunta sin nombre visible
+### E-03 — Invitación conjunta de cinco personas
 
-Crear cinco filas con la misma clave `F2` y dejar vacío `Nombre invitación conjunta`.
+Crear cinco filas con el mismo valor `Familia Ruiz` en `Invitación conjunta`.
 
 Resultado esperado:
 
 - Se crea una única invitación con cinco personas.
-- El mensaje utiliza los cinco nombres de pila unidos por `y`.
-- No aparecen apellidos ni el texto del Grupo.
+- El mensaje utiliza `Familia Ruiz` como nombre visible.
+- No aparece el texto del Grupo.
 
 ### E-04 — Sexta persona
 
-- Añadir una sexta fila con la clave `F2`.
+- Añadir una sexta fila con `Familia Ruiz` en `Invitación conjunta`.
 - Volver a cargar el archivo.
 
 Resultado esperado:
@@ -195,9 +193,9 @@ Resultado esperado:
 - Se crean tres invitaciones individuales.
 - Repetir Grupo no combina personas.
 
-### E-06 — Grupos distintos con la misma clave
+### E-06 — Grupos distintos con la misma invitación conjunta
 
-Crear dos filas con la clave `F3`, pero con Grupos distintos.
+Crear dos filas con `Ana y Luis` en `Invitación conjunta`, pero con Grupos distintos.
 
 Resultado esperado:
 
@@ -210,13 +208,13 @@ Resultado esperado:
 
 - Usar un archivo antiguo que tenga la columna `Invitación conjunta (opcional)`.
 - Repetir el mismo valor en las filas que deban compartir invitación.
-- No añadir la nueva columna de nombre conjunto.
+- No añadir columnas de clave o de nombre separado.
 
 Resultado esperado:
 
 - El archivo se importa sin error.
-- La columna antigua se interpreta como clave de unión.
-- Al no existir nombre conjunto, el mensaje utiliza los nombres de pila.
+- La columna antigua se interpreta como agrupador y nombre visible.
+- El mensaje utiliza el valor de `Invitación conjunta`.
 
 ### E-08 — Teléfonos en Excel
 
