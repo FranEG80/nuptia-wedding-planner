@@ -50,12 +50,10 @@ export async function generateMetadata({
     )
   const greeting = invitationGreeting ? `${invitationGreeting}, e` : "E"
   const description = `${greeting}stáis invitados a la boda de ${invitation.wedding.displayName} el ${dateLabel} en ${invitation.wedding.primaryCity}.`
-  let [domain, protocol] = process.env.APP_URL.split("://"), baseUrl, customOgImage;
+  let customOgImage: string | undefined
+
   if (invitation.design.templateId === "maria-daniela") {
-    domain = MARIA_DANIELA_CUSTOM_DOMAIN
-    protocol = "https"
-    baseUrl = `${protocol}://${domain}`
-    customOgImage = `${baseUrl}/images/templates/maria-daniela/ogimage/opengraph_image.jpg`
+    customOgImage = `https://${MARIA_DANIELA_CUSTOM_DOMAIN}/images/templates/maria-daniela/ogimage/opengraph_image.jpg`
   }
 
   if (customOgImage) {

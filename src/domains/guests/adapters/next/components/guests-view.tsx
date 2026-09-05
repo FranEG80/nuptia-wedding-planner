@@ -89,6 +89,7 @@ export function GuestsView({
   const [formError, setFormError] = useState<string | null>(null)
   const [isSaving, startSaving] = useTransition()
   const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [isNavigating, startNavigating] = useTransition()
 
   useEffect(() => {
     if (tab !== "mesas" || isDemo || seatingParties !== null) {
@@ -140,7 +141,11 @@ export function GuestsView({
     }
 
     const queryString = params.toString()
-    router[mode](`${pathname}${queryString ? `?${queryString}` : ""}`)
+    const url = `${pathname}${queryString ? `?${queryString}` : ""}`
+
+    startNavigating(() => {
+      router[mode](url)
+    })
   }
 
   function handleSearchChange(value: string) {
@@ -620,6 +625,7 @@ export function GuestsView({
           pageSize={pageSize}
           total={total}
           onPageChange={handlePageChange}
+          isPending={isNavigating}
         />
       ) : isDemo ? (
         <SeatingBoard

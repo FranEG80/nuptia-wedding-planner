@@ -22,12 +22,13 @@ export async function generateMetadata({
   const title = `${wedding.displayName} · ${wedding.dateLabel}`
   const description = `Toda la información de la boda de ${wedding.displayName} en ${wedding.city}.`
 
-  let [domain, protocol] = process.env.APP_URL.split("://"), baseUrl, customOgImage;
-  if (wedding.partnerNames.some((name) => name.toLowerCase() === "maria daniela") && wedding.partnerNames.some((name) => name.toLowerCase() === "nacho")) {
-    domain = MARIA_DANIELA_CUSTOM_DOMAIN
-    protocol = "https"
-    baseUrl = `${protocol}://${domain}`
-    customOgImage = `${baseUrl}/images/templates/maria-daniela/ogimage/opengraph_image.jpg`
+  let customOgImage: string | undefined
+
+  if (
+    wedding.partnerNames.some((name) => name.toLowerCase() === "maria daniela") &&
+    wedding.partnerNames.some((name) => name.toLowerCase() === "nacho")
+  ) {
+    customOgImage = `https://${MARIA_DANIELA_CUSTOM_DOMAIN}/images/templates/maria-daniela/ogimage/opengraph_image.jpg`
   }
 
   if (customOgImage) {

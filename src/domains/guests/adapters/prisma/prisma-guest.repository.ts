@@ -1147,6 +1147,11 @@ export class PrismaGuestRepository implements GuestRepository {
           : response.notes.trim()
         : ""
 
+      const composedName = [response.firstName, response.lastName]
+        .map((part) => part?.trim())
+        .filter(Boolean)
+        .join(" ")
+
       statements.push(
         this.d1
           .prepare(
@@ -1155,12 +1160,7 @@ export class PrismaGuestRepository implements GuestRepository {
              WHERE id = ? AND partyId = ?`,
           )
           .bind(
-            response.firstName !== undefined && response.lastName !== undefined
-              ? [response.firstName, response.lastName]
-                  .map((part) => part?.trim())
-                  .filter(Boolean)
-                  .join(" ")
-              : guest.name,
+            composedName || guest.name,
             response.email === undefined
               ? guest.email
               : normalizeContact(response.email),

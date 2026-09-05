@@ -470,15 +470,14 @@ export const demoGuestRepository: GuestRepository = {
         return guest
       }
 
+      const composedName = [response.firstName, response.lastName]
+        .map((part) => part?.trim())
+        .filter(Boolean)
+        .join(" ")
+
       return {
         ...guest,
-        name:
-          response.firstName !== undefined && response.lastName !== undefined
-            ? [response.firstName, response.lastName]
-                .map((part) => part?.trim())
-                .filter(Boolean)
-                .join(" ")
-            : guest.name,
+        name: composedName || guest.name,
         email: response.email === undefined ? guest.email : response.email,
         phone: response.phone === undefined ? guest.phone : response.phone,
         notes: response.attending ? response.notes ?? guest.notes : "",

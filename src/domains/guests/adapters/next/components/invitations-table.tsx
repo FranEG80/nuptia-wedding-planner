@@ -287,6 +287,7 @@ export function InvitationsTable({
   pageSize,
   total,
   onPageChange,
+  isPending,
 }: {
   parties: InvitationPartyDto[]
   onViewDetail: (party: InvitationPartyDto) => void
@@ -302,6 +303,7 @@ export function InvitationsTable({
   pageSize: number
   total: number
   onPageChange: (page: number) => void
+  isPending: boolean
 }) {
   const [queryInput, setQueryInput] = useState(search)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -406,28 +408,37 @@ export function InvitationsTable({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-        <span>
+        <span className="inline-flex items-center gap-2">
           {total} {total === 1 ? "invitación" : "invitaciones"} · Página {page} de{" "}
           {totalPages}
+          {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
         </span>
         <div className="flex gap-2">
           <button
             type="button"
-            disabled={page <= 1}
+            disabled={page <= 1 || isPending}
             onClick={() => onPageChange(page - 1)}
             className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <ChevronLeft className="h-4 w-4" />
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
             Anterior
           </button>
           <button
             type="button"
-            disabled={page >= totalPages}
+            disabled={page >= totalPages || isPending}
             onClick={() => onPageChange(page + 1)}
             className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Siguiente
-            <ChevronRight className="h-4 w-4" />
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>
