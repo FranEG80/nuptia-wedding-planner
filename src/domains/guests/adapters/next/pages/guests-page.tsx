@@ -1,7 +1,9 @@
 import { requireAppSession } from "@/core/auth"
+import { env } from "@/core/config/env"
 import { getRepositories } from "@/composition/repositories"
 import { getCurrentWeddingId } from "@/composition/current-wedding"
 import { DEFAULT_INVITATION_CONTENT } from "@/domains/invitations/domain/invitation-design"
+import { MARIA_DANIELA_CUSTOM_DOMAIN } from "@/domains/invitations/domain/invitation-template-options"
 import { getCurrentInvitationDesignUseCase } from "@/domains/invitations/application/use-cases/get-current-invitation-design.use-case"
 import { searchInvitationPartiesUseCase } from "@/domains/guests/application/use-cases/search-invitation-parties.use-case"
 import { listTablesUseCase } from "@/domains/guests/application/use-cases/list-tables.use-case"
@@ -45,6 +47,7 @@ export async function GuestsPage({
         status={status}
         initialTables={[]}
         initialWhatsappMessage={DEFAULT_INVITATION_CONTENT.whatsappMessage}
+        publicInviteBaseUrl={env.APP_URL}
       />
     )
   }
@@ -68,6 +71,14 @@ export async function GuestsPage({
     }),
   ])
 
+  // El dominio propio de esta boda ya sirve /i/[token] vía el rewrite de
+  // middleware.ts; los enlaces que compartimos deben apuntar ahí en vez de
+  // al dominio del panel (localhost, *.fenrig.dev, etc.).
+  const publicInviteBaseUrl =
+    design?.templateId === "maria-daniela"
+      ? `https://${MARIA_DANIELA_CUSTOM_DOMAIN}`
+      : env.APP_URL
+
   return (
     <GuestsView
       key={`${page}-${search}-${status}`}
@@ -81,6 +92,7 @@ export async function GuestsPage({
       initialWhatsappMessage={
         design?.content.whatsappMessage ?? DEFAULT_INVITATION_CONTENT.whatsappMessage
       }
+      publicInviteBaseUrl={publicInviteBaseUrl}
     />
   )
 }

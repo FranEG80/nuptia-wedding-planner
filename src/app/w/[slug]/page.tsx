@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 
+import { MARIA_DANIELA_CUSTOM_DOMAIN } from "@/domains/invitations/domain/invitation-template-options"
 import { PublicWeddingSitePage } from "@/domains/wedding-sites/adapters/next/pages/public-wedding-site-page"
 import { getPublicWeddingExperience } from "@/domains/wedding-sites/adapters/next/pages/public-wedding-site-page"
 
@@ -23,7 +24,7 @@ export async function generateMetadata({
 
   let [domain, protocol] = process.env.APP_URL.split("://"), baseUrl, customOgImage;
   if (wedding.partnerNames.some((name) => name.toLowerCase() === "maria daniela") && wedding.partnerNames.some((name) => name.toLowerCase() === "nacho")) {
-    domain = "bodamariadanielaynacho.es"
+    domain = MARIA_DANIELA_CUSTOM_DOMAIN
     protocol = "https"
     baseUrl = `${protocol}://${domain}`
     customOgImage = `${baseUrl}/images/templates/maria-daniela/ogimage/opengraph_image.jpg`

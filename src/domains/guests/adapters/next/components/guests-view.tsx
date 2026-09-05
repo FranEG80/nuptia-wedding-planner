@@ -54,6 +54,7 @@ export function GuestsView({
   pageSize,
   search,
   status,
+  publicInviteBaseUrl,
 }: {
   initialParties: InvitationPartyDto[]
   initialTables: TableDto[]
@@ -63,6 +64,7 @@ export function GuestsView({
   pageSize: number
   search: string
   status: InvitationPartyStatusFilter
+  publicInviteBaseUrl: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -464,7 +466,7 @@ export function GuestsView({
 
     setActionError(null)
 
-    const inviteUrl = `${window.location.origin}/i/${party.inviteToken}`
+    const inviteUrl = `${publicInviteBaseUrl}/i/${party.inviteToken}`
     const message = buildInvitationMessage(party, initialWhatsappMessage, inviteUrl)
 
     window.open(

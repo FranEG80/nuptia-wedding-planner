@@ -335,6 +335,12 @@ export const INVITATION_TEMPLATES = [
 
 export type InvitationTemplateId = (typeof INVITATION_TEMPLATES)[number]["id"]
 
+// The only wedding on this template with its own public domain today.
+// Referenced from middleware.ts (domain -> /w/[slug] rewrite), the public
+// invitation/wedding-site pages (custom OG image), and anywhere we build a
+// guest-facing share link for this wedding.
+export const MARIA_DANIELA_CUSTOM_DOMAIN = "bodamariadanielaynacho.es"
+
 export const DEFAULT_INVITATION_TEMPLATE_ID: InvitationTemplateId = "bouquet"
 
 export function normalizeInvitationTemplateId(value: string | undefined): InvitationTemplateId {
