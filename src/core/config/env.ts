@@ -4,6 +4,10 @@ import { z } from "zod"
 
 const envSchema = z.object({
   APP_URL: z.string().url().default("http://localhost:3000"),
+  DATABASE_QUERY_LOG_ENABLED: z
+    .string()
+    .default("false")
+    .transform((value) => value === "true"),
   AUTH_PROVIDER: z.enum(["better-auth", "supabase"]).default("better-auth"),
   AUTH_ENFORCE: z
     .string()

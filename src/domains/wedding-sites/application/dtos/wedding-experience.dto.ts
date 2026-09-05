@@ -37,13 +37,20 @@ export interface WeddingExperienceMenuCourse {
   id: string
   course: string
   name: string
-  imageSrc: string
+  items: string[]
+  imageSrc?: string
 }
 
 export interface WeddingExperienceGalleryPhoto {
   id: string
   src: string
   alt: string
+}
+
+export interface WeddingExperienceSignature {
+  id: string
+  name: string
+  message: string
 }
 
 export interface WeddingExperienceTrack {
@@ -55,14 +62,76 @@ export interface WeddingExperienceTrack {
 /**
  * Las subpáginas de menú, música y galería todavía no tienen datos propios en
  * la base de datos, así que todos los templates comparten estos marcadores.
+ * El menú se publica como propuesta: los platos se confirman con el catering.
  */
 const DEFAULT_MENU_COURSES: WeddingExperienceMenuCourse[] = [
-  { id: "starter", course: "Entrante", name: "Burrata con tomate de temporada", imageSrc: "/images/dish-starter.webp" },
-  { id: "main", course: "Principal", name: "Lubina salvaje con espárragos", imageSrc: "/images/dish-main.webp" },
-  { id: "dessert", course: "Postre", name: "Tarta de limón y frambuesa", imageSrc: "/images/dish-dessert.webp" },
+  {
+    id: "starters",
+    course: "Entrantes",
+    name: "Para ir abriendo boca",
+    items: [
+      "Jamón ibérico cortado a cuchillo",
+      "Ensaladilla de gambas y aguacate",
+      "Croquetas cremosas de puchero",
+      "Tartar de atún rojo con mango",
+    ],
+    imageSrc: "/images/dish-starter.webp",
+  },
+  {
+    id: "main",
+    course: "Plato principal",
+    name: "El plato de la noche",
+    items: [
+      "Lubina salvaje con espárragos verdes",
+      "Solomillo de ternera con reducción de Pedro Ximénez",
+      "Opción vegetariana y sin gluten a petición",
+    ],
+    imageSrc: "/images/dish-main.webp",
+  },
+  {
+    id: "dessert",
+    course: "Postre",
+    name: "El dulce final",
+    items: ["Tarta nupcial", "Tarta de limón y frambuesa", "Petit fours y café"],
+    imageSrc: "/images/dish-dessert.webp",
+  },
+  {
+    id: "drinks",
+    course: "Bebidas",
+    name: "Para brindar",
+    items: [
+      "Vino blanco D.O. Rueda",
+      "Vino tinto D.O. Ribera del Duero",
+      "Cerveza, refrescos y agua",
+      "Cava para el brindis y barra libre",
+    ],
+  },
 ]
 
-const DEFAULT_GALLERY_PHOTOS: WeddingExperienceGalleryPhoto[] = [
+/**
+ * Contenido de ejemplo: solo para la vista previa del editor. La web publicada
+ * no muestra galería ni firmas hasta que existen las reales.
+ */
+export const SAMPLE_GUESTBOOK_SIGNATURES: WeddingExperienceSignature[] = [
+  {
+    id: "sample-1",
+    name: "Marta y Javi",
+    message:
+      "Qué ganas de veros dar el sí. Gracias por dejarnos formar parte de un día tan vuestro.",
+  },
+  {
+    id: "sample-2",
+    name: "Abuela Carmen",
+    message: "Que no os falte nunca la salud, la paciencia y las ganas de reíros juntos.",
+  },
+  {
+    id: "sample-3",
+    name: "Los del grupo de Granada",
+    message: "Prometemos ser los últimos en salir de la pista. Os queremos.",
+  },
+]
+
+export const SAMPLE_GALLERY_PHOTOS: WeddingExperienceGalleryPhoto[] = [
   { id: "gallery-1", src: "/images/gallery-1.webp", alt: "Detalle floral de la celebración" },
   { id: "gallery-2", src: "/images/gallery-2.webp", alt: "Mesa preparada para el banquete" },
   { id: "couple", src: "/images/couple-hero.webp", alt: "La pareja el día de la boda" },
@@ -97,9 +166,32 @@ export interface WeddingExperienceContent {
     whatsappUrl: string
   }>
   menu: WeddingExperienceMenuCourse[]
+  /** Fotos reales subidas por los novios. Vacío hasta que las suban. */
   gallery: WeddingExperienceGalleryPhoto[]
+  /** Firmas y felicitaciones dejadas por los invitados desde su invitación. */
+  guestbook: WeddingExperienceSignature[]
   playlist: WeddingExperienceTrack[]
+  /** Playlist pública de Spotify. Cuando existe, se incrusta en la subpágina de música. */
+  spotifyPlaylistUrl: string | null
+  /** Acuerdo de alojamiento con el hotel, si la pareja lo ha negociado. */
+  accommodation: {
+    code: string
+    note: string
+  } | null
   enabledModules: WeddingSiteModuleType[]
+}
+
+/**
+ * Playlist provisional mientras los novios no publiquen la suya. El embed de
+ * Spotify es un iframe público: no necesita API ni credenciales.
+ */
+export const DEMO_SPOTIFY_PLAYLIST = "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
+
+/** Convierte cualquier URL o URI de playlist de Spotify en su URL de embed. */
+export function spotifyEmbedUrl(playlistUrl: string) {
+  const id = playlistUrl.match(/playlist[/:]([a-zA-Z0-9]+)/)?.[1]
+
+  return id ? `https://open.spotify.com/embed/playlist/${id}?theme=0` : null
 }
 
 function mapsUrl(query: string) {
@@ -140,8 +232,9 @@ export function createNachoWeddingExperience(
 
   return {
     slug: NACHO_WEDDING_SLUG,
-    partnerNames: [nachoData.husband.name, nachoData.wife.name],
-    displayName: `${nachoData.husband.name} & ${nachoData.wife.name}`,
+    // Mismo orden que la invitación y que el dominio de la boda.
+    partnerNames: [nachoData.wife.name, nachoData.husband.name],
+    displayName: `${nachoData.wife.name} & ${nachoData.husband.name}`,
     dateIso: `${nachoData.wedding.date}T${nachoData.wedding.time}:00+02:00`,
     dateLabel: "16 de octubre de 2026",
     city: nachoData.wedding.location.city,
@@ -201,8 +294,14 @@ export function createNachoWeddingExperience(
       whatsappUrl: whatsappUrl(person.phone),
     })),
     menu: DEFAULT_MENU_COURSES,
-    gallery: DEFAULT_GALLERY_PHOTOS,
+    gallery: [],
+    guestbook: [],
     playlist: DEFAULT_PLAYLIST,
+    spotifyPlaylistUrl: DEMO_SPOTIFY_PLAYLIST,
+    accommodation: {
+      code: "BODAD&N2026",
+      note: "Tenemos un código para reservar directamente en la web del hotel con un descuento adicional sobre la tarifa publicada. Es válido para todas las habitaciones, en régimen de alojamiento y desayuno.",
+    },
     enabledModules: enabledModulesFromDtos(modules),
   }
 }
@@ -264,8 +363,11 @@ function genericExperience(
     gifts: null,
     contacts: [],
     menu: DEFAULT_MENU_COURSES,
-    gallery: DEFAULT_GALLERY_PHOTOS,
+    gallery: [],
+    guestbook: [],
     playlist: DEFAULT_PLAYLIST,
+    spotifyPlaylistUrl: DEMO_SPOTIFY_PLAYLIST,
+    accommodation: null,
     enabledModules: enabledModulesFromDtos(modules),
   }
 }

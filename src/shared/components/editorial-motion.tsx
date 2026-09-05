@@ -42,12 +42,16 @@ export function EditorialMotion({
         gsap.utils.toArray<HTMLElement>("[data-script-reveal]").forEach((element) => {
           gsap.fromTo(
             element,
-            { clipPath: "inset(0 100% 0 0)", autoAlpha: 0.25 },
             {
-              clipPath: "inset(0 0% 0 0)",
+              clipPath: "inset(-0.4em 100% -0.4em -0.55em)",
+              autoAlpha: 0.25,
+            },
+            {
+              clipPath: "inset(-0.4em -0.55em -0.4em -0.55em)",
               autoAlpha: 1,
               duration: 1.35,
               ease: "power2.inOut",
+              clearProps: "clipPath",
               scrollTrigger: {
                 trigger: element,
                 start: "top 88%",
