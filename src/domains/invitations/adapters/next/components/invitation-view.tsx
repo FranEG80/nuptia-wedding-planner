@@ -214,6 +214,9 @@ export function InvitationView({
         </header>
 
         <Section icon={Layers} title="Selector de template">
+          <p className="mb-3 text-sm text-muted-foreground">
+            El template elegido se aplica tanto a la invitación digital como a la web de boda.
+          </p>
           <div className="grid gap-3">
             {INVITATION_TEMPLATES.filter((template) =>
               bespoke

@@ -1,13 +1,22 @@
 "use client"
 
 import { Armchair, LayoutList, Upload, UserPlus } from "lucide-react"
-import { useState, useTransition } from "react"
+import { usePathname, useRouter } from "next/navigation"
+import {
+  useEffect,
+  useState,
+  useTransition,
+  type SetStateAction,
+} from "react"
 
 import {
   createInvitationPartyAction,
   deleteInvitationPartyAction,
+  getInvitationPartyDetailAction,
   linkInvitationPartyAction,
+  listAllInvitationPartiesAction,
   markGuestPartiesInvitedAction,
+  respondToInvitationPartyAction,
   updateInvitationPartyAction,
 } from "@/domains/guests/adapters/next/actions"
 import {
@@ -17,6 +26,10 @@ import {
 } from "@/domains/guests/adapters/next/components/invitation-party-dialog"
 import { ImportGuestsDialog } from "@/domains/guests/adapters/next/components/import-guests-dialog"
 import { InvitationDetailDialog } from "@/domains/guests/adapters/next/components/invitation-detail-dialog"
+import {
+  ConfirmAttendanceDialog,
+  type ConfirmAttendancePayload,
+} from "@/domains/guests/adapters/next/components/confirm-attendance-dialog"
 import { InvitationsTable } from "@/domains/guests/adapters/next/components/invitations-table"
 import { SeatingBoard } from "@/domains/guests/adapters/next/components/seating-board"
 import { buildInvitationMessage } from "@/domains/guests/application/build-invitation-message"
@@ -27,6 +40,7 @@ import type {
   InvitationPartyGuestDto,
 } from "@/domains/guests/application/dtos/invitation-party.dto"
 import type { TableDto } from "@/domains/guests/application/dtos/table.dto"
+import type { InvitationPartyStatusFilter } from "@/domains/guests/domain/ports/guest.repository"
 import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 import { useDemoState } from "@/core/demo/use-demo-state"
 import { cn } from "@/shared/lib/utils"
@@ -35,16 +49,34 @@ export function GuestsView({
   initialParties,
   initialTables,
   initialWhatsappMessage,
+  total,
+  page,
+  pageSize,
+  search,
+  status,
+  publicInviteBaseUrl,
 }: {
   initialParties: InvitationPartyDto[]
   initialTables: TableDto[]
   initialWhatsappMessage: string
+  total: number
+  page: number
+  pageSize: number
+  search: string
+  status: InvitationPartyStatusFilter
+  publicInviteBaseUrl: string
 }) {
+  const router = useRouter()
+  const pathname = usePathname()
   const [parties, setParties, isDemo] = useDemoState("guest-parties", initialParties)
   const [tables, setTables] = useDemoState("guest-tables", initialTables)
   const [tab, setTab] = useState<"lista" | "mesas">("lista")
   const [detailParty, setDetailParty] = useState<InvitationPartyDto | null>(null)
+  const [confirmParty, setConfirmParty] = useState<InvitationPartyDto | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+
+  const [seatingParties, setSeatingParties] = useState<InvitationPartyDto[] | null>(null)
+  const [seatingError, setSeatingError] = useState<string | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingParty, setEditingParty] = useState<InvitationPartyDto | null>(null)
@@ -57,6 +89,85 @@ export function GuestsView({
   const [formError, setFormError] = useState<string | null>(null)
   const [isSaving, startSaving] = useTransition()
   const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [isNavigating, startNavigating] = useTransition()
+
+  useEffect(() => {
+    if (tab !== "mesas" || isDemo || seatingParties !== null) {
+      return
+    }
+
+    let cancelled = false
+
+    listAllInvitationPartiesAction()
+      .then((all) => {
+        if (!cancelled) {
+          setSeatingParties(all)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSeatingError("No se pudo cargar la lista completa de invitados.")
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [tab, isDemo, seatingParties])
+
+  function navigate(
+    next: {
+      page?: number
+      search?: string
+      status?: InvitationPartyStatusFilter
+    },
+    mode: "push" | "replace" = "push",
+  ) {
+    const nextSearch = next.search ?? search
+    const nextStatus = next.status ?? status
+    const nextPage = next.page ?? page
+    const params = new URLSearchParams()
+
+    if (nextSearch.trim()) {
+      params.set("q", nextSearch.trim())
+    }
+
+    if (nextStatus !== "todos") {
+      params.set("estado", nextStatus)
+    }
+
+    if (nextPage > 1) {
+      params.set("page", String(nextPage))
+    }
+
+    const queryString = params.toString()
+    const url = `${pathname}${queryString ? `?${queryString}` : ""}`
+
+    startNavigating(() => {
+      router[mode](url)
+    })
+  }
+
+  function handleSearchChange(value: string) {
+    navigate({ search: value, page: 1 }, "replace")
+  }
+
+  function handleStatusChange(nextStatus: InvitationPartyStatusFilter) {
+    navigate({ status: nextStatus, page: 1 })
+  }
+
+  function handlePageChange(nextPage: number) {
+    navigate({ page: nextPage })
+  }
+
+  function updateSeatingParties(update: SetStateAction<InvitationPartyDto[]>) {
+    setSeatingParties((current) => {
+      const base = current ?? []
+      return typeof update === "function"
+        ? (update as (value: InvitationPartyDto[]) => InvitationPartyDto[])(base)
+        : update
+    })
+  }
 
   function openCreateDialog() {
     setEditingParty(null)
@@ -316,6 +427,16 @@ export function GuestsView({
     })
   }
 
+  async function handleViewDetail(party: InvitationPartyDto) {
+    if (isDemo) {
+      setDetailParty(party)
+      return
+    }
+
+    const full = await getInvitationPartyDetailAction(party.inviteToken)
+    setDetailParty(full ?? party)
+  }
+
   async function handleDeleteParty(party: InvitationPartyDto) {
     if (
       !window.confirm(
@@ -350,7 +471,7 @@ export function GuestsView({
 
     setActionError(null)
 
-    const inviteUrl = `${window.location.origin}/i/${party.inviteToken}`
+    const inviteUrl = `${publicInviteBaseUrl}/i/${party.inviteToken}`
     const message = buildInvitationMessage(party, initialWhatsappMessage, inviteUrl)
 
     window.open(
@@ -371,10 +492,73 @@ export function GuestsView({
     }
 
     try {
-      const nextParties = await markGuestPartiesInvitedAction([party.id])
-      setParties(nextParties)
+      const ok = await markGuestPartiesInvitedAction([party.id])
+
+      if (ok) {
+        setParties((current) =>
+          current.map((item) =>
+            item.id === party.id
+              ? { ...item, invite: "Enviada", compositionLocked: true }
+              : item,
+          ),
+        )
+      } else {
+        setActionError("No se pudo marcar la invitación como enviada.")
+      }
     } catch {
       setActionError("No se pudo marcar la invitación como enviada.")
+    }
+  }
+
+  async function handleConfirmAttendance(
+    party: InvitationPartyDto,
+    payload: ConfirmAttendancePayload,
+  ): Promise<boolean> {
+    if (isDemo) {
+      setParties((current) =>
+        current.map((item) => {
+          if (item.id !== party.id) {
+            return item
+          }
+
+          return {
+            ...item,
+            guests: item.guests.map((guest) => {
+              const response = payload.guests.find((g) => g.guestId === guest.id)
+
+              if (!response) {
+                return guest
+              }
+
+              return {
+                ...guest,
+                rsvp: response.attending ? "Confirmado" : "Declinado",
+                notes: response.notes,
+              }
+            }),
+          }
+        }),
+      )
+      return true
+    }
+
+    try {
+      const updated = await respondToInvitationPartyAction({
+        token: party.inviteToken,
+        guests: payload.guests,
+        message: payload.message,
+      })
+
+      if (!updated) {
+        return false
+      }
+
+      setParties((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      )
+      return true
+    } catch {
+      return false
     }
   }
 
@@ -428,15 +612,37 @@ export function GuestsView({
       {tab === "lista" ? (
         <InvitationsTable
           parties={parties}
-          onViewDetail={setDetailParty}
+          onViewDetail={handleViewDetail}
           onEdit={openEditDialog}
           onDelete={handleDeleteParty}
           onSend={handleSendWhatsapp}
+          onConfirmAttendance={setConfirmParty}
+          search={search}
+          onSearchChange={handleSearchChange}
+          status={status}
+          onStatusChange={handleStatusChange}
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={handlePageChange}
+          isPending={isNavigating}
         />
-      ) : (
+      ) : isDemo ? (
         <SeatingBoard
           parties={parties}
           setParties={setParties}
+          tables={tables}
+          setTables={setTables}
+          isDemo={isDemo}
+        />
+      ) : seatingParties === null ? (
+        <p className="rounded-2xl border border-border bg-card px-4 py-12 text-center text-sm text-muted-foreground">
+          {seatingError ?? "Cargando distribución de mesas…"}
+        </p>
+      ) : (
+        <SeatingBoard
+          parties={seatingParties}
+          setParties={updateSeatingParties}
           tables={tables}
           setTables={setTables}
           isDemo={isDemo}
@@ -476,6 +682,16 @@ export function GuestsView({
             setDetailParty(null)
           }
         }}
+      />
+
+      <ConfirmAttendanceDialog
+        party={confirmParty}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmParty(null)
+          }
+        }}
+        onSubmit={handleConfirmAttendance}
       />
 
       <ImportGuestsDialog

@@ -24,6 +24,10 @@ const envSchema = z.object({
   SPOTIFY_CLIENT_ID: z.string().optional().default(""),
   SPOTIFY_CLIENT_SECRET: z.string().optional().default(""),
   SPOTIFY_REDIRECT_URI: z.string().url().default("http://localhost:3000/api/integrations/spotify/callback"),
+  WEDDING_SITE_EDITOR_ENABLED: z
+    .string()
+    .default("false")
+    .transform((value) => value === "true"),
 })
 
 const d1HttpEnvSchema = z.object({

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 
+import { MARIA_DANIELA_CUSTOM_DOMAIN } from "@/domains/invitations/domain/invitation-template-options"
 import { PublicWeddingSitePage } from "@/domains/wedding-sites/adapters/next/pages/public-wedding-site-page"
 import { getPublicWeddingExperience } from "@/domains/wedding-sites/adapters/next/pages/public-wedding-site-page"
 
@@ -9,22 +10,25 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const wedding = await getPublicWeddingExperience(slug)
+  const experience = await getPublicWeddingExperience(slug)
 
-  if (!wedding) {
+  if (!experience) {
     return { title: "Boda | Nuptia" }
   }
+
+  const wedding = experience.content
 
 
   const title = `${wedding.displayName} · ${wedding.dateLabel}`
   const description = `Toda la información de la boda de ${wedding.displayName} en ${wedding.city}.`
 
-  let [domain, protocol] = process.env.APP_URL.split("://"), baseUrl, customOgImage;
-  if (wedding.partnerNames.some((name) => name.toLowerCase() === "maria daniela") && wedding.partnerNames.some((name) => name.toLowerCase() === "nacho")) {
-    domain = "bodamariadanielaynacho.es"
-    protocol = "https"
-    baseUrl = `${protocol}://${domain}`
-    customOgImage = `${baseUrl}/images/templates/maria-daniela/ogimage/opengraph_image.jpg`
+  let customOgImage: string | undefined
+
+  if (
+    wedding.partnerNames.some((name) => name.toLowerCase() === "maria daniela") &&
+    wedding.partnerNames.some((name) => name.toLowerCase() === "nacho")
+  ) {
+    customOgImage = `https://${MARIA_DANIELA_CUSTOM_DOMAIN}/images/templates/maria-daniela/ogimage/opengraph_image.jpg`
   }
 
   if (customOgImage) {

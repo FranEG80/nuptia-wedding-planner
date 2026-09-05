@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "src/domains/wedding-sites/adapters/next/components/website-view.module.css"
+        ],
+        "createdAt": "2026-08-20T17:29:19.838Z",
+        "reason": "Claude: .frame anima width porque simula el viewport (390/768/1440px) de un iframe; transform escalaria el contenido en vez de re-maquetarlo. Codigo preexistente, solo desplazado de linea."
+      }
+    ]
+  }
+}

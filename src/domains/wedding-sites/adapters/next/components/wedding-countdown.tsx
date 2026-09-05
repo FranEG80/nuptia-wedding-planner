@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 
 function remainingUntil(dateIso: string) {
   const difference = Math.max(0, new Date(dateIso).getTime() - Date.now())
@@ -14,8 +14,9 @@ function remainingUntil(dateIso: string) {
 }
 
 export function WeddingCountdown({ dateIso }: { dateIso: string }) {
-  const initial = useMemo(() => remainingUntil(dateIso), [dateIso])
-  const [remaining, setRemaining] = useState(initial)
+  // El servidor y el navegador no comparten reloj: se pinta a cero en ambos y
+  // el valor real llega en el primer efecto, evitando un error de hidratación.
+  const [remaining, setRemaining] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
   useEffect(() => {
     const update = () => setRemaining(remainingUntil(dateIso))

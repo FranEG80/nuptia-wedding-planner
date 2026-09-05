@@ -3,11 +3,16 @@
 import Image from "next/image"
 import { useMemo, useState, useTransition } from "react"
 
-import { updateWeddingSiteModuleAction } from "@/domains/wedding-sites/adapters/next/actions"
+import {
+  updateWeddingSiteModuleAction,
+  updateWeddingSiteTemplateAction,
+} from "@/domains/wedding-sites/adapters/next/actions"
 import { mariaDanielaAssets } from "@/domains/wedding-sites/adapters/next/components/maria-daniela-assets"
 import { useDemoState } from "@/core/demo/use-demo-state"
+import { INVITATION_TEMPLATES } from "@/domains/invitations/domain/invitation-template-options"
 import type { WeddingExperienceContent } from "@/domains/wedding-sites/application/dtos/wedding-experience.dto"
 import type { WeddingSiteModuleDto } from "@/domains/wedding-sites/application/dtos/wedding-site-module.dto"
+import type { WeddingSiteTemplateId, WeddingSiteTheme } from "@/domains/wedding-sites/domain/wedding-site-theme"
 
 import styles from "./website-view.module.css"
 
@@ -32,15 +37,23 @@ type Device = keyof typeof deviceWidths
 export function WebsiteView({
   modules,
   experience,
+  theme,
+  bespoke = false,
 }: {
   modules: WeddingSiteModuleDto[]
   experience: WeddingExperienceContent
+  theme: WeddingSiteTheme
+  bespoke?: boolean
 }) {
   const [active, setActive, isDemo] = useDemoState<
     Record<WeddingSiteModuleDto["type"], boolean>
   >(
     "site-modules",
     Object.fromEntries(modules.map((module) => [module.type, module.enabled])) as Record<WeddingSiteModuleDto["type"], boolean>,
+  )
+  const [templateId, setTemplateId] = useDemoState<WeddingSiteTemplateId>(
+    "invitation-design-template",
+    theme.templateId,
   )
   const [device, setDevice] = useState<Device>("desktop")
   const [message, setMessage] = useState("Todos los cambios están guardados")
@@ -49,7 +62,52 @@ export function WebsiteView({
     () => Object.entries(active).filter(([, enabled]) => !enabled).map(([type]) => type).join(","),
     [active],
   )
-  const previewUrl = `/app/web-preview${hidden ? `?hidden=${encodeURIComponent(hidden)}` : ""}`
+  const previewUrl = useMemo(() => {
+    const params = new URLSearchParams({ template: templateId })
+
+    if (hidden) {
+      params.set("hidden", hidden)
+    }
+
+    return `/app/web-preview?${params.toString()}`
+  }, [hidden, templateId])
+  const availableTemplates = INVITATION_TEMPLATES.filter((template) =>
+    bespoke
+      ? template.id === "maria-daniela"
+      : !(isDemo && template.id === "maria-daniela"),
+  )
+
+  function selectTemplate(nextTemplateId: WeddingSiteTemplateId) {
+    if (nextTemplateId === templateId) {
+      return
+    }
+
+    const previousTemplateId = templateId
+    setTemplateId(nextTemplateId)
+
+    if (isDemo) {
+      setMessage("Cambios guardados")
+      return
+    }
+
+    setMessage("Guardando cambios…")
+
+    startTransition(async () => {
+      try {
+        const updated = await updateWeddingSiteTemplateAction({ templateId: nextTemplateId })
+
+        if (!updated) {
+          throw new Error("No se pudo guardar")
+        }
+
+        setTemplateId(updated.templateId)
+        setMessage("Cambios guardados")
+      } catch {
+        setTemplateId(previousTemplateId)
+        setMessage("No se pudo guardar. Inténtalo de nuevo.")
+      }
+    })
+  }
 
   function toggleModule(module: WeddingSiteModuleDto) {
     const nextValue = !active[module.type]
@@ -114,6 +172,38 @@ export function WebsiteView({
               </article>
             )
           })}
+        </div>
+
+        <div className={styles.templates}>
+          <div className={styles.templatesHead}>
+            <h2>Template</h2>
+            <span>{availableTemplates.length} disponibles</span>
+          </div>
+          <p className={styles.templateHint}>
+            El template elegido se aplica tanto a la invitación digital como a esta web de boda.
+          </p>
+          <div className={styles.templateList}>
+            {availableTemplates.map((template) => {
+              const isActive = template.id === templateId
+
+              return (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => selectTemplate(template.id)}
+                  disabled={isPending}
+                  aria-pressed={isActive}
+                  className={isActive ? styles.templateActive : undefined}
+                >
+                  <span>
+                    <strong>{template.label}</strong>
+                    <small>{template.description}</small>
+                  </span>
+                  {isActive && <span className={styles.templateBadge}>Activo</span>}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <a className={styles.publicLink} href={`/w/${experience.slug}`} target="_blank" rel="noreferrer">

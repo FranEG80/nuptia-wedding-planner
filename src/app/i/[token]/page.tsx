@@ -7,7 +7,10 @@ import { joinSpanishNames } from "@/domains/guests/application/format-guest-name
 import { ResolvedInvitationTemplate } from "@/domains/invitations/adapters/next/components/resolve-invitation-template"
 import { PublicRsvpPanel } from "@/domains/invitations/adapters/next/components/public-rsvp-panel"
 import { getPublicInvitationByTokenUseCase } from "@/domains/invitations/application/use-cases/get-public-invitation-by-token.use-case"
-import { normalizeInvitationTemplateId } from "@/domains/invitations/domain/invitation-template-options"
+import {
+  MARIA_DANIELA_CUSTOM_DOMAIN,
+  normalizeInvitationTemplateId,
+} from "@/domains/invitations/domain/invitation-template-options"
 
 const getInvitationByToken = cache(async (token: string) => {
   const publicInvitationQuery = await getPublicInvitationQuery()
@@ -47,12 +50,10 @@ export async function generateMetadata({
     )
   const greeting = invitationGreeting ? `${invitationGreeting}, e` : "E"
   const description = `${greeting}stáis invitados a la boda de ${invitation.wedding.displayName} el ${dateLabel} en ${invitation.wedding.primaryCity}.`
-  let [domain, protocol] = process.env.APP_URL.split("://"), baseUrl, customOgImage;
+  let customOgImage: string | undefined
+
   if (invitation.design.templateId === "maria-daniela") {
-    domain = "bodamariadanielaynacho.es"
-    protocol = "https"
-    baseUrl = `${protocol}://${domain}`
-    customOgImage = `${baseUrl}/images/templates/maria-daniela/ogimage/opengraph_image.jpg`
+    customOgImage = `https://${MARIA_DANIELA_CUSTOM_DOMAIN}/images/templates/maria-daniela/ogimage/opengraph_image.jpg`
   }
 
   if (customOgImage) {
