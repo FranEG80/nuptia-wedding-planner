@@ -321,6 +321,19 @@ export function InvitationsTable({
 
   return (
     <>
+      {isPending ? (
+        <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center bg-background/25 backdrop-blur-[1px]">
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-3 rounded-2xl border border-border bg-card/95 px-6 py-4 text-foreground shadow-xl"
+          >
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="text-sm font-medium">Cargando…</span>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-[220px] flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -408,10 +421,9 @@ export function InvitationsTable({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-        <span className="inline-flex items-center gap-2">
+        <span>
           {total} {total === 1 ? "invitación" : "invitaciones"} · Página {page} de{" "}
           {totalPages}
-          {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
         </span>
         <div className="flex gap-2">
           <button
@@ -420,11 +432,7 @@ export function InvitationsTable({
             onClick={() => onPageChange(page - 1)}
             className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
+            <ChevronLeft className="h-4 w-4" />
             Anterior
           </button>
           <button
@@ -434,11 +442,7 @@ export function InvitationsTable({
             className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Siguiente
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>

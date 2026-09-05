@@ -2,6 +2,7 @@ import "server-only"
 
 import { getPrisma } from "@/core/db/prisma"
 import type { AppUser, AuthSession } from "@/core/auth/types"
+import { memoize } from "@/core/cache/memory-cache"
 
 type AppUserRecord = {
   id: string
@@ -30,7 +31,7 @@ function toAppUser(record: AppUserRecord): AppUser {
   }
 }
 
-export async function resolveAppUserForAuthSession(
+async function resolveAppUserForAuthSessionUncached(
   session: AuthSession,
 ): Promise<AppUser> {
   const prisma = await getPrisma()
@@ -106,3 +107,15 @@ export async function resolveAppUserForAuthSession(
 
   return toAppUser(appUser)
 }
+
+// The session lookup itself (getBetterAuthSession/getSupabaseSession) is
+// always checked fresh — this only caches the "which AppUser does this
+// already-valid identity map to" step, so it can't extend a revoked
+// session's lifetime.
+export const resolveAppUserForAuthSession = memoize(
+  resolveAppUserForAuthSessionUncached,
+  {
+    ttlMs: 60_000,
+    keyFn: (session) => `${session.provider}:${session.user.id}`,
+  },
+)
