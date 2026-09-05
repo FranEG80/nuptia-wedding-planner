@@ -2,15 +2,17 @@ import type { WeddingSiteModuleType } from "@/domains/wedding-sites/domain/weddi
 
 /**
  * La web de boda se navega por subpáginas, igual en todos los templates.
- * "Inicio" siempre está disponible; el resto aparece si su módulo está activo.
+ * "Inicio" e "Historia" siempre están disponibles; el resto aparece si su
+ * módulo está activo. Itinerario y regalos no son subpáginas: sus módulos
+ * activan sendas secciones dentro de "Inicio".
  */
 export const WEDDING_SITE_PAGES = [
   { id: "inicio", label: "Inicio", module: null },
+  { id: "historia", label: "Historia", module: null },
   { id: "menu", label: "Menú", module: "menu" },
-  { id: "itinerario", label: "Itinerario", module: "timeline" },
-  { id: "regalos", label: "Regalos", module: "gifts" },
   { id: "musica", label: "Música", module: "spotify" },
   { id: "galeria", label: "Galería", module: "gallery" },
+  { id: "firmas", label: "Firmas", module: "guestbook" },
 ] as const satisfies ReadonlyArray<{
   id: string
   label: string
