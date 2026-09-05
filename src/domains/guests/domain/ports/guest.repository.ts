@@ -80,6 +80,24 @@ export interface UpdateInvitationPartyInput {
   guests: InvitationPartyGuestInput[]
 }
 
+export type InvitationPartyStatusFilter =
+  | "todos"
+  | "confirmados"
+  | "pendientes"
+  | "declinados"
+
+export interface SearchInvitationPartiesOptions {
+  page: number
+  pageSize: number
+  search?: string
+  status?: InvitationPartyStatusFilter
+}
+
+export interface SearchInvitationPartiesResult {
+  parties: GuestInviteParty[]
+  total: number
+}
+
 export interface RespondToPartyGuestInput {
   guestId: string
   attending: boolean
@@ -98,6 +116,10 @@ export interface GuestRepository {
   listByWeddingId(weddingId: string): Promise<Guest[]>
   getRsvpSummaryByWeddingId(weddingId: string): Promise<GuestRsvpSummary>
   listPartiesByWeddingId(weddingId: string): Promise<GuestInviteParty[]>
+  searchInvitationParties(
+    weddingId: string,
+    options: SearchInvitationPartiesOptions,
+  ): Promise<SearchInvitationPartiesResult>
   findPartyByInviteToken(inviteToken: string): Promise<GuestInviteParty | null>
   findPublicPartyByInviteToken(
     inviteToken: string,

@@ -33,6 +33,48 @@ export interface WeddingExperienceTimelineItem {
   illustration: "church" | "cocktails" | "dinner" | "party"
 }
 
+export interface WeddingExperienceMenuCourse {
+  id: string
+  course: string
+  name: string
+  imageSrc: string
+}
+
+export interface WeddingExperienceGalleryPhoto {
+  id: string
+  src: string
+  alt: string
+}
+
+export interface WeddingExperienceTrack {
+  id: string
+  title: string
+  artist: string
+}
+
+/**
+ * Las subpáginas de menú, música y galería todavía no tienen datos propios en
+ * la base de datos, así que todos los templates comparten estos marcadores.
+ */
+const DEFAULT_MENU_COURSES: WeddingExperienceMenuCourse[] = [
+  { id: "starter", course: "Entrante", name: "Burrata con tomate de temporada", imageSrc: "/images/dish-starter.webp" },
+  { id: "main", course: "Principal", name: "Lubina salvaje con espárragos", imageSrc: "/images/dish-main.webp" },
+  { id: "dessert", course: "Postre", name: "Tarta de limón y frambuesa", imageSrc: "/images/dish-dessert.webp" },
+]
+
+const DEFAULT_GALLERY_PHOTOS: WeddingExperienceGalleryPhoto[] = [
+  { id: "gallery-1", src: "/images/gallery-1.webp", alt: "Detalle floral de la celebración" },
+  { id: "gallery-2", src: "/images/gallery-2.webp", alt: "Mesa preparada para el banquete" },
+  { id: "couple", src: "/images/couple-hero.webp", alt: "La pareja el día de la boda" },
+  { id: "venue", src: "/images/venue.webp", alt: "El lugar de la celebración" },
+]
+
+const DEFAULT_PLAYLIST: WeddingExperienceTrack[] = [
+  { id: "elvis", title: "Can't Help Falling in Love", artist: "Elvis Presley" },
+  { id: "ewf", title: "September", artist: "Earth, Wind & Fire" },
+  { id: "paradisio", title: "Bailando", artist: "Paradisio" },
+]
+
 export interface WeddingExperienceContent {
   slug: string
   partnerNames: [string, string]
@@ -54,6 +96,9 @@ export interface WeddingExperienceContent {
     phone: string
     whatsappUrl: string
   }>
+  menu: WeddingExperienceMenuCourse[]
+  gallery: WeddingExperienceGalleryPhoto[]
+  playlist: WeddingExperienceTrack[]
   enabledModules: WeddingSiteModuleType[]
 }
 
@@ -155,6 +200,9 @@ export function createNachoWeddingExperience(
       phone: person.phone,
       whatsappUrl: whatsappUrl(person.phone),
     })),
+    menu: DEFAULT_MENU_COURSES,
+    gallery: DEFAULT_GALLERY_PHOTOS,
+    playlist: DEFAULT_PLAYLIST,
     enabledModules: enabledModulesFromDtos(modules),
   }
 }
@@ -215,6 +263,9 @@ function genericExperience(
     rsvpDeadline: "Consulta la fecha límite en tu invitación",
     gifts: null,
     contacts: [],
+    menu: DEFAULT_MENU_COURSES,
+    gallery: DEFAULT_GALLERY_PHOTOS,
+    playlist: DEFAULT_PLAYLIST,
     enabledModules: enabledModulesFromDtos(modules),
   }
 }

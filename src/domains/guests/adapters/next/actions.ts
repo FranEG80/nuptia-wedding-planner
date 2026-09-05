@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { getRepositories } from "@/composition/repositories"
+import { getCurrentWeddingId } from "@/composition/current-wedding"
 import { requireAppSession } from "@/core/auth"
 import { isDemoSession } from "@/core/demo/is-demo-session"
 import type {
@@ -11,6 +12,10 @@ import type {
   UpdateInvitationPartyDto,
 } from "@/domains/guests/application/dtos/invitation-party.dto"
 import { toInvitationPartyDto } from "@/domains/guests/application/dtos/invitation-party.dto"
+import {
+  respondInvitationPartySchema,
+  type RespondInvitationPartyDto,
+} from "@/domains/guests/application/dtos/respond-invitation-party.dto"
 import { createInvitationPartyUseCase } from "@/domains/guests/application/use-cases/create-invitation-party.use-case"
 import { deleteInvitationPartyUseCase } from "@/domains/guests/application/use-cases/delete-invitation-party.use-case"
 import {
@@ -18,8 +23,9 @@ import {
   type ImportInvitationPartiesResult,
 } from "@/domains/guests/application/use-cases/import-invitation-parties.use-case"
 import { linkInvitationPartyUseCase } from "@/domains/guests/application/use-cases/link-invitation-party.use-case"
+import { listInvitationPartiesUseCase } from "@/domains/guests/application/use-cases/list-invitation-parties.use-case"
 import { updateInvitationPartyUseCase } from "@/domains/guests/application/use-cases/update-invitation-party.use-case"
-import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
+import { respondToPublicInvitationUseCase } from "@/domains/invitations/application/use-cases/respond-to-public-invitation.use-case"
 
 const markPartiesInvitedSchema = z.array(z.string().min(1)).min(1)
 
@@ -33,18 +39,15 @@ export async function createInvitationPartyAction(
     return null
   }
 
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return null
   }
 
   const party = await createInvitationPartyUseCase({
     guestRepository: repositories.guest,
-    weddingId: wedding.id,
+    weddingId,
     data: input,
   })
 
@@ -63,18 +66,15 @@ export async function updateInvitationPartyAction(
     return null
   }
 
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return null
   }
 
   const party = await updateInvitationPartyUseCase({
     guestRepository: repositories.guest,
-    weddingId: wedding.id,
+    weddingId,
     data: input,
   })
 
@@ -94,18 +94,15 @@ export async function linkInvitationPartyAction(input: {
     return null
   }
 
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return null
   }
 
   const party = await linkInvitationPartyUseCase({
     guestRepository: repositories.guest,
-    weddingId: wedding.id,
+    weddingId,
     targetPartyId: input.targetPartyId,
     sourcePartyId: input.sourcePartyId,
   })
@@ -125,18 +122,15 @@ export async function importInvitationPartiesAction(
     return null
   }
 
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return null
   }
 
   const result = await importInvitationPartiesUseCase({
     guestRepository: repositories.guest,
-    weddingId: wedding.id,
+    weddingId,
     parties: input,
   })
 
@@ -153,18 +147,15 @@ export async function deleteInvitationPartyAction(partyId: string) {
     return false
   }
 
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return false
   }
 
   const deleted = await deleteInvitationPartyUseCase({
     guestRepository: repositories.guest,
-    weddingId: wedding.id,
+    weddingId,
     partyId,
   })
 
@@ -178,26 +169,113 @@ export async function markGuestPartiesInvitedAction(partyIds: string[]) {
   const session = await requireAppSession()
 
   if (isDemoSession(session)) {
-    return []
+    return false
   }
 
   const parsedPartyIds = markPartiesInvitedSchema.parse(partyIds)
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
-    return []
+  if (!weddingId) {
+    return false
   }
 
-  await repositories.guest.markPartiesInvited(
-    wedding.id,
-    parsedPartyIds,
-  )
-  const parties = await repositories.guest.listPartiesByWeddingId(wedding.id)
+  await repositories.guest.markPartiesInvited(weddingId, parsedPartyIds)
 
   revalidatePath("/app/invitados")
 
-  return parties.map(toInvitationPartyDto)
+  return true
+}
+
+export async function getInvitationPartyDetailAction(inviteToken: string) {
+  const repositories = await getRepositories()
+  const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return null
+  }
+
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
+
+  if (!weddingId) {
+    return null
+  }
+
+  const party = await repositories.guest.findPartyByInviteToken(inviteToken)
+
+  if (!party || party.weddingId !== weddingId) {
+    return null
+  }
+
+  return toInvitationPartyDto(party)
+}
+
+export async function listAllInvitationPartiesAction() {
+  const repositories = await getRepositories()
+  const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return []
+  }
+
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
+
+  if (!weddingId) {
+    return []
+  }
+
+  return listInvitationPartiesUseCase({
+    guestRepository: repositories.guest,
+    weddingId,
+  })
+}
+
+export async function respondToInvitationPartyAction(
+  input: RespondInvitationPartyDto,
+) {
+  const repositories = await getRepositories()
+  const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return null
+  }
+
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
+
+  if (!weddingId) {
+    return null
+  }
+
+  const parsed = respondInvitationPartySchema.parse(input)
+  const party = await repositories.guest.findPartyByInviteToken(parsed.token)
+
+  if (!party || party.weddingId !== weddingId) {
+    return null
+  }
+
+  const guestsById = new Map(party.guests.map((guest) => [guest.id, guest]))
+  const guestsInput = parsed.guests.map((response) => {
+    const guest = guestsById.get(response.guestId)
+
+    return {
+      guestId: response.guestId,
+      attending: response.attending,
+      firstName: guest?.firstName,
+      lastName: guest?.lastName,
+      email: guest?.email,
+      phone: guest?.phone,
+      notes: response.notes,
+      menuSelections: guest?.menuSelections ?? [],
+    }
+  })
+
+  const updated = await respondToPublicInvitationUseCase({
+    guestRepository: repositories.guest,
+    token: parsed.token,
+    guests: guestsInput,
+    message: parsed.message,
+  })
+
+  revalidatePath("/app/invitados")
+
+  return updated ? toInvitationPartyDto(updated) : null
 }

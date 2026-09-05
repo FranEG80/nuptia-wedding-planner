@@ -1,6 +1,9 @@
 "use client"
 
 import {
+  ChevronLeft,
+  ChevronRight,
+  ClipboardCheck,
   Eye,
   Globe,
   Loader2,
@@ -10,13 +13,14 @@ import {
   Trash2,
   UserRoundCheck,
 } from "lucide-react"
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 
 import type { InvitationPartyDto } from "@/domains/guests/application/dtos/invitation-party.dto"
 import { getInvitationListLabel } from "@/domains/guests/application/format-guest-names"
+import type { InvitationPartyStatusFilter } from "@/domains/guests/domain/ports/guest.repository"
 import { cn } from "@/shared/lib/utils"
 
-type Filter = "todos" | "confirmados" | "pendientes" | "declinados"
+type Filter = InvitationPartyStatusFilter
 
 const RSVP_STYLES: Record<string, string> = {
   Confirmado: "bg-primary/10 text-primary",
@@ -53,12 +57,14 @@ function InvitationActions({
   onEdit,
   onDelete,
   onSend,
+  onConfirmAttendance,
 }: {
   party: InvitationPartyDto
   onViewDetail: (party: InvitationPartyDto) => void
   onEdit: (party: InvitationPartyDto) => void
   onDelete: (party: InvitationPartyDto) => Promise<void>
   onSend: (party: InvitationPartyDto) => Promise<void>
+  onConfirmAttendance: (party: InvitationPartyDto) => void
 }) {
   const [isDeleting, startDelete] = useTransition()
   const [isSending, startSend] = useTransition()
@@ -66,6 +72,15 @@ function InvitationActions({
 
   return (
     <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onConfirmAttendance(party)}
+        aria-label={`Confirmar asistencia de ${party.displayName}`}
+        title="Confirmar asistencia"
+        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-primary"
+      >
+        <ClipboardCheck className="h-4 w-4" />
+      </button>
       <button
         type="button"
         onClick={() => onViewDetail(party)}
@@ -131,12 +146,14 @@ function InvitationCard({
   onEdit,
   onDelete,
   onSend,
+  onConfirmAttendance,
 }: {
   party: InvitationPartyDto
   onViewDetail: (party: InvitationPartyDto) => void
   onEdit: (party: InvitationPartyDto) => void
   onDelete: (party: InvitationPartyDto) => Promise<void>
   onSend: (party: InvitationPartyDto) => Promise<void>
+  onConfirmAttendance: (party: InvitationPartyDto) => void
 }) {
   const summary = rsvpSummary(party)
   const invitationLabel = getInvitationListLabel(party)
@@ -180,6 +197,7 @@ function InvitationCard({
           onEdit={onEdit}
           onDelete={onDelete}
           onSend={onSend}
+          onConfirmAttendance={onConfirmAttendance}
         />
       </div>
     </div>
@@ -192,12 +210,14 @@ function InvitationRow({
   onEdit,
   onDelete,
   onSend,
+  onConfirmAttendance,
 }: {
   party: InvitationPartyDto
   onViewDetail: (party: InvitationPartyDto) => void
   onEdit: (party: InvitationPartyDto) => void
   onDelete: (party: InvitationPartyDto) => Promise<void>
   onSend: (party: InvitationPartyDto) => Promise<void>
+  onConfirmAttendance: (party: InvitationPartyDto) => void
 }) {
   const summary = rsvpSummary(party)
   const invitationLabel = getInvitationListLabel(party)
@@ -245,6 +265,7 @@ function InvitationRow({
           onEdit={onEdit}
           onDelete={onDelete}
           onSend={onSend}
+          onConfirmAttendance={onConfirmAttendance}
         />
       </td>
     </tr>
@@ -257,36 +278,44 @@ export function InvitationsTable({
   onEdit,
   onDelete,
   onSend,
+  onConfirmAttendance,
+  search,
+  onSearchChange,
+  status,
+  onStatusChange,
+  page,
+  pageSize,
+  total,
+  onPageChange,
 }: {
   parties: InvitationPartyDto[]
   onViewDetail: (party: InvitationPartyDto) => void
   onEdit: (party: InvitationPartyDto) => void
   onDelete: (party: InvitationPartyDto) => Promise<void>
   onSend: (party: InvitationPartyDto) => Promise<void>
+  onConfirmAttendance: (party: InvitationPartyDto) => void
+  search: string
+  onSearchChange: (value: string) => void
+  status: Filter
+  onStatusChange: (status: Filter) => void
+  page: number
+  pageSize: number
+  total: number
+  onPageChange: (page: number) => void
 }) {
-  const [query, setQuery] = useState("")
-  const [filter, setFilter] = useState<Filter>("todos")
+  const [queryInput, setQueryInput] = useState(search)
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
-  const filteredParties = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase("es")
+  useEffect(() => {
+    if (queryInput === search) {
+      return
+    }
 
-    return parties.filter((party) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        party.inviteeNames.toLocaleLowerCase("es").includes(normalizedQuery) ||
-        party.group.toLocaleLowerCase("es").includes(normalizedQuery) ||
-        party.recipient.phone?.includes(normalizedQuery) ||
-        party.recipient.email?.toLocaleLowerCase("es").includes(normalizedQuery)
-      const statuses = party.guests.map((guest) => guest.rsvp)
-      const matchesFilter =
-        filter === "todos" ||
-        (filter === "confirmados" && statuses.includes("Confirmado")) ||
-        (filter === "pendientes" && statuses.includes("Sin respuesta")) ||
-        (filter === "declinados" && statuses.every((status) => status === "Declinado"))
+    const timeout = setTimeout(() => onSearchChange(queryInput), 350)
 
-      return matchesQuery && matchesFilter
-    })
-  }, [filter, parties, query])
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryInput])
 
   return (
     <>
@@ -294,8 +323,8 @@ export function InvitationsTable({
         <div className="relative min-w-[220px] flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            value={queryInput}
+            onChange={(event) => setQueryInput(event.target.value)}
             placeholder="Buscar invitación o invitado..."
             className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm outline-none focus:border-accent"
           />
@@ -306,10 +335,10 @@ export function InvitationsTable({
               <button
                 key={item}
                 type="button"
-                onClick={() => setFilter(item)}
+                onClick={() => onStatusChange(item)}
                 className={cn(
                   "rounded-full px-3.5 py-1.5 text-xs capitalize transition-colors",
-                  filter === item
+                  status === item
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/70",
                 )}
@@ -322,7 +351,7 @@ export function InvitationsTable({
       </div>
 
       <div className="mt-3 flex flex-col gap-3 md:hidden">
-        {filteredParties.map((party) => (
+        {parties.map((party) => (
           <InvitationCard
             key={party.id}
             party={party}
@@ -330,9 +359,10 @@ export function InvitationsTable({
             onEdit={onEdit}
             onDelete={onDelete}
             onSend={onSend}
+            onConfirmAttendance={onConfirmAttendance}
           />
         ))}
-        {!filteredParties.length ? (
+        {!parties.length ? (
           <p className="rounded-2xl border border-border bg-card px-4 py-12 text-center text-sm text-muted-foreground">
             No se encontraron invitaciones.
           </p>
@@ -352,7 +382,7 @@ export function InvitationsTable({
               </tr>
             </thead>
             <tbody>
-              {filteredParties.map((party) => (
+              {parties.map((party) => (
                 <InvitationRow
                   key={party.id}
                   party={party}
@@ -360,9 +390,10 @@ export function InvitationsTable({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onSend={onSend}
+                  onConfirmAttendance={onConfirmAttendance}
                 />
               ))}
-              {!filteredParties.length ? (
+              {!parties.length ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
                     No se encontraron invitaciones.
@@ -371,6 +402,33 @@ export function InvitationsTable({
               ) : null}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+        <span>
+          {total} {total === 1 ? "invitación" : "invitaciones"} · Página {page} de{" "}
+          {totalPages}
+        </span>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Anterior
+          </button>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Siguiente
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </>

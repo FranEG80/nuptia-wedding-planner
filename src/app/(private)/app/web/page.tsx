@@ -1,6 +1,11 @@
+import { env } from "@/core/config/env"
 import { WeddingWebsitePage } from "@/domains/wedding-sites/adapters/next/pages/wedding-website-page"
 
 export default function WeddingWebsiteRoutePage() {
+  if (env.WEDDING_SITE_EDITOR_ENABLED) {
+    return <WeddingWebsitePage />
+  }
+
   return (
     <div className="relative min-h-[calc(100vh-4rem)]">
       <div

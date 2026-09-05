@@ -110,7 +110,7 @@ function RsvpStepScrollArea({
         <div
           ref={scrollAreaRef}
           onScroll={updateScrollCue}
-          className="h-full min-h-0 max-[700px]:overflow-y-auto max-[700px]:overscroll-contain max-[700px]:pr-1 max-[700px]:[scrollbar-color:rgba(213,118,77,0.55)_transparent] max-[700px]:[scrollbar-width:thin]"
+          className="h-full min-h-0 overflow-y-auto overscroll-contain pr-1"
         >
           <div className="min-h-full">{children}</div>
         </div>
@@ -304,7 +304,7 @@ export function DemoRsvpExperience({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-[80] bg-[rgba(57,47,43,0.72)] backdrop-blur-[8px] animate-[rsvp-modal-fade_0.25s_ease-out] motion-reduce:animate-none" />
         <Dialog.Viewport className="fixed inset-0 z-[81] grid p-4 place-items-center overflow-y-auto max-[700px]:p-0 max-[700px]:items-end max-[700px]:justify-items-center">
-          <Dialog.Popup className="grid w-[min(980px,100%)] max-h-[min(760px,calc(100svh_-_2rem))] overflow-hidden rounded-3xl bg-[#fbf4ea] text-[#5b4d47] shadow-[0_35px_100px_rgba(57,47,43,0.3)] grid-cols-[35%_65%] animate-[rsvp-modal-enter_0.35s_cubic-bezier(.22,1,.36,1)] motion-reduce:animate-none max-[700px]:h-[94dvh] max-[700px]:w-full max-[700px]:max-h-[94dvh] max-[700px]:grid-rows-[minmax(0,1fr)] max-[700px]:rounded-t-[1.4rem] max-[700px]:rounded-b-none max-[700px]:grid-cols-1">
+          <Dialog.Popup className="grid w-[min(980px,100%)] max-h-[min(760px,calc(100svh_-_2rem))] overflow-hidden rounded-3xl bg-[#fbf4ea] text-[#5b4d47] shadow-[0_35px_100px_rgba(57,47,43,0.3)] grid-cols-[35%_65%] grid-rows-[minmax(0,1fr)] animate-[rsvp-modal-enter_0.35s_cubic-bezier(.22,1,.36,1)] motion-reduce:animate-none max-[700px]:h-[94dvh] max-[700px]:w-full max-[700px]:max-h-[94dvh] max-[700px]:rounded-t-[1.4rem] max-[700px]:rounded-b-none max-[700px]:grid-cols-1">
             <div className="relative grid min-h-[42rem] place-items-center overflow-hidden bg-[#fff6ee] text-center isolate max-[700px]:hidden">
               <Image draggable="false" src={mariaDanielaAssets.watercolorSides} alt="" fill sizes="360px" className="z-[-1] object-cover opacity-70" />
               <div className="p-8">
@@ -314,7 +314,7 @@ export function DemoRsvpExperience({
               </div>
             </div>
 
-            <div className="relative flex min-h-[42rem] py-8 px-[clamp(1.3rem,4vw,3.5rem)] flex-col overflow-y-auto max-[700px]:h-full max-[700px]:min-h-0 max-[700px]:overflow-hidden max-[700px]:p-[1.2rem]">
+            <div className="relative flex h-full min-h-0 py-8 px-[clamp(1.3rem,4vw,3.5rem)] flex-col overflow-hidden max-[700px]:p-[1.2rem]">
               <Dialog.Close className="self-end py-[0.3rem] border-0 border-b border-current bg-transparent text-inherit text-[0.6rem] font-extrabold tracking-[0.15em] uppercase cursor-pointer" aria-label="Cerrar">Cerrar</Dialog.Close>
               <div className="h-0.5 mt-[1.6rem] mb-[2.8rem] bg-[rgba(91,77,71,0.15)] max-[700px]:mt-[1.1rem] max-[700px]:mb-8" aria-label={`Progreso ${progress}%`}><span className="block h-full bg-[#d5764d] transition-[width] duration-[350ms] ease-out" style={{ width: `${progress}%` }} /></div>
 

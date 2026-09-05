@@ -51,14 +51,23 @@ export async function resolveAppUserForAuthSession(
   })
 
   if (identity) {
-    const appUser = await prisma.appUser.update({
-      where: { id: identity.appUserId },
-      data: {
-        email,
-        name: session.user.name,
-        imageUrl: session.user.imageUrl ?? null,
-      },
-    })
+    const current = identity.appUser
+    const nextImageUrl = session.user.imageUrl ?? null
+    const needsSync =
+      current.email !== email ||
+      current.name !== session.user.name ||
+      current.imageUrl !== nextImageUrl
+
+    const appUser = needsSync
+      ? await prisma.appUser.update({
+          where: { id: identity.appUserId },
+          data: {
+            email,
+            name: session.user.name,
+            imageUrl: nextImageUrl,
+          },
+        })
+      : current
 
     return toAppUser(appUser)
   }

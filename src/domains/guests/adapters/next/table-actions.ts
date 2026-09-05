@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { getRepositories } from "@/composition/repositories"
+import { getCurrentWeddingId } from "@/composition/current-wedding"
 import { requireAppSession } from "@/core/auth"
 import { isDemoSession } from "@/core/demo/is-demo-session"
 import type { CreateTableDto, UpdateTableDto } from "@/domains/guests/application/dtos/table.dto"
@@ -11,7 +12,6 @@ import { createTableUseCase } from "@/domains/guests/application/use-cases/creat
 import { deleteTableUseCase } from "@/domains/guests/application/use-cases/delete-table.use-case"
 import { unassignGuestSeatUseCase } from "@/domains/guests/application/use-cases/unassign-guest-seat.use-case"
 import { updateTableUseCase } from "@/domains/guests/application/use-cases/update-table.use-case"
-import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
 
 export async function createTableAction(input: CreateTableDto) {
   const repositories = await getRepositories()
@@ -21,18 +21,15 @@ export async function createTableAction(input: CreateTableDto) {
     return null
   }
 
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return null
   }
 
   const table = await createTableUseCase({
     tableRepository: repositories.table,
-    weddingId: wedding.id,
+    weddingId,
     data: input,
   })
 
@@ -49,18 +46,15 @@ export async function updateTableAction(input: UpdateTableDto) {
     return null
   }
 
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return null
   }
 
   const table = await updateTableUseCase({
     tableRepository: repositories.table,
-    weddingId: wedding.id,
+    weddingId,
     data: input,
   })
 
@@ -77,18 +71,15 @@ export async function deleteTableAction(tableId: string) {
     return false
   }
 
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return false
   }
 
   const deleted = await deleteTableUseCase({
     tableRepository: repositories.table,
-    weddingId: wedding.id,
+    weddingId,
     tableId,
   })
 
@@ -105,19 +96,16 @@ export async function assignGuestSeatAction(guestId: string, tableId: string) {
     return null
   }
 
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return null
   }
 
   const guest = await assignGuestSeatUseCase({
     guestRepository: repositories.guest,
     tableRepository: repositories.table,
-    weddingId: wedding.id,
+    weddingId,
     guestId,
     tableId,
   })
@@ -135,18 +123,15 @@ export async function unassignGuestSeatAction(guestId: string) {
     return null
   }
 
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: session.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return null
   }
 
   const guest = await unassignGuestSeatUseCase({
     guestRepository: repositories.guest,
-    weddingId: wedding.id,
+    weddingId,
     guestId,
   })
 

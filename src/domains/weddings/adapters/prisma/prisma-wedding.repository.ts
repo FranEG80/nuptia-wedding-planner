@@ -288,6 +288,20 @@ export class PrismaWeddingRepository implements WeddingRepository {
     return wedding?.menu ?? null
   }
 
+  async findCurrentWeddingIdByAppUserId(
+    appUserId: string,
+  ): Promise<string | null> {
+    const wedding = await this.prisma.wedding.findFirst({
+      where: {
+        OR: [{ ownerId: appUserId }, { members: { some: { appUserId } } }],
+      },
+      select: { id: true },
+      orderBy: { createdAt: "asc" },
+    })
+
+    return wedding?.id ?? null
+  }
+
   async findCurrentByAppUserId(appUserId: string): Promise<Wedding | null> {
     const wedding = await this.prisma.wedding.findFirst({
       where: {

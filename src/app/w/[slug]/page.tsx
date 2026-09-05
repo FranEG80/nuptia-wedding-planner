@@ -9,11 +9,13 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const wedding = await getPublicWeddingExperience(slug)
+  const experience = await getPublicWeddingExperience(slug)
 
-  if (!wedding) {
+  if (!experience) {
     return { title: "Boda | Nuptia" }
   }
+
+  const wedding = experience.content
 
 
   const title = `${wedding.displayName} · ${wedding.dateLabel}`

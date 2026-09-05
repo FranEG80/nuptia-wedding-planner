@@ -1,23 +1,20 @@
 import { getRepositories } from "@/composition/repositories"
+import { getCurrentWeddingId } from "@/composition/current-wedding"
 import { createTRPCRouter, protectedProcedure } from "@/core/trpc/init"
 import { listMediaAssetsUseCase } from "@/domains/media/application/use-cases/list-media-assets.use-case"
-import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
 
 export const mediaRouter = createTRPCRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
     const repositories = await getRepositories()
-    const wedding = await getCurrentWeddingUseCase({
-      weddingRepository: repositories.wedding,
-      appUserId: ctx.appUser.id,
-    })
+    const weddingId = await getCurrentWeddingId(ctx.appUser.id)
 
-    if (!wedding) {
+    if (!weddingId) {
       return []
     }
 
     return listMediaAssetsUseCase({
       mediaRepository: repositories.media,
-      weddingId: wedding.id,
+      weddingId,
     })
   }),
 })

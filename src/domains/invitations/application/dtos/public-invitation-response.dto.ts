@@ -16,6 +16,13 @@ const optionalPhoneSchema = z
   )
   .transform((value) => value || null)
 
+const optionalNameSchema = z
+  .preprocess(
+    (value) => (typeof value === "string" ? value.trim() : value),
+    z.union([z.string().min(1).max(120), z.literal(""), z.null()]).optional(),
+  )
+  .transform((value) => value || null)
+
 export const publicInvitationResponseSchema = z.object({
   token: z.string().min(1),
   guests: z
@@ -23,8 +30,8 @@ export const publicInvitationResponseSchema = z.object({
       z.object({
         guestId: z.string().min(1),
         attending: z.boolean(),
-        firstName: z.string().trim().min(1).max(120).optional(),
-        lastName: z.string().trim().min(1).max(120).optional(),
+        firstName: optionalNameSchema,
+        lastName: optionalNameSchema,
         email: optionalEmailSchema,
         phone: optionalPhoneSchema,
         notes: z
