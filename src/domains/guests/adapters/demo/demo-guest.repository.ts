@@ -83,6 +83,17 @@ export const demoGuestRepository: GuestRepository = {
     return demoGuests.filter((guest) => guest.weddingId === weddingId)
   },
 
+  async getRsvpSummaryByWeddingId(weddingId) {
+    const guests = demoGuests.filter((guest) => guest.weddingId === weddingId)
+
+    return {
+      confirmed: guests.filter((guest) => guest.rsvp === "Confirmado").length,
+      pending: guests.filter((guest) => guest.rsvp === "Sin respuesta").length,
+      declined: guests.filter((guest) => guest.rsvp === "Declinado").length,
+      total: guests.length,
+    }
+  },
+
   async listPartiesByWeddingId(weddingId) {
     const tokens = [
       ...new Set(
@@ -96,6 +107,60 @@ export const demoGuestRepository: GuestRepository = {
       const party = partyByInviteToken(token)
       return party ? [party] : []
     })
+  },
+
+  async searchInvitationParties(weddingId, options) {
+    const tokens = [
+      ...new Set(
+        demoGuests
+          .filter((guest) => guest.weddingId === weddingId)
+          .map((guest) => guest.party.inviteToken),
+      ),
+    ]
+    const allParties = tokens.flatMap((token) => {
+      const party = partyByInviteToken(token)
+      return party ? [party] : []
+    })
+
+    const search = options.search?.trim().toLocaleLowerCase("es")
+    const matchesSearch = (party: GuestInviteParty) =>
+      !search ||
+      party.groupName.toLocaleLowerCase("es").includes(search) ||
+      party.invitationName.toLocaleLowerCase("es").includes(search) ||
+      party.guests.some(
+        (guest) =>
+          guest.name.toLocaleLowerCase("es").includes(search) ||
+          guest.phone?.toLocaleLowerCase("es").includes(search) ||
+          guest.email?.toLocaleLowerCase("es").includes(search),
+      )
+
+    const matchesStatus = (party: GuestInviteParty) => {
+      if (!options.status || options.status === "todos") {
+        return true
+      }
+
+      const statuses = party.guests.map((guest) => guest.rsvp)
+
+      if (options.status === "confirmados") {
+        return statuses.includes("Confirmado")
+      }
+
+      if (options.status === "pendientes") {
+        return statuses.includes("Sin respuesta")
+      }
+
+      return statuses.every((status) => status === "Declinado")
+    }
+
+    const filtered = allParties.filter(
+      (party) => matchesSearch(party) && matchesStatus(party),
+    )
+    const start = (Math.max(1, options.page) - 1) * Math.max(1, options.pageSize)
+
+    return {
+      parties: filtered.slice(start, start + Math.max(1, options.pageSize)),
+      total: filtered.length,
+    }
   },
 
   async findPartyByInviteToken(inviteToken) {
@@ -405,8 +470,14 @@ export const demoGuestRepository: GuestRepository = {
         return guest
       }
 
+      const composedName = [response.firstName, response.lastName]
+        .map((part) => part?.trim())
+        .filter(Boolean)
+        .join(" ")
+
       return {
         ...guest,
+        name: composedName || guest.name,
         email: response.email === undefined ? guest.email : response.email,
         phone: response.phone === undefined ? guest.phone : response.phone,
         notes: response.attending ? response.notes ?? guest.notes : "",

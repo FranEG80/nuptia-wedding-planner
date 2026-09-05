@@ -28,6 +28,19 @@ describe("parseGuestImportRows", () => {
     assert.equal(party.guests.find((g) => g.firstName === "Luis")?.isRecipient, false)
   })
 
+  it("uses the legacy column as both the automatic grouping key and visible name", () => {
+    const result = parseGuestImportRows([
+      { "Invitación conjunta (opcional)": "Ana y Luis", Nombre: "Ana", Teléfono: "600111222" },
+      { "Invitación conjunta (opcional)": "Ana y Luis", Nombre: "Luis", Teléfono: "", Email: "" },
+    ])
+
+    assert.equal(result.parties.length, 1)
+    assert.equal(result.parties[0].invitationName, "Ana y Luis")
+    assert.equal(result.parties[0].guests.length, 2)
+    assert.equal(result.parties[0].guests[1].isRecipient, false)
+    assert.ok(result.rows.every((row) => row.status === "ok"))
+  })
+
   it("does not pair rows just because they share the same Grupo label", () => {
     const result = parseGuestImportRows([
       { Grupo: "Trabajo", Nombre: "Ana", Teléfono: "600111222" },

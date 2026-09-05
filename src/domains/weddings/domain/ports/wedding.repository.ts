@@ -18,6 +18,7 @@ export interface UpdateWeddingInput {
 }
 
 export interface WeddingRepository {
+  findCurrentWeddingIdByAppUserId(appUserId: string): Promise<string | null>
   findCurrentByAppUserId(appUserId: string): Promise<Wedding | null>
   findById(id: string): Promise<Wedding | null>
   findPublicById(id: string): Promise<Wedding | null>

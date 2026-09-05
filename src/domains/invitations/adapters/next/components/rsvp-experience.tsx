@@ -28,6 +28,8 @@ type Step = "attendance" | "details" | "menu" | "allergies" | "message" | "summa
 export interface RsvpSubmitGuest {
   guestId: string
   attending: boolean
+  firstName?: string | null
+  lastName?: string | null
   email: string | null
   phone: string | null
   notes: string
@@ -163,6 +165,8 @@ export function RsvpExperience({
       guests: formGuests.map((guest) => ({
         guestId: guest.id,
         attending: guest.attending === true,
+        firstName: guest.firstName.trim() || null,
+        lastName: guest.lastName.trim() || null,
         email: guest.email.trim() || null,
         phone: guest.phone.trim() || null,
         notes: guest.attending ? guest.notes.trim() : "",

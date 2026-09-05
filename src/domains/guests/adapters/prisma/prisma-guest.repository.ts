@@ -7,10 +7,13 @@ import type {
   CreateGuestInput,
   CreateInvitationPartyInput,
   GuestInviteParty,
+  GuestRsvpSummary,
   GuestRepository,
   InvitationPartyGuestInput,
   PublicGuestInviteParty,
   RespondToPartyGuestInput,
+  SearchInvitationPartiesOptions,
+  SearchInvitationPartiesResult,
   UpdateInvitationPartyInput,
   UpdateGuestInput,
 } from "@/domains/guests/domain/ports/guest.repository"
@@ -51,6 +54,22 @@ const partyInclude = {
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   },
 } as const satisfies Prisma.GuestPartyInclude
+
+// D1 enforces a low bound-parameter limit for SQLite statements. Prisma
+// expands relation includes into additional IN clauses, so a seemingly small
+// root query can exceed that limit once all guest relations are hydrated.
+const D1_READ_BATCH_SIZE = 25
+const D1_PARTY_READ_BATCH_SIZE = 10
+const guestListOrderBy = [
+  { party: { groupName: "asc" } },
+  { name: "asc" },
+  { id: "asc" },
+] as const satisfies Prisma.GuestOrderByWithRelationInput[]
+const partyListOrderBy = [
+  { groupName: "asc" },
+  { createdAt: "asc" },
+  { id: "asc" },
+] as const satisfies Prisma.GuestPartyOrderByWithRelationInput[]
 
 const publicPartySelect = {
   id: true,
@@ -180,6 +199,78 @@ function toGuestParty(record: PrismaGuestPartyRecord): GuestInviteParty {
   }
 }
 
+// The invitations list only renders scalar guest fields (name, contact,
+// invite/RSVP status). Skip the seat/invitedBy/menuSelections/messages
+// relations here so paginating the list doesn't fan out into a dozen extra
+// queries per page — those load on demand when a single party's detail is
+// opened (see findPartyByInviteToken).
+const partyListSelect = {
+  id: true,
+  weddingId: true,
+  inviteToken: true,
+  groupName: true,
+  invitationName: true,
+  inviteStatus: true,
+  guests: {
+    select: {
+      id: true,
+      partyId: true,
+      weddingId: true,
+      appUserId: true,
+      role: true,
+      name: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      rsvpStatus: true,
+      notes: true,
+      uploadToken: true,
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  },
+} as const satisfies Prisma.GuestPartySelect
+
+type PrismaGuestPartyListRecord = Prisma.GuestPartyGetPayload<{
+  select: typeof partyListSelect
+}>
+
+function toGuestPartyListItem(
+  record: PrismaGuestPartyListRecord,
+): GuestInviteParty {
+  const party = {
+    id: record.id,
+    weddingId: record.weddingId,
+    inviteToken: record.inviteToken,
+    groupName: record.groupName ?? "",
+    invitationName: record.invitationName ?? "",
+    invite: inviteFromDb[record.inviteStatus] ?? "Pendiente",
+  }
+
+  const guests: Guest[] = record.guests.map((guest) => ({
+    id: guest.id,
+    partyId: guest.partyId,
+    weddingId: guest.weddingId,
+    appUserId: guest.appUserId,
+    role: roleFromDb(guest.role),
+    name: guest.name,
+    firstName: guest.firstName,
+    lastName: guest.lastName,
+    email: guest.email,
+    phone: guest.phone,
+    rsvp: rsvpFromDb[guest.rsvpStatus] ?? "Sin respuesta",
+    notes: guest.notes ?? "",
+    uploadToken: guest.uploadToken,
+    party,
+    seat: null,
+    invitedBy: [],
+    menuSelections: [],
+    messages: [],
+  }))
+
+  return { ...party, guests, messages: [] }
+}
+
 type PrismaPublicGuestPartyRecord = Prisma.GuestPartyGetPayload<{
   select: typeof publicPartySelect
 }>
@@ -256,25 +347,218 @@ export class PrismaGuestRepository implements GuestRepository {
   }
 
   async listByWeddingId(weddingId: string): Promise<Guest[]> {
-    const guests = await this.prisma.guest.findMany({
-      where: { weddingId },
-      include: guestInclude,
-      orderBy: [{ party: { groupName: "asc" } }, { name: "asc" }],
-    })
+    const startedAt = Date.now()
+    const guests: PrismaGuestRecord[] = []
+    let offset = 0
+    let batchIndex = 0
+
+    console.info(
+      "[nuptia:guests]",
+      JSON.stringify({
+        event: "listByWeddingId:start",
+        batchSize: D1_READ_BATCH_SIZE,
+      }),
+    )
+
+    while (true) {
+      const page = await this.prisma.guest.findMany({
+        where: { weddingId },
+        select: { id: true },
+        orderBy: guestListOrderBy,
+        skip: offset,
+        take: D1_READ_BATCH_SIZE,
+      })
+
+      if (page.length === 0) {
+        break
+      }
+
+      const pageGuests = await this.prisma.guest.findMany({
+        where: {
+          weddingId,
+          id: { in: page.map((guest) => guest.id) },
+        },
+        include: guestInclude,
+      })
+      const guestById = new Map(pageGuests.map((guest) => [guest.id, guest]))
+
+      for (const { id } of page) {
+        const guest = guestById.get(id)
+
+        if (!guest) {
+          throw new Error("No se pudo hidratar uno de los invitados")
+        }
+
+        guests.push(guest)
+      }
+
+      console.info(
+        "[nuptia:guests]",
+        JSON.stringify({
+          event: "listByWeddingId:batch",
+          batchIndex,
+          batchCount: page.length,
+        }),
+      )
+
+      batchIndex += 1
+      offset += page.length
+
+      if (page.length < D1_READ_BATCH_SIZE) {
+        break
+      }
+    }
+
+    console.info(
+      "[nuptia:guests]",
+      JSON.stringify({
+        event: "listByWeddingId:complete",
+        guestCount: guests.length,
+        batchCount: batchIndex,
+        durationMs: Date.now() - startedAt,
+      }),
+    )
 
     return guests.map(toGuest)
+  }
+
+  async getRsvpSummaryByWeddingId(
+    weddingId: string,
+  ): Promise<GuestRsvpSummary> {
+    const startedAt = Date.now()
+    const [result] = await this.d1.batch([
+      this.d1
+        .prepare(
+          `SELECT rsvpStatus AS status, COUNT(*) AS count
+           FROM guests
+           WHERE weddingId = ?
+           GROUP BY rsvpStatus`,
+        )
+        .bind(weddingId),
+    ])
+    const summary: GuestRsvpSummary = {
+      confirmed: 0,
+      pending: 0,
+      declined: 0,
+      total: 0,
+    }
+
+    for (const row of result?.results ?? []) {
+      const count = Number(row.count)
+      summary.total += Number.isFinite(count) ? count : 0
+
+      if (row.status === "confirmed") {
+        summary.confirmed = count
+      } else if (row.status === "no_response") {
+        summary.pending = count
+      } else if (row.status === "declined") {
+        summary.declined = count
+      }
+    }
+
+    console.info(
+      "[nuptia:guests]",
+      JSON.stringify({
+        event: "getRsvpSummaryByWeddingId:complete",
+        ...summary,
+        durationMs: Date.now() - startedAt,
+      }),
+    )
+
+    return summary
   }
 
   async listPartiesByWeddingId(
     weddingId: string,
   ): Promise<GuestInviteParty[]> {
-    const parties = await this.prisma.guestParty.findMany({
-      where: { weddingId },
-      include: partyInclude,
-      orderBy: [{ groupName: "asc" }, { createdAt: "asc" }],
-    })
+    const parties: PrismaGuestPartyRecord[] = []
+    let offset = 0
+
+    while (true) {
+      const page = await this.prisma.guestParty.findMany({
+        where: { weddingId },
+        select: { id: true },
+        orderBy: partyListOrderBy,
+        skip: offset,
+        take: D1_PARTY_READ_BATCH_SIZE,
+      })
+
+      if (page.length === 0) {
+        break
+      }
+
+      const pageParties = await this.prisma.guestParty.findMany({
+        where: {
+          weddingId,
+          id: { in: page.map((party) => party.id) },
+        },
+        include: partyInclude,
+      })
+      const partyById = new Map(pageParties.map((party) => [party.id, party]))
+
+      for (const { id } of page) {
+        const party = partyById.get(id)
+
+        if (!party) {
+          throw new Error("No se pudo hidratar una de las invitaciones")
+        }
+
+        parties.push(party)
+      }
+
+      offset += page.length
+
+      if (page.length < D1_PARTY_READ_BATCH_SIZE) {
+        break
+      }
+    }
 
     return parties.map(toGuestParty)
+  }
+
+  async searchInvitationParties(
+    weddingId: string,
+    options: SearchInvitationPartiesOptions,
+  ): Promise<SearchInvitationPartiesResult> {
+    const search = options.search?.trim()
+    const filters: Prisma.GuestPartyWhereInput[] = [{ weddingId }]
+
+    if (search) {
+      filters.push({
+        OR: [
+          { groupName: { contains: search } },
+          { invitationName: { contains: search } },
+          { guests: { some: { name: { contains: search } } } },
+          { guests: { some: { phone: { contains: search } } } },
+          { guests: { some: { email: { contains: search } } } },
+        ],
+      })
+    }
+
+    if (options.status === "confirmados") {
+      filters.push({ guests: { some: { rsvpStatus: rsvpToDb["Confirmado"] } } })
+    } else if (options.status === "pendientes") {
+      filters.push({ guests: { some: { rsvpStatus: rsvpToDb["Sin respuesta"] } } })
+    } else if (options.status === "declinados") {
+      filters.push({ guests: { every: { rsvpStatus: rsvpToDb["Declinado"] } } })
+    }
+
+    const where: Prisma.GuestPartyWhereInput = { AND: filters }
+    const page = Math.max(1, Math.floor(options.page))
+    const pageSize = Math.max(1, Math.floor(options.pageSize))
+
+    const [total, parties] = await Promise.all([
+      this.prisma.guestParty.count({ where }),
+      this.prisma.guestParty.findMany({
+        where,
+        select: partyListSelect,
+        orderBy: partyListOrderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ])
+
+    return { parties: parties.map(toGuestPartyListItem), total }
   }
 
   async findPartyByInviteToken(
@@ -725,6 +1009,23 @@ export class PrismaGuestRepository implements GuestRepository {
       message?: string | null
     },
   ): Promise<GuestInviteParty | null> {
+    const traceId = crypto.randomUUID()
+
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:start",
+        traceId,
+        guestCount: input.guests.length,
+        attendingCount: input.guests.filter((guest) => guest.attending).length,
+        selectionCount: input.guests.reduce(
+          (count, guest) => count + (guest.menuSelections?.length ?? 0),
+          0,
+        ),
+        hasMessage: Boolean(input.message?.trim()),
+      }),
+    )
+
     const party = await this.prisma.guestParty.findUnique({
       where: { inviteToken },
       select: {
@@ -734,6 +1035,7 @@ export class PrismaGuestRepository implements GuestRepository {
           select: {
             id: true,
             role: true,
+            name: true,
             email: true,
             phone: true,
             notes: true,
@@ -742,6 +1044,16 @@ export class PrismaGuestRepository implements GuestRepository {
         },
       },
     })
+
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:party-loaded",
+        traceId,
+        partyFound: Boolean(party),
+        guestCount: party?.guests.length ?? 0,
+      }),
+    )
 
     if (!party) {
       return null
@@ -806,6 +1118,16 @@ export class PrismaGuestRepository implements GuestRepository {
       throw new Error("La selección de menú no pertenece a esta boda")
     }
 
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:input-validated",
+        traceId,
+        requestedSelectionCount: requestedSelections.length,
+        menuDishCount: menuDishes.length,
+      }),
+    )
+
     const responsesByGuestId = new Map(
       input.guests.map((guest) => [guest.guestId, guest]),
     )
@@ -825,14 +1147,20 @@ export class PrismaGuestRepository implements GuestRepository {
           : response.notes.trim()
         : ""
 
+      const composedName = [response.firstName, response.lastName]
+        .map((part) => part?.trim())
+        .filter(Boolean)
+        .join(" ")
+
       statements.push(
         this.d1
           .prepare(
             `UPDATE guests
-             SET email = ?, phone = ?, notes = ?, rsvpStatus = ?, updatedAt = ?
+             SET name = ?, email = ?, phone = ?, notes = ?, rsvpStatus = ?, updatedAt = ?
              WHERE id = ? AND partyId = ?`,
           )
           .bind(
+            composedName || guest.name,
             response.email === undefined
               ? guest.email
               : normalizeContact(response.email),
@@ -898,9 +1226,39 @@ export class PrismaGuestRepository implements GuestRepository {
       )
     }
 
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:batch-start",
+        traceId,
+        statementCount: statements.length,
+      }),
+    )
+
     await this.d1.batch(statements)
 
-    return this.findPartyByInviteToken(inviteToken)
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:batch-complete",
+        traceId,
+        statementCount: statements.length,
+      }),
+    )
+
+    const result = await this.findPartyByInviteToken(inviteToken)
+
+    console.info(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-repository:complete",
+        traceId,
+        partyFound: Boolean(result),
+        guestCount: result?.guests.length ?? 0,
+      }),
+    )
+
+    return result
   }
 
   async assignSeat(

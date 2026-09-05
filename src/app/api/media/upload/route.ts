@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto"
 
 import { getMediaObjectStorage } from "@/composition/media-storage"
 import { getRepositories } from "@/composition/repositories"
+import { getCurrentWeddingId } from "@/composition/current-wedding"
 import { getCurrentAppSession } from "@/core/auth"
 import { env } from "@/core/config/env"
 import { isDemoSession } from "@/core/demo/is-demo-session"
 import { createMediaAssetUseCase } from "@/domains/media/application/use-cases/create-media-asset.use-case"
-import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
 import {
   apiErrorResponse,
   withApiErrorHandling,
@@ -51,12 +51,9 @@ async function uploadMedia(request: Request) {
   }
 
   const repositories = await getRepositories()
-  const wedding = await getCurrentWeddingUseCase({
-    weddingRepository: repositories.wedding,
-    appUserId: appSession.appUser.id,
-  })
+  const weddingId = await getCurrentWeddingId(appSession.appUser.id)
 
-  if (!wedding) {
+  if (!weddingId) {
     return apiErrorResponse({
       code: "WEDDING_NOT_FOUND",
       message: "Boda no encontrada",
@@ -106,7 +103,7 @@ async function uploadMedia(request: Request) {
 
   const altValue = formData.get("alt")
   const alt = typeof altValue === "string" ? altValue.trim().slice(0, 300) : null
-  const key = `weddings/${wedding.id}/${randomUUID()}.${extension}`
+  const key = `weddings/${weddingId}/${randomUUID()}.${extension}`
   const storage = getMediaObjectStorage()
 
   try {
@@ -120,7 +117,7 @@ async function uploadMedia(request: Request) {
     const encodedKey = key.split("/").map(encodeURIComponent).join("/")
     const asset = await createMediaAssetUseCase({
       mediaRepository: repositories.media,
-      weddingId: wedding.id,
+      weddingId,
       data: {
         type: "image",
         provider: "r2",

@@ -138,6 +138,10 @@ function slugFromNames(names: readonly string[]) {
 }
 
 export const demoWeddingRepository: WeddingRepository = {
+  async findCurrentWeddingIdByAppUserId() {
+    return demoWedding.id
+  },
+
   async findCurrentByAppUserId() {
     return demoWedding
   },

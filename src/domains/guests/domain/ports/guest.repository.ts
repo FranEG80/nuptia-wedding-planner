@@ -18,6 +18,13 @@ export interface CreateGuestInput {
 
 export type UpdateGuestInput = Partial<Omit<CreateGuestInput, "weddingId">>
 
+export interface GuestRsvpSummary {
+  confirmed: number
+  pending: number
+  declined: number
+  total: number
+}
+
 export interface GuestInviteParty {
   id: string
   weddingId: string
@@ -73,9 +80,29 @@ export interface UpdateInvitationPartyInput {
   guests: InvitationPartyGuestInput[]
 }
 
+export type InvitationPartyStatusFilter =
+  | "todos"
+  | "confirmados"
+  | "pendientes"
+  | "declinados"
+
+export interface SearchInvitationPartiesOptions {
+  page: number
+  pageSize: number
+  search?: string
+  status?: InvitationPartyStatusFilter
+}
+
+export interface SearchInvitationPartiesResult {
+  parties: GuestInviteParty[]
+  total: number
+}
+
 export interface RespondToPartyGuestInput {
   guestId: string
   attending: boolean
+  firstName?: string | null
+  lastName?: string | null
   email?: string | null
   phone?: string | null
   notes?: string
@@ -87,7 +114,12 @@ export interface RespondToPartyGuestInput {
 
 export interface GuestRepository {
   listByWeddingId(weddingId: string): Promise<Guest[]>
+  getRsvpSummaryByWeddingId(weddingId: string): Promise<GuestRsvpSummary>
   listPartiesByWeddingId(weddingId: string): Promise<GuestInviteParty[]>
+  searchInvitationParties(
+    weddingId: string,
+    options: SearchInvitationPartiesOptions,
+  ): Promise<SearchInvitationPartiesResult>
   findPartyByInviteToken(inviteToken: string): Promise<GuestInviteParty | null>
   findPublicPartyByInviteToken(
     inviteToken: string,

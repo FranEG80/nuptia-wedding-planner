@@ -116,7 +116,32 @@
 .footer h2 i { color: var(--terracotta); font-weight: 400; }
 .footer time { font-family: var(--font-cormorant), serif; font-size: 1.1rem; text-transform: uppercase; }
 
+.nav { position: sticky; top: 0; z-index: 30; padding: 1rem 1.25rem .85rem; border-bottom: 1px solid rgba(91, 77, 71, .16); background: rgba(251, 244, 234, .93); backdrop-filter: blur(8px); text-align: center; }
+.navBrand { font-family: var(--font-cormorant), serif; font-size: 1.15rem; letter-spacing: .18em; text-transform: uppercase; }
+.navLinks { display: flex; margin-top: .7rem; justify-content: center; flex-wrap: wrap; gap: .4rem 1.6rem; }
+.navLinks button { position: relative; padding: .25rem 0; border: 0; background: transparent; color: rgba(91, 77, 71, .62); cursor: pointer; font-family: inherit; font-size: .64rem; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
+.navLinks button:hover { color: var(--ink); }
+.navLinkActive { color: var(--ink) !important; }
+.navLinkActive::after { position: absolute; inset: auto 0 0; height: 1px; background: var(--terracotta); content: ""; }
+
+.galleryPage { padding: clamp(5rem, 10vw, 8rem) max(5vw, 1.5rem); text-align: center; }
+.galleryGrid { display: grid; width: min(1100px, 100%); margin: 4rem auto 0; gap: clamp(.75rem, 2vw, 1.5rem); grid-template-columns: repeat(4, 1fr); }
+.galleryGrid figure { position: relative; margin: 0; aspect-ratio: 1; overflow: hidden; }
+.galleryPage > p:not(.eyebrow) { margin-top: 3rem; font-family: var(--font-cormorant), serif; font-size: 1.15rem; }
+
+.playlist { display: grid; width: min(38rem, 100%); margin: 3.5rem auto 0; gap: .9rem; text-align: left; }
+.playlist li { display: flex; padding-bottom: .9rem; align-items: baseline; justify-content: space-between; gap: 1rem; border-bottom: 1px solid rgba(91, 77, 71, .2); list-style: none; }
+.playlist strong { font-family: var(--font-cormorant), serif; font-size: 1.2rem; font-weight: 400; }
+.playlist span { font-size: .64rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; opacity: .68; }
+
+.menuCourses { display: grid; width: min(1100px, 100%); margin: 4rem auto 0; gap: clamp(1.5rem, 4vw, 3rem); grid-template-columns: repeat(3, 1fr); }
+.menuCourse figure { position: relative; margin: 0 0 1.2rem; min-height: 15rem; }
+.menuCourse p:first-of-type { color: var(--terracotta); font-size: .64rem; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
+.menuCourse h3 { margin-top: .5rem; font-family: var(--font-cormorant), serif; font-size: 1.5rem; font-weight: 400; }
+
 @media (max-width: 760px) {
+  .galleryGrid { grid-template-columns: repeat(2, 1fr); }
+  .menuCourses { grid-template-columns: 1fr; }
   .hero h1 { line-height: .95; }
   .storyGrid, .placeGrid, .tableSection { grid-template-columns: 1fr; }
   .storyGrid { gap: 3.2rem; }

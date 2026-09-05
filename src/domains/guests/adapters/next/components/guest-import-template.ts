@@ -1,7 +1,6 @@
 const TEMPLATE_HEADERS = [
   "Grupo (opcional)",
-  "Clave invitación conjunta (opcional)",
-  "Nombre invitación conjunta (opcional)",
+  "Invitación conjunta (opcional)",
   "Nombre *",
   "Apellidos",
   "Teléfono",
@@ -18,14 +17,13 @@ const INSTRUCTIONS: string[][] = [
     "Amigos, Trabajo...). No combina personas y nunca aparece en el mensaje.",
   ],
   [
-    "3. Clave invitación conjunta combina personas: escribe la misma clave",
-    "(por ejemplo F1) en las filas que compartirán UNA invitación. Déjala",
-    "vacía para invitaciones individuales. Admite como máximo 5 personas.",
+    "3. Invitación conjunta combina personas: escribe el mismo nombre",
+    "(por ejemplo Ana y Luis) en las filas que compartirán UNA invitación.",
+    "Ese texto será también el nombre visible. Déjala vacía para individuales.",
   ],
   [
-    "4. Nombre invitación conjunta es opcional y sí aparece en el mensaje",
-    "enviado y en la invitación pública. Si lo dejas vacío, se mostrarán los",
-    "nombres de las personas. Repite el mismo nombre en todas sus filas.",
+    "4. Una invitación conjunta admite como máximo 5 personas; la sexta fila",
+    "con el mismo nombre se rechazará.",
   ],
   [
     "5. Marca con Sí, en la columna Destinatario, a la persona de cada",
@@ -47,19 +45,21 @@ const INSTRUCTIONS: string[][] = [
 ]
 
 const EXAMPLE_ROWS = [
-  ["Grupo", "Clave invitación conjunta", "Nombre invitación conjunta", "Nombre", "Apellidos", "Teléfono", "Email", "Destinatario"],
-  ["Familia Novio", "F1", "Ana y Luis", "Ana", "Ruiz", "600111222", "ana@correo.com", "Sí"],
-  ["Familia Novio", "F1", "Ana y Luis", "Luis", "Gómez", "600333444", "", "No"],
-  ["Familia Novio", "F2", "", "Eva", "Ruiz", "600555666", "eva@correo.com", "Sí"],
-  ["Familia Novio", "F2", "", "Mario", "Díaz", "", "", "No"],
-  ["Familia Novio", "", "", "Pedro", "Ruiz", "600777888", "", "Sí"],
+  ["Grupo", "Invitación conjunta", "Nombre", "Apellidos", "Teléfono", "Email", "Destinatario"],
+  ["Familia Novio", "Ana y Luis", "Ana", "Ruiz", "600111222", "ana@correo.com", "Sí"],
+  ["Familia Novio", "Ana y Luis", "Luis", "Gómez", "600333444", "", "No"],
+  ["Familia Novio", "Eva y Mario", "Eva", "Ruiz", "600555666", "eva@correo.com", "Sí"],
+  ["Familia Novio", "Eva y Mario", "Mario", "Díaz", "", "", "No"],
+  ["Familia Novio", "", "Pedro", "Ruiz", "600777888", "", "Sí"],
 ]
 
 export async function downloadGuestImportTemplate() {
   const XLSX = await import("xlsx")
 
   const dataSheet = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS])
-  dataSheet["!cols"] = TEMPLATE_HEADERS.map(() => ({ wch: 24 }))
+  dataSheet["!cols"] = TEMPLATE_HEADERS.map((header) => ({
+    wch: header.startsWith("Invitación") ? 30 : 22,
+  }))
 
   const instructionsSheet = XLSX.utils.aoa_to_sheet([
     ...INSTRUCTIONS.map((lines) => [lines.join(" ")]),
@@ -67,8 +67,7 @@ export async function downloadGuestImportTemplate() {
   ])
   instructionsSheet["!cols"] = [
     { wch: 90 },
-    { wch: 20 },
-    { wch: 28 },
+    { wch: 30 },
     { wch: 14 },
     { wch: 14 },
     { wch: 14 },

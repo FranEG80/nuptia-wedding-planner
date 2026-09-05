@@ -20,6 +20,19 @@ import { updateInvitationDesignUseCase } from "@/domains/invitations/application
 import { getCurrentWeddingUseCase } from "@/domains/weddings/application/use-cases/get-current-wedding.use-case"
 import { NACHO_WEDDING_SLUG } from "@/domains/wedding-sites/application/dtos/wedding-experience.dto"
 
+function traceRsvp(event: string, details: Record<string, unknown> = {}) {
+  console.info(
+    "[nuptia:rsvp]",
+    JSON.stringify({ event, ...details }),
+  )
+}
+
+function traceRsvpError(error: unknown) {
+  return error instanceof Error
+    ? { errorName: error.name, errorMessage: error.message }
+    : { errorName: typeof error }
+}
+
 export async function updateInvitationDesignAction(
   input: UpdateInvitationDesignDto,
 ) {
@@ -69,29 +82,71 @@ export async function updateInvitationDesignAction(
 }
 
 export async function respondToInvitationAction(input: unknown) {
-  const repositories = await getRepositories()
-  const parsed = publicInvitationResponseSchema.parse(input)
-  const party = await respondToPublicInvitationUseCase({
-    guestRepository: repositories.guest,
-    token: parsed.token,
-    guests: parsed.guests,
-    message: parsed.message,
+  const traceId = crypto.randomUUID()
+
+  traceRsvp("respond-action:start", {
+    traceId,
+    inputType: typeof input,
   })
 
-  revalidatePath(`/i/${parsed.token}`)
+  try {
+    const repositories = await getRepositories()
 
-  return party
-    ? {
-        guests: party.guests.map((guest) => ({
-          id: guest.id,
-          role: guest.role,
-          name: guest.name,
-          email: guest.email,
-          phone: guest.phone,
-          notes: guest.notes,
-          rsvp: guest.rsvp,
-          menuSelections: guest.menuSelections,
-        })),
-      }
-    : null
+    traceRsvp("respond-action:repositories-ready", { traceId })
+
+    const parsed = publicInvitationResponseSchema.parse(input)
+
+    traceRsvp("respond-action:input-validated", {
+      traceId,
+      guestCount: parsed.guests.length,
+      attendingCount: parsed.guests.filter((guest) => guest.attending).length,
+      selectionCount: parsed.guests.reduce(
+        (count, guest) => count + guest.menuSelections.length,
+        0,
+      ),
+      hasMessage: Boolean(parsed.message),
+    })
+
+    const party = await respondToPublicInvitationUseCase({
+      guestRepository: repositories.guest,
+      token: parsed.token,
+      guests: parsed.guests,
+      message: parsed.message,
+    })
+
+    traceRsvp("respond-action:use-case-complete", {
+      traceId,
+      partyFound: Boolean(party),
+      guestCount: party?.guests.length ?? 0,
+    })
+
+    revalidatePath(`/i/${parsed.token}`)
+
+    traceRsvp("respond-action:complete", { traceId })
+
+    return party
+      ? {
+          guests: party.guests.map((guest) => ({
+            id: guest.id,
+            role: guest.role,
+            name: guest.name,
+            email: guest.email,
+            phone: guest.phone,
+            notes: guest.notes,
+            rsvp: guest.rsvp,
+            menuSelections: guest.menuSelections,
+          })),
+        }
+      : null
+  } catch (error) {
+    console.error(
+      "[nuptia:rsvp]",
+      JSON.stringify({
+        event: "respond-action:error",
+        traceId,
+        ...traceRsvpError(error),
+      }),
+    )
+    throw error
+  }
 }
