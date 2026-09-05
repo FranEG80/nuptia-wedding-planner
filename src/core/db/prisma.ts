@@ -5,7 +5,7 @@ import { connection } from "next/server"
 import { cache } from "react"
 
 import { PrismaClient } from "@generated/prisma/client"
-import { getD1HttpCredentials } from "@/core/config/env"
+import { env, getD1HttpCredentials } from "@/core/config/env"
 import {
   createBindingD1BatchDatabase,
   createHttpD1BatchDatabase,
@@ -45,8 +45,10 @@ export const getPrisma = cache(async () => {
   return new PrismaClient({
     adapter,
     log:
-      process.env.NODE_ENV === "development"
+      env.DATABASE_QUERY_LOG_ENABLED
         ? ["query", "error", "warn"]
-        : ["error"],
+        : process.env.NODE_ENV === "development"
+          ? ["error", "warn"]
+          : ["error"],
   })
 })
