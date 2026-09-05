@@ -739,8 +739,7 @@ function GuestbookPage({
           />
           <p>El tablón todavía está en blanco.</p>
           <p>
-            Escríbenos desde tu invitación: dedicatorias, consejos o lo que quieras que leamos el
-            día de la boda. Iremos colgando aquí cada mensaje.
+            El día de la boda podrás escribirnos dedicatorias, consejos o lo que quieras. Iremos colgando aquí cada mensaje.
           </p>
         </div>
       )}

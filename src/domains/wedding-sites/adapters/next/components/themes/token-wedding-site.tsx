@@ -439,7 +439,7 @@ function GalleryPage({ content, preview }: { content: WeddingExperienceContent; 
       </div>
       <p className="flex items-center justify-center gap-2 text-sm text-(--site-muted)">
         <Camera className="h-4 w-4" strokeWidth={1.75} />
-        Podréis subir vuestras fotos desde vuestra invitación personal.
+        Podréis subir vuestras fotos el día de la boda con vuestro teléfono movil.
       </p>
     </div>
   )
