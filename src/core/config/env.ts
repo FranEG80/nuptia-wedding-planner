@@ -32,6 +32,7 @@ const envSchema = z.object({
     .string()
     .default("false")
     .transform((value) => value === "true"),
+  INVITATIONS_WITHOUT_REGISTRY_PHONES: z.string().optional().default(""),
 })
 
 const d1HttpEnvSchema = z.object({

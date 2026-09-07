@@ -3,9 +3,15 @@ import { notFound } from "next/navigation"
 import { cache } from "react"
 
 import { getPublicInvitationQuery } from "@/composition/repositories"
+import { env } from "@/core/config/env"
 import { joinSpanishNames } from "@/domains/guests/application/format-guest-names"
 import { ResolvedInvitationTemplate } from "@/domains/invitations/adapters/next/components/resolve-invitation-template"
 import { PublicRsvpPanel } from "@/domains/invitations/adapters/next/components/public-rsvp-panel"
+import {
+  isRegistryHiddenForGuests,
+  parseRegistryHiddenPhones,
+  withRegistryHidden,
+} from "@/domains/invitations/domain/invitation-registry-visibility"
 import { getPublicInvitationByTokenUseCase } from "@/domains/invitations/application/use-cases/get-public-invitation-by-token.use-case"
 import {
   MARIA_DANIELA_CUSTOM_DOMAIN,
@@ -103,12 +109,19 @@ export default async function PublicInvitationRoutePage({
   }
 
   const templateId = normalizeInvitationTemplateId(invitation.design.templateId)
+  const hideRegistry = isRegistryHiddenForGuests(
+    invitation.guests.map((guest) => guest.phone),
+    parseRegistryHiddenPhones(env.INVITATIONS_WITHOUT_REGISTRY_PHONES),
+  )
+  const content = hideRegistry
+    ? withRegistryHidden(invitation.design.content)
+    : invitation.design.content
 
   return (
     <ResolvedInvitationTemplate
       templateId={templateId}
       wedding={invitation.wedding}
-      content={invitation.design.content}
+      content={content}
       rsvpSlot={
         <PublicRsvpPanel
           token={token}
