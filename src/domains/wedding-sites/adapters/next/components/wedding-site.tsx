@@ -20,10 +20,12 @@ export function WeddingSite({
   content,
   theme,
   preview = false,
+  showFullSite = true,
 }: {
   content: WeddingExperienceContent
   theme: WeddingSiteTheme
   preview?: boolean
+  showFullSite?: boolean
 }) {
   const pages = useMemo(
     () => resolveWeddingSitePages(content.enabledModules),
@@ -48,6 +50,7 @@ export function WeddingSite({
       currentPage={currentPage}
       onNavigate={navigate}
       preview={preview}
+      showFullSite={preview || showFullSite}
     />
   )
 }

@@ -31,6 +31,14 @@
   scrollbar-color: rgba(91, 77, 71, 0.4) transparent;
 }
 
+/* Antes del día de la boda la web es una sola pantalla: ni scroll, ni pie, ni
+   navegación. La portada se dimensiona sola dentro de estos 100dvh. */
+.siteLocked {
+  height: 100dvh;
+  min-height: 0;
+  overflow: clip;
+}
+
 /* El reset pertenece a la capa base. Las utilidades de Tailwind quedan por
    encima y pueden aplicar mx-auto, mt-* y el resto del espaciado explícito. */
 @layer base {

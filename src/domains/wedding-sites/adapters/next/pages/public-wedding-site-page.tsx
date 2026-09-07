@@ -2,6 +2,7 @@ import { cache } from "react"
 import { notFound } from "next/navigation"
 
 import { getRepositories } from "@/composition/repositories"
+import { env } from "@/core/config/env"
 import { WeddingSite } from "@/domains/wedding-sites/adapters/next/components/wedding-site"
 import { getCurrentInvitationDesignUseCase } from "@/domains/invitations/application/use-cases/get-current-invitation-design.use-case"
 import {
@@ -11,6 +12,7 @@ import {
 } from "@/domains/wedding-sites/application/dtos/wedding-experience.dto"
 import { weddingSiteThemeFromInvitationDesign } from "@/domains/wedding-sites/application/dtos/wedding-site-theme.dto"
 import { DEFAULT_WEDDING_SITE_THEME } from "@/domains/wedding-sites/domain/wedding-site-theme"
+import { isFullWeddingSiteVisible } from "@/domains/wedding-sites/domain/wedding-site-availability"
 import { getPublicWeddingSiteUseCase } from "@/domains/wedding-sites/application/use-cases/get-public-wedding-site.use-case"
 
 export const getPublicWeddingExperience = cache(async (slug: string) => {
@@ -49,5 +51,16 @@ export async function PublicWeddingSitePage({ slug }: { slug: string }) {
     notFound()
   }
 
-  return <WeddingSite content={experience.content} theme={experience.theme} />
+  const showFullSite = isFullWeddingSiteVisible({
+    dateIso: experience.content.dateIso,
+    alwaysEnabled: env.WEDDING_SITE_ENABLED,
+  })
+
+  return (
+    <WeddingSite
+      content={experience.content}
+      theme={experience.theme}
+      showFullSite={showFullSite}
+    />
+  )
 }

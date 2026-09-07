@@ -48,6 +48,7 @@ export function MariaDanielaWeddingSite({
   currentPage,
   onNavigate,
   preview = false,
+  showFullSite = true,
 }: WeddingSiteThemeProps) {
   const [firstName, secondName] = content.partnerNames
   const siteRef = useRef<HTMLDivElement>(null)
@@ -142,7 +143,17 @@ export function MariaDanielaWeddingSite({
 
     void transition.finished.then(cleanUpTransitionMarker, cleanUpTransitionMarker)
   }
-console.log(content)
+
+  // Antes del día de la boda solo se publica la portada con la cuenta atrás:
+  // sin navegación, sin subpáginas, sin pie y sin scroll.
+  if (!showFullSite) {
+    return (
+      <div className={cn(styles.site, styles.siteLocked)} ref={siteRef}>
+        <CountdownHero content={content} preview={preview} />
+      </div>
+    )
+  }
+
   return (
     <div className={styles.site} ref={siteRef}>
       {/* Remontar por página reinicia las animaciones de scroll de cada sección. */}
@@ -260,6 +271,73 @@ function Hero({
   )
 }
 
+/**
+ * Portada previa a la boda: los nombres, la fecha y la cuenta atrás tienen que
+ * caber en un solo viewport, así que cada tamaño se limita también por la
+ * altura disponible (`min(…vw, …vh, tope)`) en vez de depender solo del ancho.
+ */
+function CountdownHero({
+  content,
+  preview,
+}: {
+  content: WeddingExperienceContent
+  preview: boolean
+}) {
+  const [firstName, secondName] = content.partnerNames
+
+  return (
+    <header className="relative isolate grid h-[100dvh] place-items-center overflow-hidden text-center">
+      <Image
+        draggable="false"
+        src={mariaDanielaAssets.watercolorFrame}
+        alt=""
+        fill
+        priority={!preview}
+        sizes="100vw"
+        className="z-[-2] object-cover"
+      />
+      <Image
+        draggable="false"
+        src={mariaDanielaAssets.botanicalSprig}
+        alt=""
+        width={280}
+        height={450}
+        sizes="(max-width: 720px) 48vw, 23rem"
+        className="absolute right-[-2rem] bottom-4 z-[-1] h-auto w-[min(24vw,26vh,21rem)]"
+      />
+      {/* Ni tope de ancho ni márgenes generosos: los nombres van a 15vw y con
+          menos sitio "Maria Daniela" se parte en dos líneas. */}
+      <div className="w-full px-[max(1.5vw,0.5rem)] py-[min(4vh,3rem)]">
+        <p className="my-0 text-[min(3.8vw,1.9vh,1.25rem)] font-extrabold tracking-[0.34em] uppercase">
+          ¡¡ Nos casamos !!
+        </p>
+        <h1 className="mt-[min(4vh,2rem)] mb-[min(4vh,2rem)] flex flex-col [font-family:var(--font-parisienne),cursive] text-[min(15vw,15vh,9rem)] leading-[0.85] font-normal">
+          <span>{firstName}</span>
+          <i
+            aria-hidden="true"
+            className="text-[0.7em] leading-none font-normal text-[#d5764d]"
+          >
+            &amp;
+          </i>
+          <span>{secondName}</span>
+        </h1>
+        <time
+          dateTime={content.dateIso}
+          className="block [font-family:var(--font-cormorant),serif] text-[min(3.6vw,2.4vh,1.7rem)] uppercase"
+        >
+          {content.dateLabel}
+        </time>
+        <small className="mt-[min(1.2vh,0.5rem)] block text-[min(2.6vw,1.4vh,0.7rem)] tracking-[0.2em] uppercase">
+          {content.city}
+        </small>
+        <div className="mt-[min(2vh,1rem)]">
+          <MariaDanielaCountdown weddingDate={content.dateIso} variant="bare" />
+        </div>
+      </div>
+    </header>
+  )
+}
+
 function ScriptHeading({
   children,
   brush,
@@ -364,7 +442,7 @@ function HomePage({ content, preview }: { content: WeddingExperienceContent; pre
       {hasLocation && <VenueSection content={content} />}
 
       <div className="my-32 " >
-      <MariaDanielaCountdown weddingDate={content.dateIso}  />
+        <MariaDanielaCountdown weddingDate={content.dateIso}  />
       </div>
 
       {hasGifts && <GiftsSection content={content} />}

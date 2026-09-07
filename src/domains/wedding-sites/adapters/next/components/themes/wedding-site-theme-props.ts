@@ -9,4 +9,9 @@ export interface WeddingSiteThemeProps {
   currentPage: WeddingSitePageId
   onNavigate: (page: WeddingSitePageId) => void
   preview?: boolean
+  /**
+   * `false` antes del día de la boda: el template publica solo la portada con
+   * la cuenta atrás, sin navegación ni resto de secciones.
+   */
+  showFullSite?: boolean
 }
