@@ -9,6 +9,10 @@ erDiagram
         string email UK
         boolean emailVerified
         string image
+        string role
+        boolean banned
+        string banReason
+        datetime banExpires
         datetime createdAt
         datetime updatedAt
     }
@@ -20,6 +24,7 @@ erDiagram
         datetime expiresAt
         string ipAddress
         string userAgent
+        string impersonatedBy
         datetime createdAt
         datetime updatedAt
     }
@@ -53,6 +58,8 @@ erDiagram
         string id PK
         string email UK
         string name
+        string lastName
+        string phone
         string imageUrl
         datetime createdAt
         datetime updatedAt
@@ -110,11 +117,26 @@ erDiagram
         datetime createdAt
     }
 
+    WeddingTask {
+        string id PK
+        string weddingId FK
+        string title
+        string notes
+        boolean done
+        string createdById FK
+        string completedById FK
+        datetime completedAt
+        int sortOrder
+        datetime createdAt
+        datetime updatedAt
+    }
+
     GuestParty {
         string id PK
         string weddingId FK
         string inviteToken UK
         string groupName
+        string invitationName
         string inviteStatus
         datetime createdAt
         datetime updatedAt
@@ -127,6 +149,8 @@ erDiagram
         string appUserId FK
         string role
         string name
+        string firstName
+        string lastName
         string email
         string phone
         string rsvpStatus
@@ -292,6 +316,12 @@ erDiagram
     AppUser |o--o{ WeddingMember : "appUser"
 
     WeddingMemberRole ||--o{ WeddingMember : "role"
+
+    Wedding ||--o{ WeddingTask : "wedding"
+
+    WeddingMember |o--o{ WeddingTask : "createdBy"
+
+    WeddingMember |o--o{ WeddingTask : "completedBy"
 
     Wedding ||--o{ GuestParty : "wedding"
 

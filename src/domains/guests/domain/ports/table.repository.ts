@@ -11,6 +11,8 @@ export interface UpdateTableInput {
   capacity?: number | null
 }
 
+export type TableMoveDirection = "up" | "down"
+
 export interface TableRepository {
   listByWeddingId(weddingId: string): Promise<WeddingTable[]>
   create(input: CreateTableInput): Promise<WeddingTable>
@@ -19,5 +21,10 @@ export interface TableRepository {
     weddingId: string,
     input: UpdateTableInput,
   ): Promise<WeddingTable | null>
+  move(
+    id: string,
+    weddingId: string,
+    direction: TableMoveDirection,
+  ): Promise<WeddingTable[]>
   delete(id: string, weddingId: string): Promise<boolean>
 }

@@ -31,5 +31,11 @@ export const updateTableSchema = z.object({
   capacity: z.number().int().positive().max(200).nullable().optional(),
 })
 
+export const moveTableSchema = z.object({
+  tableId: z.string().min(1),
+  direction: z.enum(["up", "down"]),
+})
+
 export type CreateTableDto = z.input<typeof createTableSchema>
 export type UpdateTableDto = z.input<typeof updateTableSchema>
+export type MoveTableDto = z.input<typeof moveTableSchema>

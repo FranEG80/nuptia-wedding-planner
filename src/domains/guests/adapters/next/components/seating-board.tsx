@@ -7,7 +7,9 @@ import {
   assignGuestSeatAction,
   createTableAction,
   deleteTableAction,
+  moveTableAction,
   unassignGuestSeatAction,
+  updateTableAction,
 } from "@/domains/guests/adapters/next/table-actions"
 import { AddTableDialog } from "@/domains/guests/adapters/next/components/add-table-dialog"
 import { GuestChip } from "@/domains/guests/adapters/next/components/guest-chip"
@@ -31,7 +33,10 @@ export function SeatingBoard({
 }) {
   const [dragId, setDragId] = useState<string | null>(null)
   const [addTableOpen, setAddTableOpen] = useState(false)
+  const [editingTable, setEditingTable] = useState<TableDto | null>(null)
+  const [movingTableId, setMovingTableId] = useState<string | null>(null)
   const [seatError, setSeatError] = useState<string | null>(null)
+  const [tableError, setTableError] = useState<string | null>(null)
 
   const guests = useMemo(() => parties.flatMap((party) => party.guests), [parties])
   const confirmed = guests.filter((guest) => guest.rsvp === "Confirmado")
@@ -114,6 +119,80 @@ export function SeatingBoard({
     }
   }
 
+  async function handleUpdateTable(
+    tableId: string,
+    input: { name?: string; capacity?: number | null },
+  ) {
+    if (isDemo) {
+      setTables((current) =>
+        current.map((table) =>
+          table.id === tableId
+            ? {
+                ...table,
+                name: input.name?.trim() || table.name,
+                capacity: input.capacity ?? null,
+              }
+            : table,
+        ),
+      )
+      setEditingTable(null)
+      return
+    }
+
+    const table = await updateTableAction({ tableId, ...input })
+
+    if (table) {
+      setTables((current) =>
+        current.map((item) => (item.id === table.id ? table : item)),
+      )
+      setEditingTable(null)
+    }
+  }
+
+  async function handleMoveTable(tableId: string, direction: "up" | "down") {
+    const currentIndex = tables.findIndex((table) => table.id === tableId)
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
+
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= tables.length) {
+      return
+    }
+
+    const previousTables = tables
+    const nextTables = [...tables]
+    const [currentTable] = nextTables.splice(currentIndex, 1)
+    nextTables.splice(targetIndex, 0, currentTable)
+    const orderedTables = nextTables.map((table, index) => ({
+      ...table,
+      sortOrder: index + 1,
+    }))
+
+    setMovingTableId(tableId)
+    setTableError(null)
+    setTables(orderedTables)
+
+    try {
+      if (isDemo) {
+        return
+      }
+
+      const updatedTables = await moveTableAction({ tableId, direction })
+
+      if (updatedTables) {
+        setTables(updatedTables)
+      } else {
+        setTables(previousTables)
+        setTableError("No se pudo reordenar las mesas.")
+      }
+    } catch (error) {
+      setTables(previousTables)
+      setTableError(
+        error instanceof Error ? error.message : "No se pudo reordenar las mesas.",
+      )
+    } finally {
+      setMovingTableId(null)
+    }
+  }
+
   async function handleDeleteTable(table: TableDto) {
     const seatedCount = confirmed.filter((guest) => guest.seat?.tableId === table.id).length
 
@@ -127,7 +206,11 @@ export function SeatingBoard({
     }
 
     if (isDemo) {
-      setTables((current) => current.filter((item) => item.id !== table.id))
+      setTables((current) =>
+        current
+          .filter((item) => item.id !== table.id)
+          .map((item, index) => ({ ...item, sortOrder: index + 1 })),
+      )
       setParties((current) =>
         current.map((party) => ({
           ...party,
@@ -142,7 +225,11 @@ export function SeatingBoard({
     const deleted = await deleteTableAction(table.id)
 
     if (deleted) {
-      setTables((current) => current.filter((item) => item.id !== table.id))
+      setTables((current) =>
+        current
+          .filter((item) => item.id !== table.id)
+          .map((item, index) => ({ ...item, sortOrder: index + 1 })),
+      )
       setParties((current) =>
         current.map((party) => ({
           ...party,
@@ -179,9 +266,9 @@ export function SeatingBoard({
         </button>
       </div>
 
-      {seatError ? (
+      {seatError || tableError ? (
         <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {seatError}
+          {seatError ?? tableError}
         </p>
       ) : null}
 
@@ -209,7 +296,7 @@ export function SeatingBoard({
 
         <div className="max-h-[70vh] overflow-y-auto pr-1">
           <div className="grid gap-4 sm:grid-cols-2">
-            {tables.map((table) => (
+            {tables.map((table, index) => (
               <TableCard
                 key={table.id}
                 table={table}
@@ -217,6 +304,12 @@ export function SeatingBoard({
                 dragId={dragId}
                 onDragStart={setDragId}
                 onDrop={() => assignTable(dragId!, table.id)}
+                canMoveUp={index > 0}
+                canMoveDown={index < tables.length - 1}
+                isMoving={movingTableId !== null}
+                onMoveUp={() => void handleMoveTable(table.id, "up")}
+                onMoveDown={() => void handleMoveTable(table.id, "down")}
+                onEdit={setEditingTable}
                 onDelete={handleDeleteTable}
               />
             ))}
@@ -230,9 +323,22 @@ export function SeatingBoard({
       </div>
 
       <AddTableDialog
+        key="add-table"
         open={addTableOpen}
         onOpenChange={setAddTableOpen}
         onCreate={handleAddTable}
+      />
+      <AddTableDialog
+        key={editingTable?.id ?? "edit-table"}
+        open={editingTable !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingTable(null)
+          }
+        }}
+        onCreate={handleAddTable}
+        table={editingTable}
+        onUpdate={handleUpdateTable}
       />
     </div>
   )
