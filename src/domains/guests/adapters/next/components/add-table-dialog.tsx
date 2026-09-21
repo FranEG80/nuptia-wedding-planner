@@ -66,14 +66,17 @@ export function AddTableDialog({
 
     validateCapacity(capacity)
 
-    if (
-      trimmedCapacity &&
-      (!Number.isInteger(nextCapacity) ||
-        nextCapacity < 1 ||
-        nextCapacity > 200 ||
-        (isEditing && nextCapacity < occupiedCount))
-    ) {
-      return
+    if (trimmedCapacity) {
+      const numericCapacity = Number(trimmedCapacity)
+
+      if (
+        !Number.isInteger(numericCapacity) ||
+        numericCapacity < 1 ||
+        numericCapacity > 200 ||
+        (isEditing && numericCapacity < occupiedCount)
+      ) {
+        return
+      }
     }
 
     const input = {
