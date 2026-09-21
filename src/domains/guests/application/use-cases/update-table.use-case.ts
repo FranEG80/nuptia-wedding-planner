@@ -12,8 +12,11 @@ export async function updateTableUseCase(input: {
   data: UpdateTableDto
 }): Promise<TableDto | null> {
   const data = updateTableSchema.parse(input.data)
+  const currentTable = (await input.tableRepository.listByWeddingId(input.weddingId)).find(
+    (table) => table.id === data.tableId,
+  )
 
-  if (data.capacity != null) {
+  if (data.capacity != null && currentTable?.capacity !== data.capacity) {
     const occupiedCount = await input.tableRepository.countOccupiedSeats(
       data.tableId,
       input.weddingId,

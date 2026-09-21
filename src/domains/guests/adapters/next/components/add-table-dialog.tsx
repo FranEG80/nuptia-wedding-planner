@@ -45,7 +45,12 @@ export function AddTableDialog({
 
     if (!Number.isInteger(nextCapacity) || nextCapacity < 1 || nextCapacity > 200) {
       setCapacityError("Indica un número entero entre 1 y 200.")
-    } else if (isEditing && nextCapacity < occupiedCount) {
+    } else if (
+      isEditing &&
+      table &&
+      table.capacity !== nextCapacity &&
+      nextCapacity < occupiedCount
+    ) {
       setCapacityError(
         `Esta mesa ya tiene ${occupiedCount} comensales. La capacidad no puede ser menor.`,
       )
@@ -73,7 +78,10 @@ export function AddTableDialog({
         !Number.isInteger(numericCapacity) ||
         numericCapacity < 1 ||
         numericCapacity > 200 ||
-        (isEditing && numericCapacity < occupiedCount)
+        (isEditing &&
+          table &&
+          table.capacity !== numericCapacity &&
+          numericCapacity < occupiedCount)
       ) {
         return
       }
