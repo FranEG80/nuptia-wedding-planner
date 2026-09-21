@@ -83,6 +83,21 @@ export class PrismaTableRepository implements TableRepository {
     return toTable(table)
   }
 
+  async countOccupiedSeats(id: string, weddingId: string): Promise<number> {
+    const table = await this.prisma.weddingTable.findFirst({
+      where: { id, weddingId },
+      select: { id: true },
+    })
+
+    if (!table) {
+      return 0
+    }
+
+    return this.prisma.weddingSeat.count({
+      where: { tableId: id, guestId: { not: null } },
+    })
+  }
+
   async move(
     id: string,
     weddingId: string,

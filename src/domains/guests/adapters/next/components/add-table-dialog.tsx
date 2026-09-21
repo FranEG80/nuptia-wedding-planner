@@ -13,35 +13,94 @@ export function AddTableDialog({
   onOpenChange,
   onCreate,
   table,
+  occupiedCount = 0,
   onUpdate,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreate: (input: TableInput) => void
+  onCreate: (input: TableInput) => void | Promise<void>
   table?: TableDto | null
-  onUpdate?: (tableId: string, input: TableInput) => void
+  occupiedCount?: number
+  onUpdate?: (tableId: string, input: TableInput) => void | Promise<void>
 }) {
   const [name, setName] = useState(table?.name ?? "")
   const [capacity, setCapacity] = useState(
     table?.capacity?.toString() ?? (table ? "" : "8"),
   )
   const isEditing = Boolean(table)
+  const [capacityError, setCapacityError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const capacityErrorId = isEditing
+    ? "edit-table-capacity-error"
+    : "add-table-capacity-error"
 
-  function handleSubmit() {
-    const input = {
-      name: name.trim() || undefined,
-      capacity: capacity.trim() ? Number(capacity) : null,
+  function validateCapacity(value: string) {
+    if (!value.trim()) {
+      setCapacityError(null)
+      return
     }
 
-    if (table) {
-      onUpdate?.(table.id, input)
+    const nextCapacity = Number(value)
+
+    if (!Number.isInteger(nextCapacity) || nextCapacity < 1 || nextCapacity > 200) {
+      setCapacityError("Indica un número entero entre 1 y 200.")
+    } else if (isEditing && nextCapacity < occupiedCount) {
+      setCapacityError(
+        `Esta mesa ya tiene ${occupiedCount} comensales. La capacidad no puede ser menor.`,
+      )
     } else {
-      onCreate(input)
+      setCapacityError(null)
+    }
+  }
+
+  async function handleSubmit() {
+    const trimmedName = name.trim()
+    const trimmedCapacity = capacity.trim()
+    const nextCapacity = trimmedCapacity ? Number(trimmedCapacity) : null
+
+    if (isEditing && !trimmedName) {
+      setSubmitError("Indica un nombre para la mesa.")
+      return
     }
 
-    setName("")
-    setCapacity("8")
-    onOpenChange(false)
+    validateCapacity(capacity)
+
+    if (
+      trimmedCapacity &&
+      (!Number.isInteger(nextCapacity) ||
+        nextCapacity < 1 ||
+        nextCapacity > 200 ||
+        (isEditing && nextCapacity < occupiedCount))
+    ) {
+      return
+    }
+
+    const input = {
+      name: trimmedName || undefined,
+      capacity: nextCapacity,
+    }
+
+    setSubmitError(null)
+    setIsSubmitting(true)
+
+    try {
+      if (table) {
+        await onUpdate?.(table.id, input)
+      } else {
+        await onCreate(input)
+      }
+
+      setName("")
+      setCapacity("8")
+      onOpenChange(false)
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "No se pudo guardar la mesa.",
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -66,7 +125,10 @@ export function AddTableDialog({
               Nombre{isEditing ? "" : " (opcional)"}
               <input
                 value={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => {
+                  setName(event.target.value)
+                  setSubmitError(null)
+                }}
                 placeholder="Mesa 5"
                 required={isEditing}
                 className="h-11 rounded-xl border border-border bg-background px-3 outline-none focus:border-accent"
@@ -79,21 +141,42 @@ export function AddTableDialog({
                 min={1}
                 max={200}
                 value={capacity}
-                onChange={(event) => setCapacity(event.target.value)}
+                onChange={(event) => {
+                  setCapacity(event.target.value)
+                  setSubmitError(null)
+                  validateCapacity(event.target.value)
+                }}
+                aria-invalid={Boolean(capacityError)}
+                aria-describedby={capacityError ? capacityErrorId : undefined}
                 className="h-11 rounded-xl border border-border bg-background px-3 outline-none focus:border-accent"
               />
             </label>
+            {capacityError ? (
+              <p id={capacityErrorId} className="mt-2 text-xs text-destructive">
+                {capacityError}
+              </p>
+            ) : null}
+            {submitError ? (
+              <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {submitError}
+              </p>
+            ) : null}
 
             <div className="mt-6 flex justify-end gap-3">
-              <Dialog.Close className="rounded-xl border border-border px-4 py-2 text-sm hover:bg-secondary">
+              <Dialog.Close
+                disabled={isSubmitting}
+                className="rounded-xl border border-border px-4 py-2 text-sm hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 Cancelar
               </Dialog.Close>
               <button
                 type="button"
-                onClick={handleSubmit}
-                className="rounded-xl bg-primary px-5 py-2 text-sm font-medium text-primary-foreground"
+                onClick={() => void handleSubmit()}
+                disabled={isSubmitting}
+                aria-busy={isSubmitting}
+                className="rounded-xl bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isEditing ? "Guardar cambios" : "Añadir"}
+                {isSubmitting ? "Guardando…" : isEditing ? "Guardar cambios" : "Añadir"}
               </button>
             </div>
           </Dialog.Popup>

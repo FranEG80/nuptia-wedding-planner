@@ -12,6 +12,20 @@ export async function updateTableUseCase(input: {
   data: UpdateTableDto
 }): Promise<TableDto | null> {
   const data = updateTableSchema.parse(input.data)
+
+  if (data.capacity != null) {
+    const occupiedCount = await input.tableRepository.countOccupiedSeats(
+      data.tableId,
+      input.weddingId,
+    )
+
+    if (occupiedCount > data.capacity) {
+      throw new Error(
+        `La mesa tiene ${occupiedCount} comensales y no puede tener una capacidad inferior.`,
+      )
+    }
+  }
+
   const table = await input.tableRepository.update(data.tableId, input.weddingId, {
     name: data.name,
     capacity: data.capacity,

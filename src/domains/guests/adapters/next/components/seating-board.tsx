@@ -116,7 +116,10 @@ export function SeatingBoard({
 
     if (table) {
       setTables((current) => [...current, table])
+      return
     }
+
+    throw new Error("No se pudo crear la mesa.")
   }
 
   async function handleUpdateTable(
@@ -146,7 +149,10 @@ export function SeatingBoard({
         current.map((item) => (item.id === table.id ? table : item)),
       )
       setEditingTable(null)
+      return
     }
+
+    throw new Error("No se pudo guardar la mesa.")
   }
 
   async function handleMoveTable(tableId: string, direction: "up" | "down") {
@@ -338,6 +344,11 @@ export function SeatingBoard({
         }}
         onCreate={handleAddTable}
         table={editingTable}
+        occupiedCount={
+          editingTable
+            ? confirmed.filter((guest) => guest.seat?.tableId === editingTable.id).length
+            : 0
+        }
         onUpdate={handleUpdateTable}
       />
     </div>

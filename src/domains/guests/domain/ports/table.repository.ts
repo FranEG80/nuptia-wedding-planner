@@ -21,6 +21,7 @@ export interface TableRepository {
     weddingId: string,
     input: UpdateTableInput,
   ): Promise<WeddingTable | null>
+  countOccupiedSeats(id: string, weddingId: string): Promise<number>
   move(
     id: string,
     weddingId: string,
