@@ -66,7 +66,8 @@ export function MenuEditorDialog({
   // que este componente ya esté en pantalla.
   const [preview, setPreview] = useState<HTMLCanvasElement | null>(null)
   const [layout, setLayout] = useState<MenuPdfLayout>("a4")
-  const [isExporting, setIsExporting] = useState(false)
+  // "blank" imprime la minuta sin platos para escribirla a mano.
+  const [exporting, setExporting] = useState<"written" | "blank" | null>(null)
   const [error, setError] = useState<string | null>(null)
   const canExport = hasPrintableMenu(courses)
 
@@ -97,18 +98,18 @@ export function MenuEditorDialog({
     onCoursesChange(courses.filter((course) => course.key !== key))
   }
 
-  async function handleExport() {
-    setIsExporting(true)
+  async function handleExport(kind: "written" | "blank") {
+    setExporting(kind)
     setError(null)
 
     try {
-      await exportMariaDanielaMenuPdf(courses, theme, layout)
+      await exportMariaDanielaMenuPdf(kind === "blank" ? null : courses, theme, layout)
     } catch (exportError) {
       setError(
         exportError instanceof Error ? exportError.message : "No se pudo generar el PDF.",
       )
     } finally {
-      setIsExporting(false)
+      setExporting(null)
     }
   }
 
@@ -119,9 +120,10 @@ export function MenuEditorDialog({
         <Dialog.Viewport className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 sm:p-6">
           <Dialog.Popup className="relative my-auto w-full max-w-4xl rounded-3xl border border-border bg-card p-5 text-foreground shadow-2xl outline-none transition-all data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0 sm:p-7">
             <div className="pr-12">
-              <Dialog.Title className="font-serif text-2xl">Escribir el menú</Dialog.Title>
-              <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-                Un bloque por cada momento de la cena y un plato por línea.
+              <Dialog.Title className="font-serif text-2xl">Minuta</Dialog.Title>
+              <Dialog.Description className="mt-1 text-sm text-pretty text-muted-foreground">
+                Un bloque por cada momento de la cena y un plato por línea. ¿La escribís a
+                mano? Descargadla en blanco.
               </Dialog.Description>
             </div>
             <Dialog.Close
@@ -244,23 +246,35 @@ export function MenuEditorDialog({
                 })}
               </div>
 
-              <div className="flex gap-3">
-                <Dialog.Close className="rounded-xl border border-border px-4 py-2 text-sm hover:bg-secondary">
-                  Cerrar
-                </Dialog.Close>
+              <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
-                  onClick={() => void handleExport()}
-                  disabled={isExporting || !canExport}
-                  aria-busy={isExporting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => void handleExport("blank")}
+                  disabled={exporting !== null}
+                  aria-busy={exporting === "blank"}
+                  title="Sin platos, para escribirla a mano"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isExporting ? (
+                  {exporting === "blank" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
-                  {isExporting ? "Generando…" : "Descargar PDF"}
+                  {exporting === "blank" ? "Generando…" : "En blanco"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleExport("written")}
+                  disabled={exporting !== null || !canExport}
+                  aria-busy={exporting === "written"}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {exporting === "written" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {exporting === "written" ? "Generando…" : "Descargar con el menú"}
                 </button>
               </div>
             </div>
