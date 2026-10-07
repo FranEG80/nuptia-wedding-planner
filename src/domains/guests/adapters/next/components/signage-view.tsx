@@ -2,14 +2,19 @@
 
 import {
   Armchair,
+  ArrowLeft,
+  ArrowRight,
   Download,
   Hash,
   IdCard,
   Loader2,
+  Minus,
+  Plus,
   Signpost,
+  Trash2,
   type LucideIcon,
 } from "lucide-react"
-import { useState, type ReactNode } from "react"
+import { useId, useState, type ReactNode } from "react"
 
 import { useDemoState } from "@/core/demo/use-demo-state"
 import { loadSignageDataAction } from "@/domains/guests/adapters/next/signage-actions"
@@ -20,14 +25,29 @@ import {
 } from "@/domains/guests/adapters/next/components/export-maria-daniela-seating-pdf"
 import { exportMariaDanielaPlaceCardsPdf } from "@/domains/guests/adapters/next/components/export-maria-daniela-place-cards-pdf"
 import { exportMariaDanielaTableSignsPdf } from "@/domains/guests/adapters/next/components/export-maria-daniela-table-signs-pdf"
+import {
+  exportMariaDanielaMiscSignsPdf,
+  type MiscSign,
+  type MiscSignArrow,
+} from "@/domains/guests/adapters/next/components/export-maria-daniela-misc-signs-pdf"
 import type {
   InvitationPartyDto,
   InvitationPartyGuestDto,
 } from "@/domains/guests/application/dtos/invitation-party.dto"
 import type { TableDto } from "@/domains/guests/application/dtos/table.dto"
+import { Button } from "@/shared/components/ui/button"
+import { Input } from "@/shared/components/ui/input"
 import { cn } from "@/shared/lib/utils"
 
 const THEMED_ONLY_NOTE = "Disponible con la plantilla María Daniela."
+const MISC_SIGNS_EXPORT_ID = "misc-signs-a4"
+const MAX_MISC_SIGN_LENGTH = 60
+
+const ARROW_CHOICES: { value: MiscSignArrow; label: string; icon: LucideIcon }[] = [
+  { value: "left", label: "Flecha a la izquierda", icon: ArrowLeft },
+  { value: "none", label: "Sin flecha", icon: Minus },
+  { value: "right", label: "Flecha a la derecha", icon: ArrowRight },
+]
 
 interface SignageData {
   tables: TableDto[]
@@ -71,12 +91,12 @@ export function SignageView({
     }
   }
 
-  async function runExport(option: ExportOption) {
-    setExportingId(option.id)
+  async function runTask(id: string, task: () => Promise<void>) {
+    setExportingId(id)
     setError(null)
 
     try {
-      await option.run(await loadData())
+      await task()
     } catch (exportError) {
       setError(
         exportError instanceof Error
@@ -88,28 +108,46 @@ export function SignageView({
     }
   }
 
+  function runExport(option: ExportOption) {
+    return runTask(option.id, async () => option.run(await loadData()))
+  }
+
   const seatingOptions: ExportOption[] = seatingPdfTheme
     ? [
         {
           id: "seating-a5",
           label: "A5",
-          detail: "148 × 210 mm",
+          detail: "Un cartel por hoja",
           run: ({ tables, confirmed }) =>
             exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a5"),
         },
         {
           id: "seating-a6",
           label: "A6",
-          detail: "105 × 148 mm",
+          detail: "Un cartel por hoja",
           run: ({ tables, confirmed }) =>
             exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a6"),
+        },
+        {
+          id: "seating-a4-2xa5",
+          label: "A4 (A5×2)",
+          detail: "Dos carteles por hoja",
+          run: ({ tables, confirmed }) =>
+            exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a4-2xa5"),
+        },
+        {
+          id: "seating-a4-4xa6",
+          label: "A4 (A6×4)",
+          detail: "Cuatro carteles por hoja",
+          run: ({ tables, confirmed }) =>
+            exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a4-4xa6"),
         },
       ]
     : [
         {
           id: "seating-list",
-          label: "Listado A4",
-          detail: "Mesas e invitados en tabla",
+          label: "A4",
+          detail: "Listado de mesas e invitados",
           run: ({ tables, confirmed }) => exportSeatingPdf(tables, confirmed),
         },
       ]
@@ -125,7 +163,7 @@ export function SignageView({
         },
         {
           id: "place-cards-a4",
-          label: "A4",
+          label: "A4 (A6×4)",
           detail: "Cuatro tarjetas por hoja",
           run: ({ tables, confirmed }) =>
             exportMariaDanielaPlaceCardsPdf(tables, confirmed, placeCardsWebsiteUrl, "a4"),
@@ -138,7 +176,7 @@ export function SignageView({
         {
           id: "table-signs-a4",
           label: "A4",
-          detail: "Número de mesa y frase",
+          detail: "Un cartel por hoja",
           run: ({ tables, confirmed }) =>
             exportMariaDanielaTableSignsPdf(tables, confirmed, seatingPdfTheme),
         },
@@ -209,11 +247,20 @@ export function SignageView({
         <SignageCard
           icon={Signpost}
           title="Cartelería varia"
-          description="A4 apaisado con el diseño de vuestra plantilla: escribid una frase o una palabra y añadid una flecha grande a un lado."
-          badge="Próximamente"
-          muted
+          description="A4 apaisado con el diseño de vuestra plantilla: escribid una frase o una palabra y, debajo, una flecha grande hacia la izquierda o hacia la derecha."
         >
-          <UnavailableNote>Estamos preparándolo.</UnavailableNote>
+          {seatingPdfTheme ? (
+            <MiscSignsEditor
+              exportingId={exportingId}
+              onExport={(signs) =>
+                runTask(MISC_SIGNS_EXPORT_ID, () =>
+                  exportMariaDanielaMiscSignsPdf(signs, seatingPdfTheme),
+                )
+              }
+            />
+          ) : (
+            <UnavailableNote>{THEMED_ONLY_NOTE}</UnavailableNote>
+          )}
         </SignageCard>
       </div>
     </div>
@@ -224,37 +271,21 @@ function SignageCard({
   icon: Icon,
   title,
   description,
-  badge,
-  muted = false,
   children,
 }: {
   icon: LucideIcon
   title: string
   description: string
-  badge?: string
-  muted?: boolean
   children: ReactNode
 }) {
   return (
-    <section
-      className={cn(
-        "flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 shadow-sm",
-        muted && "bg-card/60 shadow-none",
-      )}
-    >
+    <section className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start gap-4">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground">
           <Icon className="h-5 w-5" strokeWidth={1.75} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-serif text-xl text-foreground">{title}</h2>
-            {badge ? (
-              <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
-                {badge}
-              </span>
-            ) : null}
-          </div>
+          <h2 className="font-serif text-xl text-foreground">{title}</h2>
           <p className="mt-1 text-sm text-pretty text-muted-foreground">{description}</p>
         </div>
       </div>
@@ -300,6 +331,135 @@ function ExportButtons({
           </button>
         )
       })}
+    </div>
+  )
+}
+
+interface MiscSignDraft extends MiscSign {
+  key: number
+}
+
+// Los carteles varios no dependen de mesas ni invitados: se escriben aquí y
+// solo viven mientras la pantalla está abierta.
+function MiscSignsEditor({
+  exportingId,
+  onExport,
+}: {
+  exportingId: string | null
+  onExport: (signs: MiscSign[]) => Promise<void>
+}) {
+  const idPrefix = useId()
+  const [nextKey, setNextKey] = useState(1)
+  const [signs, setSigns] = useState<MiscSignDraft[]>([
+    { key: 0, text: "", arrow: "right" },
+  ])
+  const isExporting = exportingId === MISC_SIGNS_EXPORT_ID
+  const printable = signs.filter((sign) => sign.text.trim() || sign.arrow !== "none")
+
+  function updateSign(key: number, patch: Partial<MiscSign>) {
+    setSigns((current) =>
+      current.map((sign) => (sign.key === key ? { ...sign, ...patch } : sign)),
+    )
+  }
+
+  function addSign() {
+    setSigns((current) => [...current, { key: nextKey, text: "", arrow: "right" }])
+    setNextKey((key) => key + 1)
+  }
+
+  function removeSign(key: number) {
+    setSigns((current) => current.filter((sign) => sign.key !== key))
+  }
+
+  return (
+    <div className="space-y-3">
+      <ul className="space-y-2">
+        {signs.map((sign, index) => {
+          const inputId = `${idPrefix}-sign-${sign.key}`
+
+          return (
+            <li key={sign.key} className="flex items-center gap-2">
+              <label htmlFor={inputId} className="sr-only">
+                Texto del cartel {index + 1}
+              </label>
+              <Input
+                id={inputId}
+                value={sign.text}
+                maxLength={MAX_MISC_SIGN_LENGTH}
+                placeholder={index === 0 ? "Ceremonia" : "Photocall"}
+                onChange={(event) => updateSign(sign.key, { text: event.target.value })}
+                className="h-9 flex-1"
+              />
+              <div
+                role="radiogroup"
+                aria-label={`Flecha del cartel ${index + 1}`}
+                className="flex shrink-0 rounded-lg border border-border p-0.5"
+              >
+                {ARROW_CHOICES.map((choice) => {
+                  const Icon = choice.icon
+                  const selected = sign.arrow === choice.value
+
+                  return (
+                    <button
+                      key={choice.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      aria-label={choice.label}
+                      title={choice.label}
+                      onClick={() => updateSign(sign.key, { arrow: choice.value })}
+                      className={cn(
+                        "flex h-7 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground",
+                        selected && "bg-secondary text-foreground",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </button>
+                  )
+                })}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={`Quitar cartel ${index + 1}`}
+                disabled={signs.length === 1}
+                onClick={() => removeSign(sign.key)}
+              >
+                <Trash2 />
+              </Button>
+            </li>
+          )
+        })}
+      </ul>
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" className="h-auto py-2.5" onClick={addSign}>
+          <Plus />
+          Añadir cartel
+        </Button>
+        <button
+          type="button"
+          onClick={() => void onExport(printable)}
+          disabled={exportingId !== null || !printable.length}
+          aria-busy={isExporting}
+          className="inline-flex min-w-36 flex-1 items-center gap-3 rounded-lg border border-border bg-background px-4 py-2.5 text-left transition-colors cursor-pointer hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
+        >
+          {isExporting ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+          )}
+          <span className="leading-tight">
+            <span className="block text-sm font-medium text-foreground">
+              {isExporting ? "Generando…" : "A4 apaisado"}
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              {printable.length === 1 ? "1 cartel" : `${printable.length} carteles`}
+            </span>
+          </span>
+        </button>
+      </div>
     </div>
   )
 }

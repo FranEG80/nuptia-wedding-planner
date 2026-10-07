@@ -2,17 +2,37 @@ import type { InvitationPartyGuestDto } from "@/domains/guests/application/dtos/
 import type { TableDto } from "@/domains/guests/application/dtos/table.dto"
 import { mariaDanielaAssets } from "@/domains/wedding-sites/adapters/next/components/maria-daniela-assets"
 
-export type SeatingPdfPaperSize = "a5" | "a6"
+export type SeatingPdfLayout = "a5" | "a6" | "a4-2xa5" | "a4-4xa6"
 
 export interface MariaDanielaSeatingPdfTheme {
   partnerNames: [string, string]
   dateLabel: string
 }
 
-const PAPER_SIZES_MM: Record<SeatingPdfPaperSize, { width: number; height: number }> = {
+type CardSize = "a5" | "a6"
+
+const CARD_SIZES_MM: Record<CardSize, { width: number; height: number }> = {
   a5: { width: 148, height: 210 },
   a6: { width: 105, height: 148 },
 }
+
+interface SheetLayout {
+  card: CardSize
+  sheet: { format: "a4" | CardSize; orientation: "portrait" | "landscape" }
+  columns: number
+  rows: number
+}
+
+// En A4 caben justas dos A5 (apaisado) o cuatro A6 (vertical, 2 × 2); se
+// centran y se marcan las líneas de corte interiores.
+const SHEET_LAYOUTS: Record<SeatingPdfLayout, SheetLayout> = {
+  a5: { card: "a5", sheet: { format: "a5", orientation: "portrait" }, columns: 1, rows: 1 },
+  a6: { card: "a6", sheet: { format: "a6", orientation: "portrait" }, columns: 1, rows: 1 },
+  "a4-2xa5": { card: "a5", sheet: { format: "a4", orientation: "landscape" }, columns: 2, rows: 1 },
+  "a4-4xa6": { card: "a6", sheet: { format: "a4", orientation: "portrait" }, columns: 2, rows: 2 },
+}
+
+const CUT_LINE_COLOR = "#c9bfb2"
 
 // 300 ppp: calidad de imprenta sin disparar el peso del PDF.
 const PIXELS_PER_MM = 300 / 25.4
@@ -370,7 +390,7 @@ export async function exportMariaDanielaSeatingPdf(
   tables: TableDto[],
   guests: InvitationPartyGuestDto[],
   theme: MariaDanielaSeatingPdfTheme,
-  paperSize: SeatingPdfPaperSize,
+  layoutId: SeatingPdfLayout,
 ) {
   const pages = tables
     .map((table, index) => ({
@@ -396,21 +416,48 @@ export async function exportMariaDanielaSeatingPdf(
     loadImage(mariaDanielaAssets.terracottaBrush),
   ])
 
-  const paper = PAPER_SIZES_MM[paperSize]
+  const layout = SHEET_LAYOUTS[layoutId]
+  const card = CARD_SIZES_MM[layout.card]
   const canvas = document.createElement("canvas")
-  canvas.width = Math.round(paper.width * PIXELS_PER_MM)
-  canvas.height = Math.round(paper.height * PIXELS_PER_MM)
+  canvas.width = Math.round(card.width * PIXELS_PER_MM)
+  canvas.height = Math.round(card.height * PIXELS_PER_MM)
   const ctx = canvas.getContext("2d")
 
   if (!ctx) {
     throw new Error("El navegador no permite generar el PDF.")
   }
 
-  const doc = new jsPDF({ unit: "mm", format: paperSize, orientation: "portrait" })
+  const doc = new jsPDF({
+    unit: "mm",
+    format: layout.sheet.format,
+    orientation: layout.sheet.orientation,
+  })
+  const sheetWidth = doc.internal.pageSize.getWidth()
+  const sheetHeight = doc.internal.pageSize.getHeight()
+  const cardsPerSheet = layout.columns * layout.rows
+  const offsetX = (sheetWidth - layout.columns * card.width) / 2
+  const offsetY = (sheetHeight - layout.rows * card.height) / 2
+
+  function drawCutLines() {
+    doc.setDrawColor(CUT_LINE_COLOR)
+    doc.setLineWidth(0.15)
+
+    for (let column = 1; column < layout.columns; column++) {
+      const x = offsetX + column * card.width
+      doc.line(x, 0, x, sheetHeight)
+    }
+
+    for (let row = 1; row < layout.rows; row++) {
+      const y = offsetY + row * card.height
+      doc.line(0, y, sheetWidth, y)
+    }
+  }
 
   pages.forEach((page, index) => {
-    if (index > 0) {
-      doc.addPage(paperSize, "portrait")
+    const slot = index % cardsPerSheet
+
+    if (index > 0 && slot === 0) {
+      doc.addPage(layout.sheet.format, layout.sheet.orientation)
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -421,14 +468,18 @@ export async function exportMariaDanielaSeatingPdf(
     doc.addImage(
       canvas.toDataURL("image/jpeg", 0.92),
       "JPEG",
-      0,
-      0,
-      paper.width,
-      paper.height,
+      offsetX + (slot % layout.columns) * card.width,
+      offsetY + Math.floor(slot / layout.columns) * card.height,
+      card.width,
+      card.height,
       undefined,
       "FAST",
     )
+
+    if (cardsPerSheet > 1 && (slot === cardsPerSheet - 1 || index === pages.length - 1)) {
+      drawCutLines()
+    }
   })
 
-  doc.save(`mesas-${paperSize}.pdf`)
+  doc.save(`mesas-${layoutId}.pdf`)
 }
