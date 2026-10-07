@@ -9,9 +9,11 @@ import {
   IdCard,
   Loader2,
   Minus,
+  PenLine,
   Plus,
   Signpost,
   Trash2,
+  UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react"
 import { useId, useState, type ReactNode } from "react"
@@ -25,11 +27,18 @@ import {
 } from "@/domains/guests/adapters/next/components/export-maria-daniela-seating-pdf"
 import { exportMariaDanielaPlaceCardsPdf } from "@/domains/guests/adapters/next/components/export-maria-daniela-place-cards-pdf"
 import { exportMariaDanielaTableSignsPdf } from "@/domains/guests/adapters/next/components/export-maria-daniela-table-signs-pdf"
+import { exportMariaDanielaMiscSignsPdf } from "@/domains/guests/adapters/next/components/export-maria-daniela-misc-signs-pdf"
+import { exportMariaDanielaMiscSignsDocx } from "@/domains/guests/adapters/next/components/export-maria-daniela-misc-signs-docx"
+import type {
+  MiscSign,
+  MiscSignArrow,
+} from "@/domains/guests/adapters/next/components/maria-daniela-misc-signs-render"
+import { exportMariaDanielaMenuPdf } from "@/domains/guests/adapters/next/components/export-maria-daniela-menu-pdf"
 import {
-  exportMariaDanielaMiscSignsPdf,
-  type MiscSign,
-  type MiscSignArrow,
-} from "@/domains/guests/adapters/next/components/export-maria-daniela-misc-signs-pdf"
+  INITIAL_MENU_COURSES,
+  MenuEditorDialog,
+  type MenuCourseDraft,
+} from "@/domains/guests/adapters/next/components/menu-editor-dialog"
 import type {
   InvitationPartyDto,
   InvitationPartyGuestDto,
@@ -40,7 +49,6 @@ import { Input } from "@/shared/components/ui/input"
 import { cn } from "@/shared/lib/utils"
 
 const THEMED_ONLY_NOTE = "Disponible con la plantilla María Daniela."
-const MISC_SIGNS_EXPORT_ID = "misc-signs-a4"
 const MAX_MISC_SIGN_LENGTH = 60
 
 const ARROW_CHOICES: { value: MiscSignArrow; label: string; icon: LucideIcon }[] = [
@@ -74,6 +82,10 @@ export function SignageView({
   const [demoTables] = useDemoState<TableDto[] | null>("guest-tables", null)
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // El menú escrito solo vive mientras la pantalla está abierta, como los
+  // carteles varios, pero sobrevive a cerrar y reabrir el editor.
+  const [menuCourses, setMenuCourses] = useState<MenuCourseDraft[]>(INITIAL_MENU_COURSES)
+  const [isMenuEditorOpen, setIsMenuEditorOpen] = useState(false)
 
   // Invitados y mesas se piden al generar cada PDF: abrir la pantalla no
   // cuesta nada y lo impreso refleja siempre los últimos cambios.
@@ -110,6 +122,10 @@ export function SignageView({
 
   function runExport(option: ExportOption) {
     return runTask(option.id, async () => option.run(await loadData()))
+  }
+
+  function runStandaloneExport(option: ExportOption) {
+    return runTask(option.id, () => option.run({ tables: [], confirmed: [] }))
   }
 
   const seatingOptions: ExportOption[] = seatingPdfTheme
@@ -183,6 +199,30 @@ export function SignageView({
       ]
     : []
 
+  // La minuta en blanco no necesita mesas ni invitados.
+  const blankMenuOptions: ExportOption[] = seatingPdfTheme
+    ? [
+        {
+          id: "menu-blank-a4",
+          label: "A4",
+          detail: "Una por hoja",
+          run: () => exportMariaDanielaMenuPdf(null, seatingPdfTheme, "a4"),
+        },
+        {
+          id: "menu-blank-a5",
+          label: "A5",
+          detail: "Una por hoja",
+          run: () => exportMariaDanielaMenuPdf(null, seatingPdfTheme, "a5"),
+        },
+        {
+          id: "menu-blank-a4-2xa5",
+          label: "A4 (A5×2)",
+          detail: "Dos por hoja",
+          run: () => exportMariaDanielaMenuPdf(null, seatingPdfTheme, "a4-2xa5"),
+        },
+      ]
+    : []
+
   return (
     <div className="space-y-8">
       <div>
@@ -251,13 +291,68 @@ export function SignageView({
         >
           {seatingPdfTheme ? (
             <MiscSignsEditor
+              formats={[
+                {
+                  id: "misc-signs-pdf",
+                  label: "PDF",
+                  run: (signs) => exportMariaDanielaMiscSignsPdf(signs, seatingPdfTheme),
+                },
+                {
+                  id: "misc-signs-docx",
+                  label: "Word",
+                  run: (signs) => exportMariaDanielaMiscSignsDocx(signs, seatingPdfTheme),
+                },
+              ]}
               exportingId={exportingId}
-              onExport={(signs) =>
-                runTask(MISC_SIGNS_EXPORT_ID, () =>
-                  exportMariaDanielaMiscSignsPdf(signs, seatingPdfTheme),
-                )
-              }
+              onExport={runStandaloneExport}
             />
+          ) : (
+            <UnavailableNote>{THEMED_ONLY_NOTE}</UnavailableNote>
+          )}
+        </SignageCard>
+
+        <SignageCard
+          icon={UtensilsCrossed}
+          title="Minuta"
+          description="El menú del banquete con el diseño de vuestra plantilla. Imprimidla en blanco para escribirlo a mano o escribidlo aquí."
+        >
+          {seatingPdfTheme ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">En blanco</p>
+                <ExportButtons
+                  options={blankMenuOptions}
+                  exportingId={exportingId}
+                  onExport={runStandaloneExport}
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Con el menú escrito</p>
+                <button
+                  type="button"
+                  onClick={() => setIsMenuEditorOpen(true)}
+                  disabled={exportingId !== null}
+                  className="inline-flex min-w-36 items-center gap-3 rounded-lg border border-border bg-background px-4 py-2.5 text-left transition-colors cursor-pointer hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <PenLine className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="leading-tight">
+                    <span className="block text-sm font-medium text-foreground">
+                      Escribir el menú
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      A4 o A5, con vista previa
+                    </span>
+                  </span>
+                </button>
+              </div>
+              <MenuEditorDialog
+                open={isMenuEditorOpen}
+                onOpenChange={setIsMenuEditorOpen}
+                courses={menuCourses}
+                onCoursesChange={setMenuCourses}
+                theme={seatingPdfTheme}
+              />
+            </div>
           ) : (
             <UnavailableNote>{THEMED_ONLY_NOTE}</UnavailableNote>
           )}
@@ -339,22 +434,35 @@ interface MiscSignDraft extends MiscSign {
   key: number
 }
 
+interface MiscSignsFormat {
+  id: string
+  label: string
+  run: (signs: MiscSign[]) => Promise<void>
+}
+
 // Los carteles varios no dependen de mesas ni invitados: se escriben aquí y
 // solo viven mientras la pantalla está abierta.
 function MiscSignsEditor({
+  formats,
   exportingId,
   onExport,
 }: {
+  formats: MiscSignsFormat[]
   exportingId: string | null
-  onExport: (signs: MiscSign[]) => Promise<void>
+  onExport: (option: ExportOption) => Promise<void>
 }) {
   const idPrefix = useId()
   const [nextKey, setNextKey] = useState(1)
   const [signs, setSigns] = useState<MiscSignDraft[]>([
     { key: 0, text: "", arrow: "right" },
   ])
-  const isExporting = exportingId === MISC_SIGNS_EXPORT_ID
-  const printable = signs.filter((sign) => sign.text.trim() || sign.arrow !== "none")
+  const countLabel = signs.length === 1 ? "1 cartel" : `${signs.length} carteles`
+  const options: ExportOption[] = formats.map((format) => ({
+    id: format.id,
+    label: format.label,
+    detail: `A4 apaisado · ${countLabel}`,
+    run: () => format.run(signs),
+  }))
 
   function updateSign(key: number, patch: Partial<MiscSign>) {
     setSigns((current) =>
@@ -386,7 +494,7 @@ function MiscSignsEditor({
                 id={inputId}
                 value={sign.text}
                 maxLength={MAX_MISC_SIGN_LENGTH}
-                placeholder={index === 0 ? "Ceremonia" : "Photocall"}
+                placeholder="Escribid el texto del cartel"
                 onChange={(event) => updateSign(sign.key, { text: event.target.value })}
                 className="h-9 flex-1"
               />
@@ -433,33 +541,12 @@ function MiscSignsEditor({
         })}
       </ul>
 
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" className="h-auto py-2.5" onClick={addSign}>
-          <Plus />
-          Añadir cartel
-        </Button>
-        <button
-          type="button"
-          onClick={() => void onExport(printable)}
-          disabled={exportingId !== null || !printable.length}
-          aria-busy={isExporting}
-          className="inline-flex min-w-36 flex-1 items-center gap-3 rounded-lg border border-border bg-background px-4 py-2.5 text-left transition-colors cursor-pointer hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
-        >
-          {isExporting ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
-          )}
-          <span className="leading-tight">
-            <span className="block text-sm font-medium text-foreground">
-              {isExporting ? "Generando…" : "A4 apaisado"}
-            </span>
-            <span className="block text-xs text-muted-foreground">
-              {printable.length === 1 ? "1 cartel" : `${printable.length} carteles`}
-            </span>
-          </span>
-        </button>
-      </div>
+      <Button type="button" variant="outline" onClick={addSign}>
+        <Plus />
+        Añadir cartel
+      </Button>
+
+      <ExportButtons options={options} exportingId={exportingId} onExport={onExport} />
     </div>
   )
 }
