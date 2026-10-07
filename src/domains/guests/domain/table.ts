@@ -4,4 +4,5 @@ export interface WeddingTable {
   name: string
   sortOrder: number
   capacity: number | null
+  phrase: string | null
 }

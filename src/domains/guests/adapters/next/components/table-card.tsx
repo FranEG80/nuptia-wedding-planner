@@ -129,6 +129,11 @@ export function TableCard({
           </button>
         </div>
       </div>
+      {table.phrase ? (
+        <p className="mt-2 line-clamp-2 pl-10 font-serif text-sm italic text-muted-foreground">
+          “{table.phrase}”
+        </p>
+      ) : null}
       {!collapsed ? (
         <div className="mt-3 min-h-20 space-y-2">
           {seated.map((guest) => (

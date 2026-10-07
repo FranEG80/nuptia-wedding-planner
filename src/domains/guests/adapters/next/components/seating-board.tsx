@@ -1,6 +1,6 @@
 "use client"
 
-import { Download, Plus, Users } from "lucide-react"
+import { Plus, Users } from "lucide-react"
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react"
 
 import {
@@ -14,7 +14,6 @@ import {
 import { AddTableDialog } from "@/domains/guests/adapters/next/components/add-table-dialog"
 import { GuestChip } from "@/domains/guests/adapters/next/components/guest-chip"
 import { TableCard } from "@/domains/guests/adapters/next/components/table-card"
-import { exportSeatingPdf } from "@/domains/guests/adapters/next/components/export-seating-pdf"
 import type { TableDto } from "@/domains/guests/application/dtos/table.dto"
 import type { InvitationPartyDto } from "@/domains/guests/application/dtos/invitation-party.dto"
 
@@ -96,7 +95,11 @@ export function SeatingBoard({
     }
   }
 
-  async function handleAddTable(input: { name?: string; capacity?: number | null }) {
+  async function handleAddTable(input: {
+    name?: string
+    capacity?: number | null
+    phrase?: string | null
+  }) {
     if (isDemo) {
       const nextSortOrder = (tables.at(-1)?.sortOrder ?? 0) + 1
       setTables((current) => [
@@ -107,6 +110,7 @@ export function SeatingBoard({
           name: input.name?.trim() || `Mesa ${nextSortOrder}`,
           sortOrder: nextSortOrder,
           capacity: input.capacity ?? null,
+          phrase: input.phrase?.trim() || null,
         },
       ])
       return
@@ -124,7 +128,7 @@ export function SeatingBoard({
 
   async function handleUpdateTable(
     tableId: string,
-    input: { name?: string; capacity?: number | null },
+    input: { name?: string; capacity?: number | null; phrase?: string | null },
   ) {
     if (isDemo) {
       setTables((current) =>
@@ -134,6 +138,7 @@ export function SeatingBoard({
                 ...table,
                 name: input.name?.trim() || table.name,
                 capacity: input.capacity ?? null,
+                phrase: input.phrase?.trim() || null,
               }
             : table,
         ),
@@ -247,21 +252,9 @@ export function SeatingBoard({
     }
   }
 
-  function handleExportPdf() {
-    void exportSeatingPdf(tables, confirmed)
-  }
-
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap justify-end gap-2">
-        <button
-          type="button"
-          onClick={handleExportPdf}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50"
-        >
-          <Download className="h-4 w-4" />
-          Exportar PDF
-        </button>
         <button
           type="button"
           onClick={() => setAddTableOpen(true)}

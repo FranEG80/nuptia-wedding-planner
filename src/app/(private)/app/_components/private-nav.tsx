@@ -11,6 +11,7 @@ import {
   ListChecks,
   LogOut,
   Mail,
+  Printer,
   Settings,
   Users,
   X,
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/app/invitacion", label: "Invitación Digital", icon: Mail },
   { href: "/app/web", label: "Web de Bodas", icon: Globe },
   { href: "/app/invitados", label: "Invitados", icon: Users },
+  { href: "/app/carteleria", label: "Cartelería", icon: Printer },
   { href: "/app/tareas", label: "Tareas", icon: ListChecks },
   { href: "/app/ajustes", label: "Ajustes", icon: Settings },
 ]

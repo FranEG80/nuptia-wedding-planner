@@ -454,6 +454,7 @@ model WeddingTable {
   name      String
   sortOrder Int           @default(0)
   capacity  Int?
+  phrase    String?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   wedding   Wedding       @relation(fields: [weddingId], references: [id], onDelete: Cascade)

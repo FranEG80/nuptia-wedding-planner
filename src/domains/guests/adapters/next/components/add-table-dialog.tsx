@@ -4,9 +4,12 @@ import { Dialog } from "@base-ui/react/dialog"
 import { X } from "lucide-react"
 import { useState } from "react"
 
-import type { TableDto } from "@/domains/guests/application/dtos/table.dto"
+import {
+  TABLE_PHRASE_MAX_LENGTH,
+  type TableDto,
+} from "@/domains/guests/application/dtos/table.dto"
 
-type TableInput = { name?: string; capacity?: number | null }
+type TableInput = { name?: string; capacity?: number | null; phrase?: string | null }
 
 export function AddTableDialog({
   open,
@@ -27,6 +30,7 @@ export function AddTableDialog({
   const [capacity, setCapacity] = useState(
     table?.capacity?.toString() ?? (table ? "" : "8"),
   )
+  const [phrase, setPhrase] = useState(table?.phrase ?? "")
   const isEditing = Boolean(table)
   const [capacityError, setCapacityError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -90,6 +94,7 @@ export function AddTableDialog({
     const input = {
       name: trimmedName || undefined,
       capacity: nextCapacity,
+      phrase: phrase.trim() || null,
     }
 
     setSubmitError(null)
@@ -104,6 +109,7 @@ export function AddTableDialog({
 
       setName("")
       setCapacity("8")
+      setPhrase("")
       onOpenChange(false)
     } catch (error) {
       setSubmitError(
@@ -167,6 +173,23 @@ export function AddTableDialog({
                 {capacityError}
               </p>
             ) : null}
+            <label className="mt-4 grid gap-2 text-sm font-medium">
+              Frase de la mesa (opcional)
+              <textarea
+                value={phrase}
+                onChange={(event) => {
+                  setPhrase(event.target.value)
+                  setSubmitError(null)
+                }}
+                maxLength={TABLE_PHRASE_MAX_LENGTH}
+                rows={3}
+                placeholder="Gracias por ser parte de nuestra historia."
+                className="resize-none rounded-xl border border-border bg-background px-3 py-2 outline-none focus:border-accent"
+              />
+              <span className="text-xs font-normal text-muted-foreground">
+                Se imprime en el mesario debajo del número.
+              </span>
+            </label>
             {submitError ? (
               <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                 {submitError}

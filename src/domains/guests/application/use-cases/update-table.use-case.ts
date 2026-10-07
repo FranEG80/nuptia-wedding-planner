@@ -32,6 +32,7 @@ export async function updateTableUseCase(input: {
   const table = await input.tableRepository.update(data.tableId, input.weddingId, {
     name: data.name,
     capacity: data.capacity,
+    phrase: data.phrase,
   })
 
   return table ? toTableDto(table) : null

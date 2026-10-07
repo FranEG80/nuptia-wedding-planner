@@ -16,6 +16,7 @@ export async function createTableUseCase(input: {
     weddingId: input.weddingId,
     name: data.name,
     capacity: data.capacity,
+    phrase: data.phrase,
   })
 
   return toTableDto(table)

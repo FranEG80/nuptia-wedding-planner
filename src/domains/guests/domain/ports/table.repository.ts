@@ -4,11 +4,13 @@ export interface CreateTableInput {
   weddingId: string
   name?: string
   capacity?: number | null
+  phrase?: string | null
 }
 
 export interface UpdateTableInput {
   name?: string
   capacity?: number | null
+  phrase?: string | null
 }
 
 export type TableMoveDirection = "up" | "down"

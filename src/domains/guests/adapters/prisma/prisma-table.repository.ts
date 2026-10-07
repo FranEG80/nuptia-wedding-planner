@@ -14,6 +14,7 @@ function toTable(record: {
   name: string
   sortOrder: number
   capacity: number | null
+  phrase: string | null
 }): WeddingTable {
   return {
     id: record.id,
@@ -21,6 +22,7 @@ function toTable(record: {
     name: record.name,
     sortOrder: record.sortOrder,
     capacity: record.capacity,
+    phrase: record.phrase,
   }
 }
 
@@ -53,6 +55,7 @@ export class PrismaTableRepository implements TableRepository {
         name: input.name?.trim() || `Mesa ${sortOrder}`,
         sortOrder,
         capacity: input.capacity ?? null,
+        phrase: input.phrase?.trim() || null,
       },
     })
 
@@ -77,6 +80,7 @@ export class PrismaTableRepository implements TableRepository {
       data: {
         name: input.name?.trim() || undefined,
         capacity: input.capacity === undefined ? undefined : input.capacity,
+        phrase: input.phrase === undefined ? undefined : input.phrase?.trim() || null,
       },
     })
 
