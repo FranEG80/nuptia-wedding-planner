@@ -219,11 +219,11 @@ function isDefaultTableName(name: string) {
 
 // Los nombres de mesa suelen guardarse en mayúsculas y en Parisienne quedan
 // ilegibles: solo la primera letra va en mayúscula.
-function toSentenceCase(text: string) {
-  const lower = text.toLocaleLowerCase("es-ES")
+// function toSentenceCase(text: string) {
+//   const lower = text.toLocaleLowerCase("es-ES")
 
-  return lower.charAt(0).toLocaleUpperCase("es-ES") + lower.slice(1)
-}
+//   return lower.charAt(0).toLocaleUpperCase("es-ES") + lower.slice(1)
+// }
 
 function wrapWords(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
   const lines: string[] = []
@@ -263,7 +263,8 @@ function layoutHeader(
   const { width, height } = ctx.canvas
   const script = (size: number) => `400 ${size}px ${fonts.script}`
   const maxWidth = 0.66 * width
-  const name = toSentenceCase(page.name.trim().replace(/\s+/g, " "))
+  // const name = toSentenceCase(page.name.trim().replace(/\s+/g, " "))
+  const name = page.name.trim().replace(/\s+/g, " ")
   const showName = name.length > 0 && !isDefaultTableName(name)
   let fontSize = 0.068 * height
   let nameLines: string[] = []

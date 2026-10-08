@@ -171,6 +171,7 @@ function wrapBalanced(ctx: CanvasRenderingContext2D, text: string, maxWidth: num
 // Los nombres en mayúsculas quedan ilegibles en Parisienne: se pasan a
 // "Nombre Apellido" sin tocar los que ya vienen bien escritos.
 function toDisplayName(name: string) {
+  
   const clean = name.trim().replace(/\s+/g, " ")
 
   if (clean !== clean.toLocaleUpperCase("es-ES")) {

@@ -256,7 +256,8 @@ function layoutSign(
 ): SignLayout {
   const { width, height } = ctx.canvas
   const script = (size: number) => `400 ${size}px ${fonts.script}`
-  const name = toSentenceCase(page.name.trim().replace(/\s+/g, " "))
+  // const name = toSentenceCase(page.name.trim().replace(/\s+/g, " "))
+  const name = page.name.trim().replace(/\s+/g, " ")
   const title = `Mesa ${page.number}`
 
   if (!name || isDefaultTableName(name)) {
