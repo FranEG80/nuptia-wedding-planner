@@ -283,8 +283,10 @@ function drawNamePanel(
 async function renderQrCode(url: string, size: number) {
   const { toCanvas } = await import("qrcode")
   const canvas = document.createElement("canvas")
+  const qrUrl = new URL(url)
+  qrUrl.searchParams.set("qr", "true")
 
-  await toCanvas(canvas, url, {
+  await toCanvas(canvas, qrUrl.toString(), {
     errorCorrectionLevel: "M",
     margin: 0,
     width: size,
