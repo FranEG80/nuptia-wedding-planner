@@ -9,12 +9,14 @@ import { isDemoSession } from "@/core/demo/is-demo-session"
 import type {
   CreateTableDto,
   MoveTableDto,
+  SwapGuestSeatsDto,
   UpdateTableDto,
 } from "@/domains/guests/application/dtos/table.dto"
 import { assignGuestSeatUseCase } from "@/domains/guests/application/use-cases/assign-guest-seat.use-case"
 import { createTableUseCase } from "@/domains/guests/application/use-cases/create-table.use-case"
 import { deleteTableUseCase } from "@/domains/guests/application/use-cases/delete-table.use-case"
 import { moveTableUseCase } from "@/domains/guests/application/use-cases/move-table.use-case"
+import { swapGuestSeatsUseCase } from "@/domains/guests/application/use-cases/swap-guest-seats.use-case"
 import { unassignGuestSeatUseCase } from "@/domains/guests/application/use-cases/unassign-guest-seat.use-case"
 import { updateTableUseCase } from "@/domains/guests/application/use-cases/update-table.use-case"
 
@@ -143,6 +145,31 @@ export async function assignGuestSeatAction(guestId: string, tableId: string) {
   revalidatePath("/app/invitados")
 
   return guest
+}
+
+export async function swapGuestSeatsAction(input: SwapGuestSeatsDto) {
+  const repositories = await getRepositories()
+  const session = await requireAppSession()
+
+  if (isDemoSession(session)) {
+    return null
+  }
+
+  const weddingId = await getCurrentWeddingId(session.appUser.id)
+
+  if (!weddingId) {
+    return null
+  }
+
+  const positions = await swapGuestSeatsUseCase({
+    guestRepository: repositories.guest,
+    weddingId,
+    data: input,
+  })
+
+  revalidatePath("/app/invitados")
+
+  return positions
 }
 
 export async function unassignGuestSeatAction(guestId: string) {

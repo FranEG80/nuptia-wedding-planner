@@ -42,6 +42,8 @@ export function TableCard({
   isMoving,
   onMoveDown,
   onMoveUp,
+  isMovingGuest,
+  onMoveGuest,
   onEdit,
   onDelete,
 }: {
@@ -55,6 +57,8 @@ export function TableCard({
   isMoving: boolean
   onMoveDown: () => void
   onMoveUp: () => void
+  isMovingGuest: boolean
+  onMoveGuest: (guestId: string, direction: "up" | "down") => void
   onEdit: (table: TableDto) => void
   onDelete: (table: TableDto) => void
 }) {
@@ -136,8 +140,19 @@ export function TableCard({
       ) : null}
       {!collapsed ? (
         <div className="mt-3 min-h-20 space-y-2">
-          {seated.map((guest) => (
-            <GuestChip key={guest.id} guest={guest} onDragStart={() => onDragStart(guest.id)} />
+          {seated.map((guest, index) => (
+            <GuestChip
+              key={guest.id}
+              guest={guest}
+              onDragStart={() => onDragStart(guest.id)}
+              order={{
+                canMoveUp: index > 0,
+                canMoveDown: index < seated.length - 1,
+                disabled: isMovingGuest,
+                onMoveUp: () => onMoveGuest(guest.id, "up"),
+                onMoveDown: () => onMoveGuest(guest.id, "down"),
+              }}
+            />
           ))}
           {!seated.length ? (
             <div className="flex min-h-20 items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground">

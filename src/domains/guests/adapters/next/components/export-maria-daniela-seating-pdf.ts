@@ -1,5 +1,6 @@
 import type { InvitationPartyGuestDto } from "@/domains/guests/application/dtos/invitation-party.dto"
 import type { TableDto } from "@/domains/guests/application/dtos/table.dto"
+import { seatedGuestsAtTable } from "@/domains/guests/domain/seating"
 import { mariaDanielaAssets } from "@/domains/wedding-sites/adapters/next/components/maria-daniela-assets"
 
 export type SeatingPdfLayout = "a5" | "a6" | "a4-2xa5" | "a4-4xa6"
@@ -397,9 +398,7 @@ export async function exportMariaDanielaSeatingPdf(
     .map((table, index) => ({
       number: index + 1,
       name: table.name,
-      guests: guests
-        .filter((guest) => guest.seat?.tableId === table.id)
-        .map((guest) => guest.name),
+      guests: seatedGuestsAtTable(guests, table.id).map((guest) => guest.name),
     }))
     .filter((page) => page.guests.length > 0)
 

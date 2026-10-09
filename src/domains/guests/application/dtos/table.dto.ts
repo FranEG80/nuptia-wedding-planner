@@ -51,6 +51,19 @@ export const moveTableSchema = z.object({
   direction: z.enum(["up", "down"]),
 })
 
+export const swapGuestSeatsSchema = z
+  .object({
+    guestId: z.string().min(1),
+    otherGuestId: z.string().min(1),
+  })
+  .refine((data) => data.guestId !== data.otherGuestId)
+
+export interface GuestSeatPositionDto {
+  guestId: string
+  position: number
+}
+
 export type CreateTableDto = z.input<typeof createTableSchema>
 export type UpdateTableDto = z.input<typeof updateTableSchema>
 export type MoveTableDto = z.input<typeof moveTableSchema>
+export type SwapGuestSeatsDto = z.input<typeof swapGuestSeatsSchema>

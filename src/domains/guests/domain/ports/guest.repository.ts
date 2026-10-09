@@ -112,6 +112,11 @@ export interface RespondToPartyGuestInput {
   }>
 }
 
+export interface GuestSeatPosition {
+  guestId: string
+  position: number
+}
+
 export interface GuestRepository {
   listByWeddingId(weddingId: string): Promise<Guest[]>
   getRsvpSummaryByWeddingId(weddingId: string): Promise<GuestRsvpSummary>
@@ -153,5 +158,12 @@ export interface GuestRepository {
   ): Promise<GuestInviteParty | null>
   assignSeat(guestId: string, weddingId: string, tableId: string): Promise<Guest | null>
   unassignSeat(guestId: string, weddingId: string): Promise<Guest | null>
+  // Intercambia la posición de dos invitados sentados en la misma mesa.
+  // Devuelve la posición resultante de cada uno, o null si no se puede.
+  swapSeats(
+    guestId: string,
+    otherGuestId: string,
+    weddingId: string,
+  ): Promise<GuestSeatPosition[] | null>
   deleteInvitationParty(partyId: string, weddingId: string): Promise<boolean>
 }

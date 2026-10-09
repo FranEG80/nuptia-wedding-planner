@@ -531,6 +531,44 @@ export const demoGuestRepository: GuestRepository = {
     return next
   },
 
+  async swapSeats(guestId, otherGuestId, weddingId) {
+    const first = demoGuests.find(
+      (guest) => guest.id === guestId && guest.weddingId === weddingId,
+    )
+    const second = demoGuests.find(
+      (guest) => guest.id === otherGuestId && guest.weddingId === weddingId,
+    )
+
+    if (
+      guestId === otherGuestId ||
+      !first?.seat ||
+      !second?.seat ||
+      first.seat.tableId !== second.seat.tableId
+    ) {
+      return null
+    }
+
+    const firstPosition = first.seat.position
+    const secondPosition = second.seat.position
+
+    demoGuests = demoGuests.map((guest) => {
+      if (guest.id === guestId && guest.seat) {
+        return { ...guest, seat: { ...guest.seat, position: secondPosition } }
+      }
+
+      if (guest.id === otherGuestId && guest.seat) {
+        return { ...guest, seat: { ...guest.seat, position: firstPosition } }
+      }
+
+      return guest
+    })
+
+    return [
+      { guestId, position: secondPosition },
+      { guestId: otherGuestId, position: firstPosition },
+    ]
+  },
+
   async deleteInvitationParty(partyId, weddingId) {
     const existed = demoGuests.some(
       (guest) => guest.partyId === partyId && guest.weddingId === weddingId,

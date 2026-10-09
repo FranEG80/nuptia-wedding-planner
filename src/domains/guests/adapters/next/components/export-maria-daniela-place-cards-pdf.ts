@@ -1,5 +1,6 @@
 import type { InvitationPartyGuestDto } from "@/domains/guests/application/dtos/invitation-party.dto"
 import type { TableDto } from "@/domains/guests/application/dtos/table.dto"
+import { seatedGuestsAtTable } from "@/domains/guests/domain/seating"
 import { mariaDanielaAssets } from "@/domains/wedding-sites/adapters/next/components/maria-daniela-assets"
 
 export type PlaceCardsPdfLayout = "a6" | "a4"
@@ -371,9 +372,7 @@ function drawQrPanel(
 
 function sortedPlaceCardNames(tables: TableDto[], guests: InvitationPartyGuestDto[]) {
   return tables.flatMap((table) =>
-    guests
-      .filter((guest) => guest.seat?.tableId === table.id)
-      .map((guest) => toDisplayName(guest.name)),
+    seatedGuestsAtTable(guests, table.id).map((guest) => toDisplayName(guest.name)),
   )
 }
 

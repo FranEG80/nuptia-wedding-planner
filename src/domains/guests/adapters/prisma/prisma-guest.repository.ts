@@ -9,6 +9,7 @@ import type {
   GuestInviteParty,
   GuestRsvpSummary,
   GuestRepository,
+  GuestSeatPosition,
   InvitationPartyGuestInput,
   PublicGuestInviteParty,
   RespondToPartyGuestInput,
@@ -1331,6 +1332,47 @@ export class PrismaGuestRepository implements GuestRepository {
     })
 
     return guest ? toGuest(guest) : null
+  }
+
+  async swapSeats(
+    guestId: string,
+    otherGuestId: string,
+    weddingId: string,
+  ): Promise<GuestSeatPosition[] | null> {
+    const seats = await this.prisma.weddingSeat.findMany({
+      where: { guestId: { in: [guestId, otherGuestId] }, table: { weddingId } },
+      select: { id: true, tableId: true, guestId: true, position: true },
+    })
+    const first = seats.find((seat) => seat.guestId === guestId)
+    const second = seats.find((seat) => seat.guestId === otherGuestId)
+
+    if (
+      guestId === otherGuestId ||
+      !first ||
+      !second ||
+      first.tableId !== second.tableId
+    ) {
+      return null
+    }
+
+    const now = new Date().toISOString()
+    const setPosition = (seatId: string, position: number) =>
+      this.d1
+        .prepare("UPDATE wedding_seats SET position = ?, updatedAt = ? WHERE id = ?")
+        .bind(position, now, seatId)
+
+    // (tableId, position) es único y las posiciones empiezan en 1: el primero
+    // pasa por la 0 para no chocar con el segundo mientras se intercambian.
+    await this.d1.batch([
+      setPosition(first.id, 0),
+      setPosition(second.id, first.position),
+      setPosition(first.id, second.position),
+    ])
+
+    return [
+      { guestId, position: second.position },
+      { guestId: otherGuestId, position: first.position },
+    ]
   }
 
   async deleteInvitationParty(

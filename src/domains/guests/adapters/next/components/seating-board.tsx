@@ -8,6 +8,7 @@ import {
   createTableAction,
   deleteTableAction,
   moveTableAction,
+  swapGuestSeatsAction,
   unassignGuestSeatAction,
   updateTableAction,
 } from "@/domains/guests/adapters/next/table-actions"
@@ -16,6 +17,7 @@ import { GuestChip } from "@/domains/guests/adapters/next/components/guest-chip"
 import { TableCard } from "@/domains/guests/adapters/next/components/table-card"
 import type { TableDto } from "@/domains/guests/application/dtos/table.dto"
 import type { InvitationPartyDto } from "@/domains/guests/application/dtos/invitation-party.dto"
+import { seatedGuestsAtTable } from "@/domains/guests/domain/seating"
 
 export function SeatingBoard({
   parties,
@@ -34,6 +36,7 @@ export function SeatingBoard({
   const [addTableOpen, setAddTableOpen] = useState(false)
   const [editingTable, setEditingTable] = useState<TableDto | null>(null)
   const [movingTableId, setMovingTableId] = useState<string | null>(null)
+  const [isMovingGuest, setIsMovingGuest] = useState(false)
   const [seatError, setSeatError] = useState<string | null>(null)
   const [tableError, setTableError] = useState<string | null>(null)
 
@@ -55,6 +58,75 @@ export function SeatingBoard({
     )
   }
 
+  function updateSeatPositions(positions: { guestId: string; position: number }[]) {
+    setParties((current) =>
+      current.map((party) => ({
+        ...party,
+        guests: party.guests.map((guest) => {
+          const next = positions.find((item) => item.guestId === guest.id)
+
+          return next && guest.seat
+            ? { ...guest, seat: { ...guest.seat, position: next.position } }
+            : guest
+        }),
+      })),
+    )
+  }
+
+  // Sube o baja a un invitado dentro de su mesa intercambiando su posición con
+  // la del vecino que se ve en la tarjeta.
+  async function handleMoveGuest(
+    tableId: string,
+    guestId: string,
+    direction: "up" | "down",
+  ) {
+    const seated = seatedGuestsAtTable(confirmed, tableId)
+    const currentIndex = seated.findIndex((guest) => guest.id === guestId)
+    const current = seated[currentIndex]
+    const neighbor = seated[direction === "up" ? currentIndex - 1 : currentIndex + 1]
+
+    if (!current || !neighbor) {
+      return
+    }
+
+    const previousPositions = [
+      { guestId: current.id, position: current.seat.position },
+      { guestId: neighbor.id, position: neighbor.seat.position },
+    ]
+
+    setIsMovingGuest(true)
+    setSeatError(null)
+    updateSeatPositions([
+      { guestId: current.id, position: neighbor.seat.position },
+      { guestId: neighbor.id, position: current.seat.position },
+    ])
+
+    try {
+      if (isDemo) {
+        return
+      }
+
+      const positions = await swapGuestSeatsAction({
+        guestId: current.id,
+        otherGuestId: neighbor.id,
+      })
+
+      if (positions) {
+        updateSeatPositions(positions)
+      } else {
+        updateSeatPositions(previousPositions)
+        setSeatError("No se pudo cambiar el orden del invitado.")
+      }
+    } catch (error) {
+      updateSeatPositions(previousPositions)
+      setSeatError(
+        error instanceof Error ? error.message : "No se pudo cambiar el orden del invitado.",
+      )
+    } finally {
+      setIsMovingGuest(false)
+    }
+  }
+
   async function assignTable(guestId: string, tableId: string | null) {
     const previousSeat = guests.find((guest) => guest.id === guestId)?.seat ?? null
 
@@ -63,8 +135,17 @@ export function SeatingBoard({
     }
 
     const table = tableId ? tables.find((item) => item.id === tableId) : null
+    // Igual que en servidor: el invitado se sienta al final de la mesa.
+    const lastPosition = tableId
+      ? (seatedGuestsAtTable(guests, tableId).at(-1)?.seat.position ?? 0)
+      : 0
     const optimisticSeat = tableId
-      ? { id: `optimistic-${guestId}`, tableId, tableName: table?.name ?? tableId, position: 0 }
+      ? {
+          id: `optimistic-${guestId}`,
+          tableId,
+          tableName: table?.name ?? tableId,
+          position: lastPosition + 1,
+        }
       : null
 
     updateGuestSeat(guestId, optimisticSeat)
@@ -299,7 +380,7 @@ export function SeatingBoard({
               <TableCard
                 key={table.id}
                 table={table}
-                seated={confirmed.filter((guest) => guest.seat?.tableId === table.id)}
+                seated={seatedGuestsAtTable(confirmed, table.id)}
                 dragId={dragId}
                 onDragStart={setDragId}
                 onDrop={() => assignTable(dragId!, table.id)}
@@ -308,6 +389,10 @@ export function SeatingBoard({
                 isMoving={movingTableId !== null}
                 onMoveUp={() => void handleMoveTable(table.id, "up")}
                 onMoveDown={() => void handleMoveTable(table.id, "down")}
+                isMovingGuest={isMovingGuest}
+                onMoveGuest={(guestId, direction) =>
+                  void handleMoveGuest(table.id, guestId, direction)
+                }
                 onEdit={setEditingTable}
                 onDelete={handleDeleteTable}
               />

@@ -1,5 +1,6 @@
 import type { InvitationPartyGuestDto } from "@/domains/guests/application/dtos/invitation-party.dto"
 import type { TableDto } from "@/domains/guests/application/dtos/table.dto"
+import { seatedGuestsAtTable } from "@/domains/guests/domain/seating"
 
 interface DocWithLastAutoTable {
   lastAutoTable?: { finalY: number }
@@ -44,7 +45,7 @@ export async function exportSeatingPdf(
   }
 
   for (const table of tables) {
-    const seated = guests.filter((guest) => guest.seat?.tableId === table.id)
+    const seated = seatedGuestsAtTable(guests, table.id)
     const capacityLabel =
       table.capacity != null ? `${seated.length}/${table.capacity}` : `${seated.length}`
 
