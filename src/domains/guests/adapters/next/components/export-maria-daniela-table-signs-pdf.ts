@@ -364,38 +364,38 @@ function drawSignPage(
     ctx.fillText(line, width / 2, layout.nameBaselines[index])
   })
 
-  if (page.phrase) {
-    // Filete terracota corto entre la cabecera y la frase.
-    const ruleY = layout.contentBottom + 0.07 * height
-    ctx.fillStyle = TERRACOTTA_COLOR
-    ctx.fillRect(width / 2 - 0.045 * width, ruleY, 0.09 * width, 0.0012 * height)
+  // if (page.phrase) {
+  //   // Filete terracota corto entre la cabecera y la frase.
+  //   const ruleY = layout.contentBottom + 0.07 * height
+  //   ctx.fillStyle = TERRACOTTA_COLOR
+  //   ctx.fillRect(width / 2 - 0.045 * width, ruleY, 0.09 * width, 0.0012 * height)
 
-    // La frase es libre: si no cabe en la franja hasta el pie, baja el cuerpo.
-    const phraseTop = ruleY + 0.065 * height
-    const phraseBottom = 0.82 * height
-    const minPhraseSize = 0.02 * height
-    let phraseSize = 0.034 * height
-    let phraseLines: string[] = []
+  //   // La frase es libre: si no cabe en la franja hasta el pie, baja el cuerpo.
+  //   const phraseTop = ruleY + 0.065 * height
+  //   const phraseBottom = 0.82 * height
+  //   const minPhraseSize = 0.02 * height
+  //   let phraseSize = 0.034 * height
+  //   let phraseLines: string[] = []
 
-    for (;;) {
-      ctx.font = serifMedium(phraseSize)
-      phraseLines = wrapBalanced(ctx, page.phrase, 0.64 * width)
+  //   for (;;) {
+  //     ctx.font = serifMedium(phraseSize)
+  //     phraseLines = wrapBalanced(ctx, page.phrase, 0.64 * width)
 
-      if (
-        phraseTop + (phraseLines.length - 1) * phraseSize * 1.3 <= phraseBottom ||
-        phraseSize <= minPhraseSize
-      ) {
-        break
-      }
+  //     if (
+  //       phraseTop + (phraseLines.length - 1) * phraseSize * 1.3 <= phraseBottom ||
+  //       phraseSize <= minPhraseSize
+  //     ) {
+  //       break
+  //     }
 
-      phraseSize = Math.max(minPhraseSize, phraseSize * 0.92)
-    }
+  //     phraseSize = Math.max(minPhraseSize, phraseSize * 0.92)
+  //   }
 
-    ctx.fillStyle = INK_COLOR
-    phraseLines.forEach((line, index) => {
-      ctx.fillText(line, width / 2, phraseTop + index * phraseSize * 1.3)
-    })
-  }
+  //   ctx.fillStyle = INK_COLOR
+  //   phraseLines.forEach((line, index) => {
+  //     ctx.fillText(line, width / 2, phraseTop + index * phraseSize * 1.3)
+  //   })
+  // }
 
   // Novios: "Nombre & Nombre" con el ampersand en terracota.
   const [first, second] = theme.partnerNames
