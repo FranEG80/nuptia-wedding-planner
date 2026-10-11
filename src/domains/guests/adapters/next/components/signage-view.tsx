@@ -49,6 +49,7 @@ type SheetMotif =
   | "seating-list"
   | "place-card"
   | "table-sign"
+  | "table-sign-name"
   | "menu"
   | "misc-sign"
 
@@ -194,11 +195,21 @@ export function SignageView({
     ? [
         {
           id: "table-signs-a4",
-          label: "A4",
-          detail: "Un cartel por hoja",
+          label: "A4 · con número",
+          detail: "Mesa N arriba y el nombre debajo",
           sheet: { motif: "table-sign", size: "a4" },
           run: ({ tables, confirmed }) =>
             exportMariaDanielaTableSignsPdf(tables, confirmed, seatingPdfTheme),
+        },
+        {
+          id: "table-signs-a4-name",
+          label: "A4 · solo nombre",
+          detail: "Sin número; sin nombre propio sale «Mesa N»",
+          sheet: { motif: "table-sign-name", size: "a4" },
+          run: ({ tables, confirmed }) =>
+            exportMariaDanielaTableSignsPdf(tables, confirmed, seatingPdfTheme, {
+              showNumber: false,
+            }),
         },
       ]
     : []
@@ -251,7 +262,7 @@ export function SignageView({
           <>
             <ExportPiece
               title="Mesario"
-              description="El número de cada mesa en grande, con su frase."
+              description="Un cartel por mesa, con su número o solo con su nombre."
               formats={tableSignFormats}
               exportingId={exportingId}
               onExport={runExport}
@@ -516,6 +527,15 @@ function SheetMotifSketch({ motif }: { motif: SheetMotif }) {
         <>
           <span className={cn(ACCENT_STROKE, "w-1/2")} />
           <span className="font-serif text-[15px] leading-none text-foreground/55">7</span>
+          <span className={cn(TEXT_STROKE, "w-3/4")} />
+          <span className={cn(TEXT_STROKE, "w-1/2")} />
+        </>
+      )
+    // Sin número: el nombre de la mesa en grande, solo, y la frase debajo.
+    case "table-sign-name":
+      return (
+        <>
+          <span className="h-[5px] w-3/4 rounded-full bg-accent/70" />
           <span className={cn(TEXT_STROKE, "w-3/4")} />
           <span className={cn(TEXT_STROKE, "w-1/2")} />
         </>

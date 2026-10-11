@@ -7,6 +7,12 @@ export interface MariaDanielaTableSignsTheme {
   dateLabel: string
 }
 
+export interface MariaDanielaTableSignsOptions {
+  // Con el número, "Mesa N" va arriba y el nombre debajo. Sin él, el nombre
+  // ocupa el cartel; las mesas sin nombre propio siguen saliendo como "Mesa N".
+  showNumber?: boolean
+}
+
 // Frase para las mesas a las que los novios no han puesto una propia.
 const DEFAULT_TABLE_SIGN_PHRASE = "Gracias por ser parte de nuestra historia."
 
@@ -248,11 +254,13 @@ const MAX_TABLE_NAME_LINES = 2
 const NUMBER_SCALE = 1.25
 
 // "Mesa N" arriba y el nombre de la mesa debajo, partido en dos líneas como
-// mucho. Sin nombre propio, "Mesa N" crece y ocupa el centro.
+// mucho. Sin nombre propio, "Mesa N" crece y ocupa el centro. Sin número, el
+// nombre sube de tamaño y ocupa el centro él solo.
 function layoutSign(
   ctx: CanvasRenderingContext2D,
   page: { number: number; name: string },
   fonts: Fonts,
+  showNumber: boolean,
 ): SignLayout {
   const { width, height } = ctx.canvas
   const script = (size: number) => `400 ${size}px ${fonts.script}`
@@ -279,7 +287,7 @@ function layoutSign(
   const titleBaseline = 0.245 * height
   const maxWidth = 0.84 * width
   const minSize = 0.07 * height
-  let nameSize = 0.135 * height
+  let nameSize = (showNumber ? 0.135 : 0.17) * height
   let nameLines: string[] = []
 
   for (;;) {
@@ -298,12 +306,15 @@ function layoutSign(
   }
 
   if (nameLines.length === MAX_TABLE_NAME_LINES) {
-    nameSize = Math.min(nameSize, 0.112 * height)
+    nameSize = Math.min(nameSize, (showNumber ? 0.112 : 0.14) * height)
   }
 
   // Cualquier línea que siga sin caber se encoge por su cuenta al dibujarla.
   const lineHeight = nameSize * 0.98
-  const firstBaseline = 0.41 * height
+  // Sin número no hay cabecera: el bloque de líneas se centra en la hoja.
+  const firstBaseline = showNumber
+    ? 0.41 * height
+    : 0.43 * height - ((nameLines.length - 1) * lineHeight) / 2
   const nameBaselines = nameLines.map((_, index) => firstBaseline + index * lineHeight)
   const lastBaseline = nameBaselines.at(-1) ?? firstBaseline
   const washTop = firstBaseline - nameSize * 0.95
@@ -330,32 +341,37 @@ function drawSignPage(
   images: DecorImages,
   theme: MariaDanielaTableSignsTheme,
   fonts: Fonts,
+  showNumber: boolean,
 ) {
   const { width, height } = ctx.canvas
   const script = (size: number) => `400 ${size}px ${fonts.script}`
   const serifMedium = (size: number) => `500 ${size}px ${fonts.serif}`
   const serif = (size: number) => `400 ${size}px ${fonts.serif}`
 
-  const layout = layoutSign(ctx, page, fonts)
+  const layout = layoutSign(ctx, page, fonts, showNumber)
   drawDecor(ctx, images, layout.wash)
 
   ctx.textAlign = "center"
   ctx.textBaseline = "alphabetic"
   setLetterSpacing(ctx, "0px")
 
-  ctx.font = script(layout.titleSize)
-  drawCenteredRuns(
-    ctx,
-    [
-      { text: "Mesa ", color: INK_COLOR },
-      {
-        text: String(page.number),
-        color: INK_COLOR,
-        font: script(layout.titleSize * NUMBER_SCALE),
-      },
-    ],
-    layout.titleBaseline,
-  )
+  // Solo el cartel de una mesa con nombre propio puede prescindir del título;
+  // si no, "Mesa N" es lo único que lo identifica.
+  if (showNumber || !layout.nameLines.length) {
+    ctx.font = script(layout.titleSize)
+    drawCenteredRuns(
+      ctx,
+      [
+        { text: "Mesa ", color: INK_COLOR },
+        {
+          text: String(page.number),
+          color: INK_COLOR,
+          font: script(layout.titleSize * NUMBER_SCALE),
+        },
+      ],
+      layout.titleBaseline,
+    )
+  }
 
   // El nombre es el acento terracota del cartel, como el "&" de la portada web.
   layout.nameLines.forEach((line, index) => {
@@ -429,6 +445,7 @@ export async function buildMariaDanielaTableSignsPdf(
   tables: TableDto[],
   guests: InvitationPartyGuestDto[],
   theme: MariaDanielaTableSignsTheme,
+  { showNumber = true }: MariaDanielaTableSignsOptions = {},
 ) {
   // Misma numeración que los carteles con invitados: posición de la mesa en la
   // lista; solo se imprimen las mesas que tienen a alguien sentado.
@@ -471,7 +488,7 @@ export async function buildMariaDanielaTableSignsPdf(
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    drawSignPage(ctx, page, { blobs, blobsAlternative, sageWash }, theme, fonts)
+    drawSignPage(ctx, page, { blobs, blobsAlternative, sageWash }, theme, fonts, showNumber)
 
     doc.addImage(
       canvas.toDataURL("image/jpeg", 0.92),
@@ -492,7 +509,8 @@ export async function exportMariaDanielaTableSignsPdf(
   tables: TableDto[],
   guests: InvitationPartyGuestDto[],
   theme: MariaDanielaTableSignsTheme,
+  options: MariaDanielaTableSignsOptions = {},
 ) {
-  const doc = await buildMariaDanielaTableSignsPdf(tables, guests, theme)
+  const doc = await buildMariaDanielaTableSignsPdf(tables, guests, theme, options)
   doc.save("mesario-a4.pdf")
 }
