@@ -8,8 +8,7 @@ export interface MariaDanielaTableSignsTheme {
 }
 
 export interface MariaDanielaTableSignsOptions {
-  // Con el número, "Mesa N" va arriba y el nombre debajo. Sin él, el nombre
-  // ocupa el cartel; las mesas sin nombre propio siguen saliendo como "Mesa N".
+  // Sin él, el título es solo "Mesa": el cartel pierde la cifra y nada más.
   showNumber?: boolean
 }
 
@@ -255,7 +254,7 @@ const NUMBER_SCALE = 1.25
 
 // "Mesa N" arriba y el nombre de la mesa debajo, partido en dos líneas como
 // mucho. Sin nombre propio, "Mesa N" crece y ocupa el centro. Sin número, el
-// nombre sube de tamaño y ocupa el centro él solo.
+// título es "Mesa" a secas y todo lo demás queda igual.
 function layoutSign(
   ctx: CanvasRenderingContext2D,
   page: { number: number; name: string },
@@ -266,7 +265,7 @@ function layoutSign(
   const script = (size: number) => `400 ${size}px ${fonts.script}`
   // const name = toSentenceCase(page.name.trim().replace(/\s+/g, " "))
   const name = page.name.trim().replace(/\s+/g, " ")
-  const title = `Mesa ${page.number}`
+  const title = showNumber ? `Mesa ${page.number}` : "Mesa"
 
   if (!name || isDefaultTableName(name)) {
     const titleSize = fitFontSize(ctx, title, script, 0.15 * height, 0.72 * width / NUMBER_SCALE)
@@ -287,7 +286,7 @@ function layoutSign(
   const titleBaseline = 0.245 * height
   const maxWidth = 0.84 * width
   const minSize = 0.07 * height
-  let nameSize = (showNumber ? 0.135 : 0.17) * height
+  let nameSize = 0.135 * height
   let nameLines: string[] = []
 
   for (;;) {
@@ -306,15 +305,12 @@ function layoutSign(
   }
 
   if (nameLines.length === MAX_TABLE_NAME_LINES) {
-    nameSize = Math.min(nameSize, (showNumber ? 0.112 : 0.14) * height)
+    nameSize = Math.min(nameSize, 0.112 * height)
   }
 
   // Cualquier línea que siga sin caber se encoge por su cuenta al dibujarla.
   const lineHeight = nameSize * 0.98
-  // Sin número no hay cabecera: el bloque de líneas se centra en la hoja.
-  const firstBaseline = showNumber
-    ? 0.41 * height
-    : 0.43 * height - ((nameLines.length - 1) * lineHeight) / 2
+  const firstBaseline = 0.41 * height
   const nameBaselines = nameLines.map((_, index) => firstBaseline + index * lineHeight)
   const lastBaseline = nameBaselines.at(-1) ?? firstBaseline
   const washTop = firstBaseline - nameSize * 0.95
@@ -355,23 +351,21 @@ function drawSignPage(
   ctx.textBaseline = "alphabetic"
   setLetterSpacing(ctx, "0px")
 
-  // Solo el cartel de una mesa con nombre propio puede prescindir del título;
-  // si no, "Mesa N" es lo único que lo identifica.
-  if (showNumber || !layout.nameLines.length) {
-    ctx.font = script(layout.titleSize)
-    drawCenteredRuns(
-      ctx,
-      [
-        { text: "Mesa ", color: INK_COLOR },
-        {
-          text: String(page.number),
-          color: INK_COLOR,
-          font: script(layout.titleSize * NUMBER_SCALE),
-        },
-      ],
-      layout.titleBaseline,
-    )
-  }
+  ctx.font = script(layout.titleSize)
+  drawCenteredRuns(
+    ctx,
+    showNumber
+      ? [
+          { text: "Mesa ", color: INK_COLOR },
+          {
+            text: String(page.number),
+            color: INK_COLOR,
+            font: script(layout.titleSize * NUMBER_SCALE),
+          },
+        ]
+      : [{ text: "Mesa", color: INK_COLOR }],
+    layout.titleBaseline,
+  )
 
   // El nombre es el acento terracota del cartel, como el "&" de la portada web.
   layout.nameLines.forEach((line, index) => {

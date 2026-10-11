@@ -63,14 +63,28 @@ interface Sheet {
   rows?: number
 }
 
+// Lo que se elige en la tarjeta además del formato.
+interface PrintOptions {
+  showNumber: boolean
+}
+
 interface PrintFormat {
   id: string
   label: string
+  // Cómo se lee en el selector ya cerrado, donde el ancho justo; en la lista
+  // desplegable siempre va `label`.
+  shortLabel?: string
   detail: string
   sheet: Sheet
-  run: (data: SignageData) => Promise<void>
+  // Cómo se dibuja la hoja cuando el cartel sale sin número de mesa, si cambia.
+  sheetWithoutNumber?: Sheet
+  run: (data: SignageData, options: PrintOptions) => Promise<void>
 }
 
+const NUMBERING_OPTIONS = [
+  { value: "with", label: "Con número", shortLabel: "Con nº" },
+  { value: "without", label: "Sin número", shortLabel: "Sin nº" },
+]
 
 export function SignageView({
   seatingPdfTheme,
@@ -108,12 +122,12 @@ export function SignageView({
     }
   }
 
-  async function runExport(format: PrintFormat) {
+  async function runExport(format: PrintFormat, options: PrintOptions) {
     setExportingId(format.id)
     setError(null)
 
     try {
-      await format.run(await loadData())
+      await format.run(await loadData(), options)
     } catch (exportError) {
       setError(
         exportError instanceof Error
@@ -132,32 +146,42 @@ export function SignageView({
           label: "A5",
           detail: "Un cartel por hoja",
           sheet: { motif: "seating", size: "a5" },
-          run: ({ tables, confirmed }) =>
-            exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a5"),
+          run: ({ tables, confirmed }, { showNumber }) =>
+            exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a5", {
+              showNumber,
+            }),
         },
         {
           id: "seating-a6",
           label: "A6",
           detail: "Un cartel por hoja",
           sheet: { motif: "seating", size: "a6" },
-          run: ({ tables, confirmed }) =>
-            exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a6"),
+          run: ({ tables, confirmed }, { showNumber }) =>
+            exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a6", {
+              showNumber,
+            }),
         },
         {
           id: "seating-a4-2xa5",
           label: "A4 · 2 × A5",
+          shortLabel: "2 × A5",
           detail: "Dos carteles por hoja",
           sheet: { motif: "seating", size: "a4", landscape: true, columns: 2 },
-          run: ({ tables, confirmed }) =>
-            exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a4-2xa5"),
+          run: ({ tables, confirmed }, { showNumber }) =>
+            exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a4-2xa5", {
+              showNumber,
+            }),
         },
         {
           id: "seating-a4-4xa6",
           label: "A4 · 4 × A6",
+          shortLabel: "4 × A6",
           detail: "Cuatro carteles por hoja",
           sheet: { motif: "seating", size: "a4", columns: 2, rows: 2 },
-          run: ({ tables, confirmed }) =>
-            exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a4-4xa6"),
+          run: ({ tables, confirmed }, { showNumber }) =>
+            exportMariaDanielaSeatingPdf(tables, confirmed, seatingPdfTheme, "a4-4xa6", {
+              showNumber,
+            }),
         },
       ]
     : [
@@ -183,6 +207,7 @@ export function SignageView({
         {
           id: "place-cards-a4",
           label: "A4 · 4 × A6",
+          shortLabel: "4 × A6",
           detail: "Cuatro tarjetas por hoja",
           sheet: { motif: "place-card", size: "a4", landscape: true, columns: 2, rows: 2 },
           run: ({ tables, confirmed }) =>
@@ -195,20 +220,13 @@ export function SignageView({
     ? [
         {
           id: "table-signs-a4",
-          label: "A4 · con número",
-          detail: "Mesa N arriba y el nombre debajo",
+          label: "A4",
+          detail: "Un cartel por hoja",
           sheet: { motif: "table-sign", size: "a4" },
-          run: ({ tables, confirmed }) =>
-            exportMariaDanielaTableSignsPdf(tables, confirmed, seatingPdfTheme),
-        },
-        {
-          id: "table-signs-a4-name",
-          label: "A4 · solo nombre",
-          detail: "Sin número; sin nombre propio sale «Mesa N»",
-          sheet: { motif: "table-sign-name", size: "a4" },
-          run: ({ tables, confirmed }) =>
+          sheetWithoutNumber: { motif: "table-sign-name", size: "a4" },
+          run: ({ tables, confirmed }, { showNumber }) =>
             exportMariaDanielaTableSignsPdf(tables, confirmed, seatingPdfTheme, {
-              showNumber: false,
+              showNumber,
             }),
         },
       ]
@@ -244,6 +262,7 @@ export function SignageView({
               : "Listado de todas las mesas con sus invitados."
           }
           formats={seatingFormats}
+          numbering={Boolean(seatingPdfTheme)}
           exportingId={exportingId}
           onExport={runExport}
         />
@@ -262,8 +281,9 @@ export function SignageView({
           <>
             <ExportPiece
               title="Mesario"
-              description="Un cartel por mesa, con su número o solo con su nombre."
+              description="Un cartel por mesa con su nombre y su frase, con el número o sin él."
               formats={tableSignFormats}
+              numbering
               exportingId={exportingId}
               onExport={runExport}
             />
@@ -370,7 +390,9 @@ function PieceCard({
           <p className="mt-1 text-sm text-pretty text-muted-foreground">{description}</p>
         </div>
       </div>
-      <div className="mt-auto flex items-center justify-between gap-3 pt-6">{children}</div>
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-6">
+        {children}
+      </div>
     </section>
   )
 }
@@ -379,57 +401,90 @@ function ExportPiece({
   title,
   description,
   formats,
+  numbering = false,
   exportingId,
   onExport,
 }: {
   title: string
   description: string
   formats: PrintFormat[]
+  // Ofrece imprimir los carteles con o sin el número de mesa.
+  numbering?: boolean
   exportingId: string | null
-  onExport: (format: PrintFormat) => Promise<void>
+  onExport: (format: PrintFormat, options: PrintOptions) => Promise<void>
 }) {
   const [selectedId, setSelectedId] = useState(formats[0].id)
+  const [showNumber, setShowNumber] = useState(true)
   const selected = formats.find((format) => format.id === selectedId) ?? formats[0]
+  const sheet = !showNumber && selected.sheetWithoutNumber ? selected.sheetWithoutNumber : selected.sheet
   const isExporting = exportingId === selected.id
 
   return (
     <PieceCard
       title={title}
       description={description}
-      sheet={selected.sheet}
+      sheet={sheet}
       sheetLabel={`${selected.label}: ${selected.detail.toLowerCase()}`}
     >
-      {formats.length > 1 ? (
-        <Select
-          items={formats.map((format) => ({ value: format.id, label: format.label }))}
-          value={selected.id}
-          onValueChange={(value) => {
-            if (value) setSelectedId(value)
-          }}
-        >
-          <SelectTrigger aria-label={`Formato de ${title}`} className="h-9 min-w-0 px-3">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false} align="start" className="min-w-48">
-            {formats.map((format) => (
-              <SelectItem key={format.id} value={format.id} className="py-1.5">
-                <span className="flex flex-col">
-                  <span className="text-sm">{format.label}</span>
-                  <span className="text-xs text-muted-foreground">{format.detail}</span>
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : (
-        <PieceStatus>{selected.label}</PieceStatus>
-      )}
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+        {formats.length > 1 ? (
+          <Select
+            items={formats.map((format) => ({
+              value: format.id,
+              label: format.shortLabel ?? format.label,
+            }))}
+            value={selected.id}
+            onValueChange={(value) => {
+              if (value) setSelectedId(value)
+            }}
+          >
+            <SelectTrigger aria-label={`Formato de ${title}`} className="h-9 min-w-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false} align="start" className="min-w-48">
+              {formats.map((format) => (
+                <SelectItem key={format.id} value={format.id} className="py-1.5">
+                  <span className="flex flex-col">
+                    <span className="text-sm">{format.label}</span>
+                    <span className="text-xs text-muted-foreground">{format.detail}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <PieceStatus>{selected.label}</PieceStatus>
+        )}
+        {numbering ? (
+          <Select
+            items={NUMBERING_OPTIONS.map((item) => ({
+              value: item.value,
+              label: item.shortLabel,
+            }))}
+            value={showNumber ? "with" : "without"}
+            onValueChange={(value) => {
+              if (value) setShowNumber(value === "with")
+            }}
+          >
+            <SelectTrigger aria-label={`Número de mesa de ${title}`} className="h-9 min-w-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false} align="start">
+              {NUMBERING_OPTIONS.map((item) => (
+                <SelectItem key={item.value} value={item.value} className="py-1.5">
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+      </div>
       <Button
         size="lg"
-        className="px-3.5"
+        className="ml-auto shrink-0 px-3"
         disabled={exportingId !== null}
         aria-busy={isExporting}
-        onClick={() => void onExport(selected)}
+        onClick={() => void onExport(selected, { showNumber })}
       >
         {isExporting ? <Loader2 className="animate-spin" /> : <Download />}
         {isExporting ? "Generando…" : "Descargar"}
@@ -531,11 +586,11 @@ function SheetMotifSketch({ motif }: { motif: SheetMotif }) {
           <span className={cn(TEXT_STROKE, "w-1/2")} />
         </>
       )
-    // Sin número: el nombre de la mesa en grande, solo, y la frase debajo.
+    // Sin número: "Mesa" a secas y la frase debajo.
     case "table-sign-name":
       return (
         <>
-          <span className="h-[5px] w-3/4 rounded-full bg-accent/70" />
+          <span className={cn(ACCENT_STROKE, "mb-[3px] w-1/2")} />
           <span className={cn(TEXT_STROKE, "w-3/4")} />
           <span className={cn(TEXT_STROKE, "w-1/2")} />
         </>

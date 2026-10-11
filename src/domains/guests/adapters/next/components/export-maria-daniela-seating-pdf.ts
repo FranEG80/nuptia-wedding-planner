@@ -245,6 +245,11 @@ function wrapWords(ctx: CanvasRenderingContext2D, text: string, maxWidth: number
   return lines
 }
 
+export interface MariaDanielaSeatingOptions {
+  // Sin él, la cabecera es solo "Mesa": el cartel pierde la cifra y nada más.
+  showNumber?: boolean
+}
+
 interface HeaderLayout {
   lines: string[]
   fontSize: number
@@ -260,6 +265,7 @@ function layoutHeader(
   ctx: CanvasRenderingContext2D,
   page: { number: number; name: string },
   fonts: Fonts,
+  showNumber: boolean,
 ): HeaderLayout {
   const { width, height } = ctx.canvas
   const script = (size: number) => `400 ${size}px ${fonts.script}`
@@ -297,7 +303,7 @@ function layoutHeader(
     }
   }
 
-  const lines = [`Mesa ${page.number}`, ...nameLines]
+  const lines = [showNumber ? `Mesa ${page.number}` : "Mesa", ...nameLines]
   const lineHeight = fontSize * 0.88
   const brushHeight = Math.max(0.155 * height, lines.length * lineHeight + 0.035 * height)
   const brush = { x: 0.11 * width, y: 0.042 * height, width: 0.74 * width, height: brushHeight }
@@ -393,6 +399,7 @@ export async function exportMariaDanielaSeatingPdf(
   guests: InvitationPartyGuestDto[],
   theme: MariaDanielaSeatingPdfTheme,
   layoutId: SeatingPdfLayout,
+  { showNumber = true }: MariaDanielaSeatingOptions = {},
 ) {
   const pages = tables
     .map((table, index) => ({
@@ -461,7 +468,7 @@ export async function exportMariaDanielaSeatingPdf(
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    const header = layoutHeader(ctx, page, fonts)
+    const header = layoutHeader(ctx, page, fonts, showNumber)
     drawDecor(ctx, { frame, sideFlowers, blobs, blobsAlternative, brush }, header.brush)
     drawTablePage(ctx, page, header, theme, fonts)
 
