@@ -24,14 +24,32 @@ const defaultInternalError = {
   message: "No se pudo completar la solicitud.",
 } as const
 
-export function reportUnexpectedApiError(operation: string, error: unknown) {
-  const requestId = crypto.randomUUID()
+function serializeError(error: unknown, depth = 0): Record<string, unknown> {
+  if (!(error instanceof Error)) {
+    return { message: String(error) }
+  }
 
-  console.error("Unexpected API error", {
-    error,
+  return {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+    ...("code" in error && typeof error.code === "string" ? { code: error.code } : {}),
+    ...(error.cause && depth < 3 ? { cause: serializeError(error.cause, depth + 1) } : {}),
+  }
+}
+
+export function reportUnexpectedApiError(
+  operation: string,
+  error: unknown,
+  requestId = crypto.randomUUID(),
+) {
+
+  console.error(JSON.stringify({
+    event: "api.error",
+    error: serializeError(error),
     operation,
     requestId,
-  })
+  }))
 
   return requestId
 }

@@ -11,7 +11,8 @@ import {
 } from "react"
 import { X } from "lucide-react"
 
-import { verifyGuestPhoneAction, type VerifyGuestPhoneResult } from "@/domains/wedding-sites/adapters/next/guest-access-actions"
+import type { VerifyGuestPhoneResult } from "@/domains/wedding-sites/adapters/next/guest-access-actions"
+import { GuestAccessRequestError, verifyGuestPhoneRequest } from "@/domains/wedding-sites/adapters/next/components/guest-access-request"
 import {
   clearStoredGuestAccess,
   saveStoredGuestAccess,
@@ -193,7 +194,7 @@ function GuestPhoneAccess({ slug }: { slug: string }) {
 
     startTransition(async () => {
       try {
-        const result = await verifyGuestPhoneAction({ slug, phone: submittedPhone })
+        const result = await verifyGuestPhoneRequest({ slug, phone: submittedPhone })
 
         if (result.status === "found") {
           saveStoredGuestAccess(slug, {
@@ -213,8 +214,10 @@ function GuestPhoneAccess({ slug }: { slug: string }) {
         }
 
         setError(ERROR_MESSAGES[result.status])
-      } catch {
-        setError(ERROR_MESSAGES.unavailable)
+      } catch (error) {
+        setError(error instanceof GuestAccessRequestError && error.requestId
+          ? `${ERROR_MESSAGES.unavailable} Referencia: ${error.requestId}`
+          : ERROR_MESSAGES.unavailable)
       }
     })
   }

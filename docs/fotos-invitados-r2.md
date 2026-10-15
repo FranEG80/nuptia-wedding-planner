@@ -132,3 +132,49 @@ pnpm db:migrate:remote
 
 JPG, PNG, WebP y AVIF hasta 25 MB. HEIC no: el iPhone lo convierte a JPEG al
 elegir la foto desde la web (`accept="image/*"`).
+
+
+## Diagnóstico de producción
+
+### `sharp` y la biblioteca `libvips` en Vercel
+
+Si una petición falla con `Failed to load external module sharp` y
+`libvips-cpp.so...: cannot open shared object file`, falta una biblioteca
+nativa en el paquete desplegado. No es un rechazo del teléfono ni de R2.
+
+`next.config.ts` incluye explícitamente las bibliotecas de los paquetes
+`@img/sharp-libvips-*` en las funciones `/w/*`, que procesan las fotos. La
+configuración de pnpm admite la plataforma actual y Linux. El procesador
+carga el binario al procesar la foto, de forma que la validación y el tablón
+pueden funcionar incluso si una instalación de sharp falla.
+
+Tras este cambio hay que crear un nuevo despliegue en Vercel. Si el despliegue
+reutiliza la instalación defectuosa, repetirlo con la caché de build desactivada.
+
+### Respuestas y trazas de identificación
+
+El formulario de acceso usa `POST /api/w/<slug>/guest-access`, con JSON:
+
+```json
+{ "phone": "<teléfono>" }
+```
+
+Una identificación de fotógrafo devuelve HTTP 200 y
+`{ "status": "photographer", "requestId": "..." }`. Los fallos inesperados
+responden HTTP 500, `Content-Type: application/json` y:
+
+```json
+{
+  "error": {
+    "code": "GUEST_ACCESS_VERIFICATION_FAILED",
+    "message": "No se pudo comprobar el teléfono. Usa esta referencia para localizar el error en los logs del servidor.",
+    "requestId": "..."
+  }
+}
+```
+
+La cabecera `X-Request-Id` coincide con la referencia del cuerpo y del formulario.
+En **Vercel → proyecto → Logs**, busca ese identificador. La entrada JSON
+`event: "api.error"` incluye `operation`, `requestId` y la excepción con
+`name`, `message`, `stack` y `cause` cuando existe. No se registra el cuerpo
+del formulario. La traza se conserva en el servidor; no se envía al navegador.

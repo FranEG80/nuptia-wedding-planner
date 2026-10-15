@@ -1,3 +1,13 @@
+supportedArchitectures:
+  os:
+    - current
+    - linux
+  cpu:
+    - current
+    - x64
+  libc:
+    - glibc
+
 allowBuilds:
   '@prisma/engines': true
   better-sqlite3: true

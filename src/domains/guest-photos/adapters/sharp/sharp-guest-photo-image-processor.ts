@@ -1,4 +1,4 @@
-import sharp, { type OutputInfo } from "sharp"
+import type { OutputInfo } from "sharp"
 
 import {
   InvalidGuestPhotoImageError,
@@ -33,6 +33,9 @@ function toProcessedImage(output: {
  */
 export const sharpGuestPhotoImageProcessor: GuestPhotoImageProcessor = {
   async process(original) {
+    // El binario nativo solo se carga al procesar una foto. Un fallo de
+    // instalación no debe impedir identificar invitados ni firmar el tablón.
+    const { default: sharp } = await import("sharp")
     const source = sharp(original, {
       autoOrient: true,
       failOn: "error",
