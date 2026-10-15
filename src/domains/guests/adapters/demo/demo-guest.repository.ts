@@ -5,6 +5,7 @@ import type {
   GuestRepository,
   UpdateGuestInput,
 } from "@/domains/guests/domain/ports/guest.repository"
+import { getWallPartyName } from "@/domains/guests/application/format-guest-names"
 import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 import { DEMO_WEDDING_ID } from "@/domains/weddings/adapters/demo/demo-wedding.repository"
 
@@ -194,6 +195,34 @@ export const demoGuestRepository: GuestRepository = {
 
   async findById(id) {
     return demoGuests.find((guest) => guest.id === id) ?? null
+  },
+
+  async listPhoneCandidatesByWeddingId(weddingId) {
+    return demoGuests.flatMap((guest) =>
+      guest.weddingId === weddingId && guest.phone
+        ? [{ id: guest.id, firstName: guest.firstName, role: guest.role, phone: guest.phone }]
+        : [],
+    )
+  },
+
+  async findWallIdentity(weddingId, guestId) {
+    const guest = demoGuests.find(
+      (candidate) => candidate.id === guestId && candidate.weddingId === weddingId,
+    )
+
+    if (!guest) {
+      return null
+    }
+
+    return {
+      id: guest.id,
+      firstName: guest.firstName || guest.name,
+      fullName: guest.name,
+      partyName: getWallPartyName({
+        invitationName: guest.party.invitationName,
+        guests: demoGuests.filter((candidate) => candidate.partyId === guest.partyId),
+      }),
+    }
   },
 
   async create(input: CreateGuestInput) {

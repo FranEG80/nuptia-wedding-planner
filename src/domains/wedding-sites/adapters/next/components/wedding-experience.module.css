@@ -31,6 +31,17 @@
   scrollbar-color: rgba(91, 77, 71, 0.4) transparent;
 }
 
+/* El contenido corto ocupa el espacio disponible y deja el pie al final de
+   la pantalla; el contenido largo sigue creciendo y se desplaza normalmente. */
+.siteLayout {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+.siteLayout > main { flex: 1; }
+.siteLayout > header,
+.siteLayout > footer { flex-shrink: 0; }
+
 /* Antes del día de la boda la web es una sola pantalla: ni scroll, ni pie, ni
    navegación. La portada se dimensiona sola dentro de estos 100dvh. */
 .siteLocked {
@@ -48,6 +59,61 @@
 .site img { display: block; }
 .site ::selection { background: rgba(213, 118, 77, 0.24); color: var(--ink); }
 .site :focus-visible { outline: 2px solid var(--terracotta-ink); outline-offset: 4px; }
+
+.musicAudio { display: none; }
+.musicToggleContainer {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 60;
+  --cream: #fff9f2;
+  --terracotta-ink: #a04e28;
+  --rule: rgb(91 77 71 / 18%);
+}
+.musicToggle {
+  position: relative;
+  display: grid;
+  width: clamp(4.75rem, 13vw, 5.75rem);
+  aspect-ratio: 1;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.musicToggleArt {
+  width: 100%;
+  height: 100%;
+  transform-origin: 48% 49%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 5px rgb(91 77 71 / 16%));
+  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.musicToggle:hover .musicToggleArt { transform: rotate(-4deg) scale(1.06); }
+.musicToggle[aria-pressed="true"] .musicToggleArt {
+  animation: maria-daniela-record-turn 12s linear infinite;
+}
+.musicToggle:focus-visible { outline: 2px solid var(--terracotta-ink); outline-offset: 2px; }
+
+@keyframes maria-daniela-record-turn {
+  to { transform: rotate(360deg); }
+}
+
+.musicToggleFeedback {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.55rem);
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 2rem));
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--rule);
+  background: var(--cream);
+  color: var(--terracotta-ink);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  box-shadow: 0 3px 12px rgb(91 77 71 / 10%);
+}
 
 /* La portada funciona como origen espacial: al salir, la nueva página sube
    desde abajo; al volver, baja desde arriba. Entre subpáginas no hay jerarquía
@@ -186,6 +252,10 @@
 .navLinks button:hover { color: var(--ink); }
 .navLinkActive { color: var(--ink); }
 .navLinkActive::after { position: absolute; inset: auto 0 0; height: 1px; background: var(--terracotta); content: ""; }
+
+/* Subpáginas sin portada: el primer bloque (título incluido) sube hasta casi
+   pegarse a la barra en lugar de dejar el padding de sección completo. */
+.subpage > :first-child { padding-top: clamp(1.75rem, 3.5vw, 3rem); }
 
 /* ---------- Portada ---------- */
 
@@ -522,41 +592,119 @@
 }
 .songCta:hover { background: var(--terracotta-ink); }
 
-/* ---------- Galería ---------- */
+/* ---------- Muro: galería y firmas ---------- */
 
-.gallery { display: grid; padding: var(--section-y) var(--gutter); justify-items: center; }
-.galleryGrid {
+/* Las dos secciones del muro se construyen igual: mesa (rótulo, entradilla y
+   botón que abre el modal) y debajo lo colgado. El modal, la identificación
+   y la subida leen estas variables (guest-wall.module.css); las polaroids
+   viven en guest-photos/guest-photo-gallery.module.css. */
+.gallery,
+.guestbook {
+  --wall-accent: var(--terracotta-ink);
+  --wall-accent-text: var(--cream);
+  --wall-muted: var(--ink-soft);
+  --wall-rule: var(--rule);
+  --wall-paper: var(--cream);
+  --wall-radius: 2px;
+  --wall-body-font: var(--font-cormorant), serif;
+  --wall-script-font: var(--font-parisienne), cursive;
+
   display: grid;
-  width: min(66rem, 100%);
-  margin-top: clamp(2.5rem, 5vw, 4rem);
-  gap: clamp(0.6rem, 1.6vw, 1.2rem);
-  grid-template-columns: repeat(4, 1fr);
+  padding: var(--section-y) var(--gutter);
+  justify-items: center;
 }
-.galleryGrid figure { position: relative; overflow: hidden; aspect-ratio: 1; }
-.galleryGrid img { object-fit: cover; transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.3, 1); }
-.galleryGrid figure:hover img { transform: scale(1.04); }
-.galleryNote { margin-top: 2.5rem; color: var(--ink-soft); font-size: 0.85rem; text-align: center; }
-.galleryEmpty { display: grid; width: min(32rem, 100%); margin-top: clamp(2.5rem, 5vw, 4rem); justify-items: center; gap: 0.9rem; text-align: center; }
-.galleryEmpty img { width: 6rem; height: auto; margin-bottom: 0.5rem; opacity: 0.85; }
-.galleryEmpty p:first-of-type { font-family: var(--font-cormorant), serif; font-size: 1.5rem; }
-.galleryEmpty p + p { color: var(--ink-soft); font-size: 0.9rem; line-height: 1.7; }
+
+.wallDesk {
+  display: grid;
+  width: min(36rem, 100%);
+  margin-top: clamp(2rem, 4vw, 3rem);
+  justify-items: center;
+  text-align: center;
+}
+.wallKicker {
+  margin: 0;
+  color: var(--terracotta-ink);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+.wallLead {
+  margin: 0.9rem 0 0;
+  font-family: var(--font-cormorant), serif;
+  font-size: clamp(1.15rem, 2vw, 1.35rem);
+  line-height: 1.6;
+  text-wrap: balance;
+}
+.wallLead + * { margin-top: clamp(1.5rem, 3vw, 2rem); }
+
+.wallEmpty { display: grid; width: min(34rem, 100%); margin-top: clamp(2.5rem, 5vw, 4rem); justify-items: center; gap: 0.9rem; text-align: center; }
+.wallEmpty p:first-of-type { font-family: var(--font-cormorant), serif; font-size: 1.5rem; }
+.wallEmpty p + p { color: var(--ink-soft); font-size: 0.9rem; line-height: 1.7; }
 
 /* ---------- Firmas y felicitaciones ---------- */
 
-.guestbook { display: grid; padding: var(--section-y) var(--gutter); justify-items: center; }
+.guestbookBoard {
+  display: grid;
+  width: min(64rem, 100%);
+  /* Misma distancia que entre la mesa y las fotos de la galería. */
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+  justify-items: center;
+  scroll-margin-top: calc(var(--nav-h) + 1.5rem);
+}
+.guestbookBoard > .wallEmpty { margin-top: 0; }
+.guestbookBoardTitle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 1.25rem;
+}
+.guestbookBoardTitle::before,
+.guestbookBoardTitle::after { flex: 1; height: 1px; background: var(--rule); content: ""; }
+
 /* Columnas de altura libre: un tablón real no tiene fichas del mismo tamaño. */
 .signatures {
   width: min(64rem, 100%);
   margin-top: clamp(2.5rem, 5vw, 4rem);
   columns: 3 17rem;
   column-gap: clamp(1.75rem, 4vw, 3rem);
+  transition: opacity 0.25s ease;
 }
+.signatures[aria-busy="true"] { opacity: 0.4; }
 .signatures figure { margin: 0 0 clamp(1.75rem, 4vw, 2.75rem); padding-bottom: clamp(1.5rem, 3vw, 2.25rem); border-bottom: 1px solid var(--rule); break-inside: avoid; }
 .signatures blockquote {
   margin: 0;
   font-family: var(--font-cormorant), serif;
   font-size: clamp(1.1rem, 1.6vw, 1.3rem);
   line-height: 1.65;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+/* Al cambiar de página las firmas suben en cascada, como hojas que se posan. */
+.signatureEnter {
+  animation: maria-daniela-signature-rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(var(--signature-index, 0) * 45ms);
+}
+/* La firma recién colgada se tiñe de acuarela y se seca poco a poco. */
+.signatureNew {
+  animation:
+    maria-daniela-signature-rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both,
+    maria-daniela-signature-wash 3.2s ease-out 0.3s both;
+}
+.guestbookError { margin-top: 1.5rem; color: var(--terracotta-ink); font-size: 0.85rem; text-align: center; }
+
+@keyframes maria-daniela-signature-rise {
+  from { opacity: 0; transform: translateY(1.25rem); }
+}
+@keyframes maria-daniela-signature-wash {
+  from {
+    background: rgba(213, 118, 77, 0.14);
+    box-shadow: 0 0 0 0.85rem rgba(213, 118, 77, 0.14);
+  }
+  to {
+    background: rgba(213, 118, 77, 0);
+    box-shadow: 0 0 0 0.85rem rgba(213, 118, 77, 0);
+  }
 }
 .signatures blockquote::before { content: "“"; }
 .signatures blockquote::after { content: "”"; }
@@ -568,10 +716,6 @@
   line-height: 1.3;
 }
 .guestbookNote { margin-top: 1.5rem; color: var(--ink-soft); font-size: 0.85rem; text-align: center; }
-.guestbookEmpty { display: grid; width: min(34rem, 100%); margin-top: clamp(2.5rem, 5vw, 4rem); justify-items: center; gap: 0.9rem; text-align: center; }
-.guestbookEmpty img { width: 6rem; height: auto; margin-bottom: 0.5rem; opacity: 0.85; }
-.guestbookEmpty p:first-of-type { font-family: var(--font-cormorant), serif; font-size: 1.5rem; }
-.guestbookEmpty p + p { color: var(--ink-soft); font-size: 0.9rem; line-height: 1.7; }
 
 /* ---------- Cierre ---------- */
 
@@ -641,13 +785,36 @@
   .timelineList { grid-template-columns: repeat(2, 1fr); row-gap: 3rem; }
   .timelineList li:nth-child(odd) { border-left: 0; }
 
-
-  .galleryGrid { grid-template-columns: repeat(2, 1fr); }
-
   .spotify iframe { height: 30rem; }
 }
 
+/* En móviles estrechos todas las secciones caben en dos filas, sin carril ni
+   máscara que oculten los enlaces de los extremos. */
+@media (width < 380px) {
+  .site { --nav-h: 9.1rem; }
+
+  .navLinks {
+    flex-wrap: wrap;
+    gap: 0 0.5rem;
+    padding: 0 1rem 0.4rem;
+    justify-content: center;
+    overflow: visible;
+    mask-image: none;
+  }
+  .navLinks button {
+    flex: 0 0 calc((100% - 1rem) / 3);
+    min-height: 2.75rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .musicToggleArt { transition: none; }
+  .musicToggle[aria-pressed="true"] .musicToggleArt { animation: none; }
+  .signatures { transition: none; }
+  .signatureEnter { animation: none; }
+  /* Sin movimiento, la firma nueva se distingue solo por la acuarela. */
+  .signatureNew { animation: maria-daniela-signature-wash 3.2s ease-out both; }
+
   :global(html[data-maria-daniela-transition]::view-transition-old(root)) {
     animation: none;
     mix-blend-mode: normal;

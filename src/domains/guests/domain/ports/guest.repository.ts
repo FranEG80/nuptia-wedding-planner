@@ -117,8 +117,34 @@ export interface GuestSeatPosition {
   position: number
 }
 
+export interface GuestPhoneCandidate {
+  id: string
+  firstName: string
+  role: Guest["role"]
+  phone: string
+}
+
+/**
+ * Cómo se presenta un invitado en el muro de la web (fotos y firmas).
+ * `partyName` solo existe si su invitación incluye a más de un invitado: es el
+ * nombre de la invitación o, si no tiene, sus nombres unidos ("Ana y Juan").
+ */
+export interface GuestWallIdentity {
+  id: string
+  firstName: string
+  /** Nombre y apellido. */
+  fullName: string
+  partyName: string | null
+}
+
 export interface GuestRepository {
   listByWeddingId(weddingId: string): Promise<Guest[]>
+  // Invitados con teléfono de una boda. El teléfono llega sin normalizar: la
+  // comparación se hace en el caso de uso.
+  listPhoneCandidatesByWeddingId(weddingId: string): Promise<GuestPhoneCandidate[]>
+  // Null si el invitado no existe o no es de esa boda: sirve para validar el
+  // guestId que manda el navegador.
+  findWallIdentity(weddingId: string, guestId: string): Promise<GuestWallIdentity | null>
   getRsvpSummaryByWeddingId(weddingId: string): Promise<GuestRsvpSummary>
   listPartiesByWeddingId(weddingId: string): Promise<GuestInviteParty[]>
   searchInvitationParties(

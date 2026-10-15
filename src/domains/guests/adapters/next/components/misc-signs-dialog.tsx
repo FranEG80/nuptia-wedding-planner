@@ -21,6 +21,7 @@ import type {
   MariaDanielaMiscSignsTheme,
   MiscSign,
   MiscSignArrow,
+  MiscSignPaper,
 } from "@/domains/guests/adapters/next/components/maria-daniela-misc-signs-render"
 import { cn } from "@/shared/lib/utils"
 
@@ -38,6 +39,11 @@ const ARROW_CHOICES: { value: MiscSignArrow; label: string; icon: LucideIcon }[]
   { value: "right", label: "Flecha a la derecha", icon: ArrowRight },
 ]
 
+const MISC_SIGN_PAPER_CHOICES: { value: MiscSignPaper; label: string }[] = [
+  { value: "a4", label: "A4" },
+  { value: "a5", label: "A5" },
+]
+
 type ExportFormat = "pdf" | "docx"
 
 // Los carteles varios no dependen de mesas ni invitados: se escriben aquí y
@@ -47,12 +53,16 @@ export function MiscSignsDialog({
   onOpenChange,
   signs,
   onSignsChange,
+  paper,
+  onPaperChange,
   theme,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   signs: MiscSignDraft[]
   onSignsChange: (signs: MiscSignDraft[]) => void
+  paper: MiscSignPaper
+  onPaperChange: (paper: MiscSignPaper) => void
   theme: MariaDanielaMiscSignsTheme
 }) {
   const idPrefix = useId()
@@ -82,9 +92,9 @@ export function MiscSignsDialog({
 
     try {
       if (format === "pdf") {
-        await exportMariaDanielaMiscSignsPdf(signs, theme)
+        await exportMariaDanielaMiscSignsPdf(signs, theme, paper)
       } else {
-        await exportMariaDanielaMiscSignsDocx(signs, theme)
+        await exportMariaDanielaMiscSignsDocx(signs, theme, paper)
       }
     } catch (exportError) {
       setError(
@@ -106,8 +116,8 @@ export function MiscSignsDialog({
             <div className="pr-12">
               <Dialog.Title className="font-serif text-2xl">Carteles varios</Dialog.Title>
               <Dialog.Description className="mt-1 text-sm text-pretty text-muted-foreground">
-                Un A4 apaisado por cartel: una frase o una palabra y, debajo, una flecha
-                grande hacia donde haya que ir.
+                Una hoja apaisada por cartel: una frase o una palabra y, debajo, una
+                flecha grande hacia donde haya que ir.
               </Dialog.Description>
             </div>
             <Dialog.Close
@@ -205,7 +215,35 @@ export function MiscSignsDialog({
             ) : null}
 
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
-              <p className="text-sm text-muted-foreground">A4 apaisado · {countLabel}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <div
+                  role="radiogroup"
+                  aria-label="Tamaño de los carteles"
+                  className="flex rounded-xl border border-border p-1"
+                >
+                  {MISC_SIGN_PAPER_CHOICES.map((choice) => {
+                    const selected = paper === choice.value
+
+                    return (
+                      <button
+                        key={choice.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        title={`${choice.label} apaisado`}
+                        onClick={() => onPaperChange(choice.value)}
+                        className={cn(
+                          "cursor-pointer rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground",
+                          selected && "bg-secondary font-medium text-foreground",
+                        )}
+                      >
+                        {choice.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-sm text-muted-foreground">Apaisado · {countLabel}</p>
+              </div>
 
               <div className="flex flex-wrap gap-3">
                 <button

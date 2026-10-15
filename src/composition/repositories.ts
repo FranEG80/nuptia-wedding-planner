@@ -3,12 +3,14 @@ import "server-only"
 import { cache } from "react"
 
 import { getD1, getPrisma } from "@/core/db/prisma"
+import { PrismaGuestPhotoRepository } from "@/domains/guest-photos/adapters/prisma/prisma-guest-photo.repository"
 import { PrismaGuestRepository } from "@/domains/guests/adapters/prisma/prisma-guest.repository"
 import { PrismaTableRepository } from "@/domains/guests/adapters/prisma/prisma-table.repository"
 import { D1PublicInvitationQuery } from "@/domains/invitations/adapters/d1/d1-public-invitation.query"
 import { PrismaInvitationRepository } from "@/domains/invitations/adapters/prisma/prisma-invitation.repository"
 import { PrismaMediaRepository } from "@/domains/media/adapters/prisma/prisma-media.repository"
 import { PrismaTaskRepository } from "@/domains/tasks/adapters/prisma/prisma-task.repository"
+import { PrismaGuestbookRepository } from "@/domains/wedding-sites/adapters/prisma/prisma-guestbook.repository"
 import { PrismaWeddingSiteRepository } from "@/domains/wedding-sites/adapters/prisma/prisma-wedding-site.repository"
 import { PrismaWeddingRepository } from "@/domains/weddings/adapters/prisma/prisma-wedding.repository"
 
@@ -25,7 +27,9 @@ export const getRepositories = cache(async () => {
     table: new PrismaTableRepository(prisma, d1),
     invitation: new PrismaInvitationRepository(prisma),
     media: new PrismaMediaRepository(prisma),
+    guestPhoto: new PrismaGuestPhotoRepository(prisma),
     weddingSite: new PrismaWeddingSiteRepository(prisma),
+    guestbook: new PrismaGuestbookRepository(prisma),
     task: new PrismaTaskRepository(prisma),
   }
 })

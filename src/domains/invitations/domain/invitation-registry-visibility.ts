@@ -1,14 +1,5 @@
+import { parsePhoneList, toPhoneKey } from "@/domains/guests/domain/phone-key"
 import type { InvitationContent } from "@/domains/invitations/domain/invitation-design"
-
-const LOCAL_PHONE_DIGITS = 9
-
-function toPhoneKey(value: string): string | null {
-  const digits = value.replace(/\D/g, "")
-
-  return digits.length >= LOCAL_PHONE_DIGITS
-    ? digits.slice(-LOCAL_PHONE_DIGITS)
-    : null
-}
 
 /**
  * Reads the comma (or whitespace) separated phone list used to opt specific
@@ -16,14 +7,7 @@ function toPhoneKey(value: string): string | null {
  * nine digits so stored prefixes such as `+34` or spacing do not matter.
  */
 export function parseRegistryHiddenPhones(raw: string | undefined): string[] {
-  if (!raw) {
-    return []
-  }
-
-  return raw
-    .split(/[,;\n]/)
-    .map((entry) => toPhoneKey(entry))
-    .filter((key): key is string => key !== null)
+  return parsePhoneList(raw)
 }
 
 export function isRegistryHiddenForGuests(

@@ -12,7 +12,14 @@ export interface MariaDanielaMiscSignsTheme {
   dateLabel: string
 }
 
-export const A4_LANDSCAPE_MM = { width: 297, height: 210 }
+export type MiscSignPaper = "a4" | "a5"
+
+// Hoja apaisada. A4 y A5 guardan la misma proporción y todo el cartel se
+// mide sobre el ancho y el alto del canvas, así que el A5 es el A4 reducido.
+export const MISC_SIGN_PAGE_MM: Record<MiscSignPaper, { width: number; height: number }> = {
+  a4: { width: 297, height: 210 },
+  a5: { width: 210, height: 148 },
+}
 const DECOR_OPACITY = 0.66
 const PAPER_COLOR = "#fbf4ea"
 export const INK_COLOR = "#1c1712"
@@ -340,10 +347,11 @@ export async function loadMiscSignAssets(): Promise<MiscSignAssets> {
   return { fonts, images: { blobs, blobsAlternative, sageWash } }
 }
 
-export function createMiscSignCanvas(pixelsPerMm: number) {
+export function createMiscSignCanvas(paper: MiscSignPaper, pixelsPerMm: number) {
+  const page = MISC_SIGN_PAGE_MM[paper]
   const canvas = document.createElement("canvas")
-  canvas.width = Math.round(A4_LANDSCAPE_MM.width * pixelsPerMm)
-  canvas.height = Math.round(A4_LANDSCAPE_MM.height * pixelsPerMm)
+  canvas.width = Math.round(page.width * pixelsPerMm)
+  canvas.height = Math.round(page.height * pixelsPerMm)
   const ctx = canvas.getContext("2d")
 
   if (!ctx) {

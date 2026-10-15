@@ -14,6 +14,7 @@ import { weddingSiteThemeFromInvitationDesign } from "@/domains/wedding-sites/ap
 import { DEFAULT_WEDDING_SITE_THEME } from "@/domains/wedding-sites/domain/wedding-site-theme"
 import { isFullWeddingSiteVisible } from "@/domains/wedding-sites/domain/wedding-site-availability"
 import { getPublicWeddingSiteUseCase } from "@/domains/wedding-sites/application/use-cases/get-public-wedding-site.use-case"
+import { listGuestbookPageUseCase } from "@/domains/wedding-sites/application/use-cases/list-guestbook-page.use-case"
 
 export const getPublicWeddingExperience = cache(async (slug: string) => {
   const repositories = await getRepositories()
@@ -29,6 +30,7 @@ export const getPublicWeddingExperience = cache(async (slug: string) => {
     })
 
     return {
+      weddingId: site.wedding.id,
       content: createWeddingExperienceFromPublicSite(site),
       theme: weddingSiteThemeFromInvitationDesign(design),
     }
@@ -39,10 +41,22 @@ export const getPublicWeddingExperience = cache(async (slug: string) => {
   }
 
   return {
+    weddingId: null,
     content: createNachoWeddingExperience(),
     theme: { ...DEFAULT_WEDDING_SITE_THEME, templateId: "maria-daniela" as const },
   }
 })
+
+/** Primera página del tablón, servida con la web para que no aparezca vacío. */
+async function loadFirstGuestbookPage(weddingId: string) {
+  const repositories = await getRepositories()
+
+  return listGuestbookPageUseCase({
+    guestbookRepository: repositories.guestbook,
+    weddingId,
+    page: 1,
+  })
+}
 
 export async function PublicWeddingSitePage({ slug }: { slug: string }) {
   const experience = await getPublicWeddingExperience(slug)
@@ -55,10 +69,19 @@ export async function PublicWeddingSitePage({ slug }: { slug: string }) {
     dateIso: experience.content.dateIso,
     alwaysEnabled: env.WEDDING_SITE_ENABLED,
   })
+  const content =
+    showFullSite &&
+    experience.weddingId &&
+    experience.content.enabledModules.includes("guestbook")
+      ? {
+          ...experience.content,
+          guestbook: await loadFirstGuestbookPage(experience.weddingId),
+        }
+      : experience.content
 
   return (
     <WeddingSite
-      content={experience.content}
+      content={content}
       theme={experience.theme}
       showFullSite={showFullSite}
     />

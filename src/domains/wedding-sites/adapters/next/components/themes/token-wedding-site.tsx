@@ -3,11 +3,14 @@ import type { CSSProperties } from "react"
 import { Camera, Clock, Gift, MapPin, Music2 } from "lucide-react"
 
 import { CopyIbanButton } from "@/domains/wedding-sites/adapters/next/components/copy-iban-button"
+import { GuestPhotoGallery } from "@/domains/wedding-sites/adapters/next/components/guest-photos/guest-photo-gallery"
+import { GuestbookSigning } from "@/domains/wedding-sites/adapters/next/components/guestbook-composer"
+import { GuestbookPagination } from "@/domains/wedding-sites/adapters/next/components/guestbook-pagination"
 import { WeddingCountdown } from "@/domains/wedding-sites/adapters/next/components/wedding-countdown"
 import type { WeddingSiteThemeProps } from "@/domains/wedding-sites/adapters/next/components/themes/wedding-site-theme-props"
+import { useGuestbook } from "@/domains/wedding-sites/adapters/next/components/use-guestbook"
 import {
   SAMPLE_GALLERY_PHOTOS,
-  SAMPLE_GUESTBOOK_SIGNATURES,
   type WeddingExperienceContent,
 } from "@/domains/wedding-sites/application/dtos/wedding-experience.dto"
 import {
@@ -384,63 +387,103 @@ function GuestbookPage({
   content: WeddingExperienceContent
   preview: boolean
 }) {
-  const signatures = content.guestbook.length
-    ? content.guestbook
-    : preview
-      ? SAMPLE_GUESTBOOK_SIGNATURES
-      : []
+  const {
+    guestbook,
+    boardRef,
+    goToPage,
+    showSignature,
+    highlightId,
+    hasPageError,
+    isPaging,
+  } = useGuestbook({ slug: content.slug, initial: content.guestbook, preview })
+  const { signatures, page, pageCount, total } = guestbook
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" style={wallTokens}>
       <SectionTitle eyebrow="Dejadnos unas palabras" title="Firmas y felicitaciones" />
-      {signatures.length > 0 ? (
-        <ul className="mx-auto max-w-lg space-y-3">
-          {signatures.map((signature) => (
-            <li
-              key={signature.id}
-              className="rounded-2xl border border-(--site-border) bg-(--site-card) px-4 py-3"
-            >
-              <p className="text-sm text-(--site-text)">{signature.message}</p>
-              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-(--site-accent)">
-                {signature.name}
-              </p>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mx-auto max-w-md text-center text-sm text-(--site-muted)">
-          Todavía no hay mensajes. Podéis dejar el vuestro desde el enlace privado de vuestra
-          invitación.
-        </p>
-      )}
+      <div className="mx-auto max-w-lg">
+        <GuestbookSigning slug={content.slug} preview={preview} onSigned={showSignature} />
+      </div>
+      <div ref={boardRef} className="scroll-mt-24 space-y-6">
+        {signatures.length > 0 ? (
+          <ul
+            key={page}
+            aria-busy={isPaging || undefined}
+            className="mx-auto max-w-lg space-y-3 transition-opacity aria-busy:opacity-40"
+          >
+            {signatures.map((signature) => (
+              <li
+                key={signature.id}
+                className={cn(
+                  "rounded-2xl border border-(--site-border) bg-(--site-card) px-4 py-3",
+                  signature.id === highlightId && "border-(--site-accent)",
+                )}
+              >
+                <p className="text-sm whitespace-pre-line wrap-anywhere text-(--site-text)">
+                  {signature.message}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-(--site-accent)">
+                  {signature.name}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mx-auto max-w-md text-center text-sm text-(--site-muted)">
+            Todavía no hay mensajes. Estrenad el tablón con el vuestro.
+          </p>
+        )}
+        {hasPageError && (
+          <p role="alert" className="text-center text-sm text-(--site-accent)">
+            No se ha podido cargar esa página. Inténtalo de nuevo.
+          </p>
+        )}
+        <div className="mx-auto flex max-w-lg justify-center">
+          <GuestbookPagination
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            onPageChange={goToPage}
+            isPending={isPaging}
+          />
+        </div>
+      </div>
     </div>
   )
 }
 
-function GalleryPage({ content, preview }: { content: WeddingExperienceContent; preview: boolean }) {
-  // La web publicada no enseña fotos de ejemplo: solo las que suban los novios.
-  const photos = content.gallery.length ? content.gallery : preview ? SAMPLE_GALLERY_PHOTOS : []
+/**
+ * Variables del muro (guest-wall.module.css): modal, identificación, firma,
+ * subida de fotos y paginación del tablón.
+ */
+const wallTokens = {
+  "--wall-accent": "var(--site-accent)",
+  "--wall-accent-text": "var(--site-accent-text)",
+  "--wall-muted": "var(--site-muted)",
+  "--wall-rule": "var(--site-border)",
+  "--wall-paper": "var(--site-page)",
+  "--wall-radius": "1.25rem",
+  "--wall-body-font": "var(--site-body-font)",
+  "--wall-script-font": "var(--site-title-font)",
+} as CSSProperties
 
+function GalleryPage({ content, preview }: { content: WeddingExperienceContent; preview: boolean }) {
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col items-center" style={wallTokens}>
       <SectionTitle eyebrow="Sube tus fotos del gran día" title="Galería" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {photos.map((photo) => (
-          <div key={photo.id} className="relative aspect-square overflow-hidden rounded-2xl">
-            <Image
-              src={photo.src}
-              alt={photo.alt}
-              fill
-              sizes="(max-width: 768px) 50vw, 220px"
-              className="object-cover"
-            />
-          </div>
-        ))}
-      </div>
-      <p className="flex items-center justify-center gap-2 text-sm text-(--site-muted)">
-        <Camera className="h-4 w-4" strokeWidth={1.75} />
-        Podréis subir vuestras fotos el día de la boda con vuestro teléfono movil.
-      </p>
+      {/* En el editor se ven fotos de ejemplo; la web publicada carga las
+          que suben invitados y fotógrafos. */}
+      <GuestPhotoGallery
+        slug={content.slug}
+        preview={preview}
+        previewPhotos={content.gallery.length ? content.gallery : SAMPLE_GALLERY_PHOTOS}
+        emptyState={
+          <p className="mt-8 flex items-center justify-center gap-2 text-sm text-(--site-muted)">
+            <Camera className="h-4 w-4" strokeWidth={1.75} />
+            Todavía no hay fotos. Sube las tuyas y aparecerán aquí.
+          </p>
+        }
+      />
     </div>
   )
 }

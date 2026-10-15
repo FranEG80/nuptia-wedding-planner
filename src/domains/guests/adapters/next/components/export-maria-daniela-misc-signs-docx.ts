@@ -1,12 +1,13 @@
 import {
-  A4_LANDSCAPE_MM,
   createMiscSignCanvas,
   INK_COLOR,
   loadMiscSignAssets,
+  MISC_SIGN_PAGE_MM,
   renderMiscSign,
   type Box,
   type MariaDanielaMiscSignsTheme,
   type MiscSign,
+  type MiscSignPaper,
 } from "@/domains/guests/adapters/next/components/maria-daniela-misc-signs-render"
 
 // El fondo va como imagen: 200 ppp bastan para imprimir y el Word no pesa
@@ -14,8 +15,11 @@ import {
 const PIXELS_PER_MM = 200 / 25.4
 // docx mide imágenes y formas en píxeles CSS (96 ppp).
 const CSS_PIXELS_PER_MM = 96 / 25.4
-const A4_PORTRAIT_TWIPS = { width: 11906, height: 16838 }
-const A4_LANDSCAPE_HEIGHT_PT = (A4_LANDSCAPE_MM.height / 25.4) * 72
+// En vertical: docx las gira al marcar la página como apaisada.
+const PORTRAIT_TWIPS: Record<MiscSignPaper, { width: number; height: number }> = {
+  a4: { width: 11906, height: 16838 },
+  a5: { width: 8391, height: 11906 },
+}
 // Word y el canvas no miden igual al céntimo: un pelo más pequeño para que
 // la línea no salte en Word.
 const WORD_FONT_SAFETY = 0.95
@@ -74,6 +78,7 @@ function downloadBlob(blob: Blob, fileName: string) {
 export async function exportMariaDanielaMiscSignsDocx(
   signs: MiscSign[],
   theme: MariaDanielaMiscSignsTheme,
+  paper: MiscSignPaper,
 ) {
   if (!signs.length) {
     throw new Error("No hay carteles para exportar.")
@@ -98,18 +103,20 @@ export async function exportMariaDanielaMiscSignsDocx(
     VerticalPositionRelativeFrom,
   } = docx
 
-  const ctx = createMiscSignCanvas(PIXELS_PER_MM)
+  const page = MISC_SIGN_PAGE_MM[paper]
+  const pageHeightPt = (page.height / 25.4) * 72
+  const ctx = createMiscSignCanvas(paper, PIXELS_PER_MM)
   const { width: canvasWidth, height: canvasHeight } = ctx.canvas
   const pageCss = {
-    width: Math.round(A4_LANDSCAPE_MM.width * CSS_PIXELS_PER_MM),
-    height: Math.round(A4_LANDSCAPE_MM.height * CSS_PIXELS_PER_MM),
+    width: Math.round(page.width * CSS_PIXELS_PER_MM),
+    height: Math.round(page.height * CSS_PIXELS_PER_MM),
   }
 
   // Cuadro de texto sin borde ni relleno sobre la aguada: la frase queda
   // centrada en ella aunque cambie de longitud al editarla.
   function textBox(wash: Box, lines: string[], fontSizePx: number) {
     const wordFontSizePx = fontSizePx * WORD_FONT_SAFETY
-    const halfPoints = Math.round((wordFontSizePx / canvasHeight) * A4_LANDSCAPE_HEIGHT_PT * 2)
+    const halfPoints = Math.round((wordFontSizePx / canvasHeight) * pageHeightPt * 2)
     // Word recorta lo que no cabe en el cuadro: si las líneas piden más alto
     // que la aguada, el cuadro crece manteniéndose centrado en ella.
     const textHeight = Math.max(lines.length, 1) * wordFontSizePx * SCRIPT_LINE_HEIGHT
@@ -172,7 +179,7 @@ export async function exportMariaDanielaMiscSignsDocx(
       properties: {
         page: {
           size: {
-            ...A4_PORTRAIT_TWIPS,
+            ...PORTRAIT_TWIPS[paper],
             orientation: PageOrientation.LANDSCAPE,
           },
           margin: { top: 0, right: 0, bottom: 0, left: 0, header: 0, footer: 0 },
@@ -223,5 +230,5 @@ export async function exportMariaDanielaMiscSignsDocx(
     { path: "word/settings.xml", data: SETTINGS_XML },
   ])
 
-  downloadBlob(blob, "carteleria-varia-a4.docx")
+  downloadBlob(blob, `carteleria-varia-${paper}.docx`)
 }

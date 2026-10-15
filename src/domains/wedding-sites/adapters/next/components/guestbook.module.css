@@ -1,0 +1,203 @@
+/*
+ * Formulario de firma y paginación del tablón. Sirven en todas las plantillas
+ * con las variables del muro (guest-wall.module.css): el formulario vive en
+ * el modal y hereda de él acento, líneas y tipografías; la paginación las lee
+ * de la sección de firmas.
+ */
+
+.pagination {
+  --accent: var(--wall-accent, currentColor);
+  --muted: var(--wall-muted, color-mix(in srgb, currentColor 68%, transparent));
+  --body-font: var(--wall-body-font, inherit);
+}
+
+/* ---------- Formulario ---------- */
+
+.composer {
+  display: grid;
+  width: 100%;
+  gap: 0.6rem;
+  text-align: left;
+}
+
+/* Papel pautado: cada renglón del fondo coincide con una línea de texto y se
+   desplaza con él cuando el mensaje es largo. */
+.message {
+  --line: 2.15rem;
+
+  width: 100%;
+  min-height: calc(var(--line) * 5);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  --line-color: var(--rule);
+
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--line) - 1px),
+    var(--line-color) calc(var(--line) - 1px) var(--line)
+  );
+  background-attachment: local;
+  color: inherit;
+  font-family: var(--body-font);
+  font-size: 1.25rem;
+  line-height: var(--line);
+  resize: vertical;
+}
+.message::placeholder { color: var(--muted); font-style: italic; opacity: 0.85; }
+/* Al escribir, los renglones toman el color del acento: es el foco. */
+.composer .message:focus-visible { outline: none; --line-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.composer .message[aria-invalid="true"] { --line-color: var(--accent); }
+
+.counter {
+  margin: 0;
+  justify-self: end;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La firma va abajo a la derecha, como al final de una carta. */
+.signatureRow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+/* Ancho para firmas de grupo ("Los del grupo de Granada") sin cortarlas. */
+.author {
+  flex: 0 1 24rem;
+  min-width: 0;
+  padding: 0 0.25rem 0.15rem;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--accent);
+  font-family: var(--script-font);
+  font-size: 1.9rem;
+  line-height: 1.35;
+}
+.author::placeholder { color: var(--muted); opacity: 0.6; }
+.composer .author:focus-visible { outline: none; border-bottom-color: var(--accent); box-shadow: 0 1px 0 var(--accent); }
+
+.options { justify-content: flex-end; }
+
+.error { margin-top: 0.25rem; }
+
+.submit { justify-self: center; margin-top: 1.4rem; }
+
+/* ---------- Paginación ---------- */
+
+.pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas:
+    "prev list next"
+    "status status status";
+  align-items: center;
+  gap: 1rem 1.5rem;
+  width: min(64rem, 100%);
+  /* Sin línea propia: las firmas ya cierran con la suya. */
+  margin-top: clamp(0.5rem, 2vw, 1.25rem);
+}
+
+.pageList {
+  display: flex;
+  grid-area: list;
+  justify-content: center;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pageNumber {
+  position: relative;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  padding: 0 0.4rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: var(--body-font);
+  font-size: 1.3rem;
+  font-variant-numeric: lining-nums;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.pageNumber:hover:not(:disabled) { color: inherit; }
+.pageNumber[aria-current="page"] { color: var(--accent); cursor: default; }
+.pageNumber[aria-current="page"]::after {
+  position: absolute;
+  inset: auto 0.85rem 0.3rem;
+  height: 1px;
+  background: var(--accent);
+  content: "";
+}
+.pageNumber:disabled:not([aria-current]) { cursor: progress; }
+
+.pageGap {
+  display: grid;
+  min-width: 1.5rem;
+  place-items: center;
+  color: var(--muted);
+  font-family: var(--body-font);
+}
+
+.pageStep {
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+.pageStep:first-of-type { grid-area: prev; justify-self: start; }
+.pageStep:last-of-type { grid-area: next; justify-self: end; }
+.pageStep:hover:not(:disabled) { color: var(--accent); }
+.pageStep:disabled { opacity: 0.3; cursor: default; }
+.pageStep span { display: inline-block; transition: transform 0.25s ease; }
+.pageStep:first-of-type:hover:not(:disabled) span { transform: translateX(-3px); }
+.pageStep:last-of-type:hover:not(:disabled) span { transform: translateX(3px); }
+
+.pageStatus {
+  grid-area: status;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+@media (max-width: 560px) {
+  .pagination {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "list list"
+      "prev next"
+      "status status";
+  }
+
+  /* En la hoja del móvil la firma ocupa el ancho entero. */
+  .signatureRow { flex-wrap: wrap; justify-content: flex-start; }
+  .author { width: 100%; }
+  .options { justify-content: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pageNumber,
+  .pageStep,
+  .pageStep span { transition: none; }
+}

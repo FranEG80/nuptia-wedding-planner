@@ -21,6 +21,15 @@ const envSchema = z.object({
   SUPABASE_SECRET_KEY: z.string().optional().default(""),
   STORAGE_PROVIDER: z.enum(["local", "supabase", "r2"]).default("r2"),
   R2_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(10 * 1024 * 1024),
+  // Acceso a R2 por la API S3. Necesario fuera de Cloudflare (Vercel) y para
+  // las subidas directas en producción. En next dev se usa el binding local.
+  R2_ACCOUNT_ID: z.string().optional().default(""),
+  R2_ACCESS_KEY_ID: z.string().optional().default(""),
+  R2_SECRET_ACCESS_KEY: z.string().optional().default(""),
+  R2_BUCKET_NAME: z.string().min(1).default("nuptia-media"),
+  // Dominio público del bucket (sin barra final). Vacío = las imágenes se
+  // sirven a través de /api/media/files.
+  R2_PUBLIC_BASE_URL: z.union([z.literal(""), z.string().url()]).optional().default(""),
   LOCAL_UPLOAD_DIR: z.string().default("./storage/uploads"),
   SUPABASE_STORAGE_BUCKET: z.string().default("wedding-media"),
   RESEND_API_KEY: z.string().optional().default(""),
@@ -33,6 +42,7 @@ const envSchema = z.object({
     .default("false")
     .transform((value) => value === "true"),
   INVITATIONS_WITHOUT_REGISTRY_PHONES: z.string().optional().default(""),
+  WEDDING_PHOTOGRAPHER_PHONES: z.string().optional().default(""),
   WEDDING_SITE_ENABLED: z
     .string()
     .default("false")
@@ -46,6 +56,20 @@ const d1HttpEnvSchema = z.object({
 })
 
 export const env = envSchema.parse(process.env)
+
+/** Credenciales S3 de R2, o null si falta alguna. */
+export function getR2S3Credentials() {
+  if (!env.R2_ACCOUNT_ID || !env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY) {
+    return null
+  }
+
+  return {
+    accountId: env.R2_ACCOUNT_ID,
+    accessKeyId: env.R2_ACCESS_KEY_ID,
+    secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+    bucketName: env.R2_BUCKET_NAME,
+  }
+}
 
 export function getD1HttpCredentials() {
   const values = d1HttpEnvSchema.parse(process.env)

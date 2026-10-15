@@ -134,7 +134,9 @@ model Wedding {
   guests             Guest[]
   invitationDesign   InvitationDesign?
   siteModules        WeddingSiteModule[]
+  guestbookSignatures GuestbookSignature[]
   mediaAssets        MediaAsset[]
+  guestPhotos        GuestPhoto[]
   tables             WeddingTable[]
   tasks              WeddingTask[]
 
@@ -249,6 +251,7 @@ model Guest {
   menuSelections GuestMenuSelection[]
   messages       GuestMessage[]
   photos         GuestPhoto[]
+  guestbookSignatures GuestbookSignature[]
   seat           WeddingSeat?
 
   @@index([weddingId])
@@ -340,17 +343,53 @@ model GuestMessage {
   @@map("guest_messages")
 }
 
-model GuestPhoto {
-  id        String   @id @default(cuid())
-  weddingId String
-  guestId   String
-  assetId   String?
-  url       String
-  status    String   @default("pending")
-  createdAt DateTime @default(now())
-  guest     Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+/// Firmas públicas del tablón de la web de boda. No confundir con
+/// GuestMessage, que son los mensajes privados del RSVP para los novios.
+model GuestbookSignature {
+  id         String   @id @default(cuid())
+  weddingId  String
+  guestId    String
+  /// Cómo firma el invitado: su nombre o el de su grupo ("Marta y Javi").
+  authorName String
+  message    String
+  status     String   @default("published")
+  createdAt  DateTime @default(now())
+  wedding    Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  guest      Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
 
-  @@index([weddingId])
+  @@index([weddingId, status, createdAt])
+  @@index([guestId])
+  @@map("guestbook_signatures")
+}
+
+// Fotos que suben invitados y fotógrafos desde la web de la boda. Cada foto
+// vive en R2 en tres versiones: el original tal cual, la optimizada en WebP
+// (la que se ve en el visor) y la miniatura cuadrada de la parrilla.
+model GuestPhoto {
+  id            String   @id @default(cuid())
+  weddingId     String
+  // Invitado que la subió. Null en las fotos de fotógrafo.
+  guestId       String?
+  uploaderRole  String   @default("guest")
+  // Teléfono del fotógrafo con el que se identificó. Null en las de invitado.
+  uploaderPhone String?
+  // Nombre que se escribe en la polaroid, fijado al subirla. Las fotos de
+  // fotógrafo lo calculan al mostrarse (photographerPhotoCredit).
+  credit        String?
+  originalKey   String
+  optimizedKey  String
+  thumbnailKey  String
+  contentType   String
+  originalBytes Int
+  // Medidas de la versión optimizada.
+  width         Int
+  height        Int
+  status        String   @default("published")
+  createdAt     DateTime @default(now())
+  wedding       Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  guest         Guest?   @relation(fields: [guestId], references: [id], onDelete: SetNull)
+
+  @@index([weddingId, status, createdAt])
   @@index([guestId])
   @@map("guest_photos")
 }

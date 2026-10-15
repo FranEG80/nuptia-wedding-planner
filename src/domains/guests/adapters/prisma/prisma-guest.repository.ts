@@ -7,9 +7,11 @@ import type {
   CreateGuestInput,
   CreateInvitationPartyInput,
   GuestInviteParty,
+  GuestPhoneCandidate,
   GuestRsvpSummary,
   GuestRepository,
   GuestSeatPosition,
+  GuestWallIdentity,
   InvitationPartyGuestInput,
   PublicGuestInviteParty,
   RespondToPartyGuestInput,
@@ -24,6 +26,7 @@ import type {
   GuestRole,
   GuestRsvpStatus,
 } from "@/domains/guests/domain/guest"
+import { getWallPartyName } from "@/domains/guests/application/format-guest-names"
 import { assertExactPartyResponses } from "@/domains/guests/domain/invitation-party-rules"
 import { MAX_INVITATION_GUESTS } from "@/domains/guests/domain/invitation-party-limits"
 
@@ -592,6 +595,67 @@ export class PrismaGuestRepository implements GuestRepository {
     const guest = await this.findRecordById(id)
 
     return guest ? toGuest(guest) : null
+  }
+
+  async listPhoneCandidatesByWeddingId(
+    weddingId: string,
+  ): Promise<GuestPhoneCandidate[]> {
+    const guests = await this.prisma.guest.findMany({
+      where: { weddingId, phone: { not: null } },
+      select: { id: true, name: true, firstName: true, role: true, phone: true },
+    })
+
+    return guests.flatMap((guest) =>
+      guest.phone
+        ? [
+            {
+              id: guest.id,
+              firstName: guest.firstName.trim() || guest.name,
+              role: roleFromDb(guest.role),
+              phone: guest.phone,
+            },
+          ]
+        : [],
+    )
+  }
+
+  async findWallIdentity(
+    weddingId: string,
+    guestId: string,
+  ): Promise<GuestWallIdentity | null> {
+    const guest = await this.prisma.guest.findFirst({
+      where: { id: guestId, weddingId },
+      select: {
+        id: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+        party: {
+          select: {
+            invitationName: true,
+            guests: {
+              // Titular primero ("primary" > "companion"), luego por alta.
+              orderBy: [{ role: "desc" }, { createdAt: "asc" }],
+              select: { name: true, firstName: true },
+            },
+          },
+        },
+      },
+    })
+
+    if (!guest) {
+      return null
+    }
+
+    return {
+      id: guest.id,
+      firstName: guest.firstName.trim() || guest.name,
+      fullName: composeFullName(guest.firstName, guest.lastName) || guest.name,
+      partyName: getWallPartyName({
+        invitationName: guest.party.invitationName ?? "",
+        guests: guest.party.guests,
+      }),
+    }
   }
 
   async create(input: CreateGuestInput): Promise<Guest> {
@@ -1403,8 +1467,17 @@ export class PrismaGuestRepository implements GuestRepository {
       this.d1
         .prepare(`DELETE FROM guest_messages WHERE guestId IN ${guestScope}`)
         .bind(partyId, weddingId),
+      // Las fotos se quedan en la galería (con el nombre que se guardó al
+      // subirlas): borrar la fila dejaría sus archivos huérfanos en R2.
       this.d1
-        .prepare(`DELETE FROM guest_photos WHERE guestId IN ${guestScope}`)
+        .prepare(
+          `UPDATE guest_photos SET guestId = NULL WHERE guestId IN ${guestScope}`,
+        )
+        .bind(partyId, weddingId),
+      this.d1
+        .prepare(
+          `DELETE FROM guestbook_signatures WHERE guestId IN ${guestScope}`,
+        )
         .bind(partyId, weddingId),
       this.d1
         .prepare(`DELETE FROM wedding_seats WHERE guestId IN ${guestScope}`)

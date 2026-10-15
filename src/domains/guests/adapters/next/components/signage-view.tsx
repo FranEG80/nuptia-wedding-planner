@@ -14,6 +14,7 @@ import {
 import { exportMariaDanielaPlaceCardsPdf } from "@/domains/guests/adapters/next/components/export-maria-daniela-place-cards-pdf"
 import { exportMariaDanielaTableSignsPdf } from "@/domains/guests/adapters/next/components/export-maria-daniela-table-signs-pdf"
 import { hasPrintableMenu } from "@/domains/guests/adapters/next/components/export-maria-daniela-menu-pdf"
+import type { MiscSignPaper } from "@/domains/guests/adapters/next/components/maria-daniela-misc-signs-render"
 import {
   INITIAL_MENU_COURSES,
   MenuEditorDialog,
@@ -104,6 +105,7 @@ export function SignageView({
   const [menuCourses, setMenuCourses] = useState<MenuCourseDraft[]>(INITIAL_MENU_COURSES)
   const [isMenuEditorOpen, setIsMenuEditorOpen] = useState(false)
   const [miscSigns, setMiscSigns] = useState<MiscSignDraft[]>(INITIAL_MISC_SIGNS)
+  const [miscSignPaper, setMiscSignPaper] = useState<MiscSignPaper>("a4")
   const [isMiscSignsOpen, setIsMiscSignsOpen] = useState(false)
 
   // Invitados y mesas se piden al generar cada PDF: abrir la pantalla no
@@ -308,7 +310,8 @@ export function SignageView({
             <PieceCard
               title="Carteles varios"
               description="Una frase y una flecha grande para guiar por el salón."
-              sheet={{ motif: "misc-sign", size: "a4", landscape: true }}
+              sheet={{ motif: "misc-sign", size: miscSignPaper, landscape: true }}
+              sheetLabel={`${miscSignPaper.toUpperCase()} apaisado: un cartel por hoja`}
             >
               {writtenSigns > 0 ? (
                 <PieceStatus>
@@ -338,6 +341,8 @@ export function SignageView({
               onOpenChange={setIsMiscSignsOpen}
               signs={miscSigns}
               onSignsChange={setMiscSigns}
+              paper={miscSignPaper}
+              onPaperChange={setMiscSignPaper}
               theme={seatingPdfTheme}
             />
           </>

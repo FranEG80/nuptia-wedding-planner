@@ -10,6 +10,8 @@ export const mariaDanielaAssets = {
   botanicalSprig: `${assetRoot}/botanical-sprig.webp`,
   locationPin: `${assetRoot}/location-pin-watercolor.webp`,
   whatsappWatercolor: `${assetRoot}/whatsapp-watercolor.webp`,
+  musicPlayWatercolor: `${assetRoot}/music-play-watercolor.png`,
+  musicPauseWatercolor: `${assetRoot}/music-pause-watercolor.png`,
   ibanPencilFrame: `${assetRoot}/iban-pencil-frame.webp`,
   checklist: `${assetRoot}/rsvp-checklist.webp`,
   buttonOutline: `${assetRoot}/rsvp-button-hand-drawn.webp`,

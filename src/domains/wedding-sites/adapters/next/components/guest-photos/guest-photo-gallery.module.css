@@ -1,0 +1,646 @@
+/*
+ * Galería de fotos de la web de boda. Sirve en todos los temas: el texto
+ * hereda el color del template y la polaroid trae su propio papel y tinta,
+ * como una foto impresa apoyada sobre la página. El nombre va a mano
+ * (Parisienne), igual que la voz manuscrita de la invitación.
+ */
+.gallery {
+  --polaroid-paper: #fffdf8;
+  --polaroid-ink: #4b3f3a;
+  --polaroid-well: #ede4d8;
+  --polaroid-shadow:
+    0 1px 1px rgb(60 42 32 / 7%),
+    0 6px 14px -6px rgb(60 42 32 / 20%),
+    0 22px 34px -24px rgb(60 42 32 / 34%);
+  --polaroid-shadow-lifted:
+    0 2px 3px rgb(60 42 32 / 8%),
+    0 14px 26px -10px rgb(60 42 32 / 26%),
+    0 34px 48px -30px rgb(60 42 32 / 38%);
+  --tape-terracotta: rgb(213 118 77 / 30%);
+  --tape-sage: rgb(132 154 120 / 32%);
+  --col-gap: clamp(1rem, 2.6vw, 2.25rem);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  display: grid;
+  width: min(68rem, 100%);
+  justify-items: center;
+}
+
+.textButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  opacity: 0.7;
+  cursor: pointer;
+}
+.textButton:hover { opacity: 1; }
+
+/* ---------- Parrilla de polaroids ---------- */
+
+.grid {
+  display: grid;
+  width: 100%;
+  margin: clamp(2.25rem, 4.5vw, 3.5rem) 0 0;
+  padding: 0;
+  list-style: none;
+  /* Dos columnas en móvil; en pantallas anchas, tantas como quepan. */
+  grid-template-columns: repeat(auto-fill, minmax(min(13.5rem, calc(50% - var(--col-gap) / 2)), 1fr));
+  gap: clamp(1.75rem, 4vw, 3rem) var(--col-gap);
+}
+
+.item {
+  animation: polaroid-in 760ms var(--ease-out) both;
+  animation-delay: calc(var(--stagger, 0) * 60ms);
+}
+
+@keyframes polaroid-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.75rem) rotate(calc(var(--tilt, 0deg) * -1.6));
+  }
+}
+
+.polaroid {
+  position: relative;
+  display: grid;
+  margin: 0;
+  padding: clamp(0.45rem, 1.2vw, 0.7rem) clamp(0.45rem, 1.2vw, 0.7rem) 0;
+  background: var(--polaroid-paper);
+  box-shadow: var(--polaroid-shadow);
+  transform: rotate(var(--tilt, 0deg));
+  transition:
+    transform 480ms var(--ease-out),
+    box-shadow 480ms var(--ease-out);
+}
+
+/* Cinta de papel sujetando la foto: alterna terracota y salvia, como las
+   acuarelas de la web. */
+.polaroid::before {
+  position: absolute;
+  z-index: 1;
+  top: -0.55rem;
+  left: 50%;
+  width: clamp(2.6rem, 28%, 4.2rem);
+  height: 1.15rem;
+  background: var(--tape-terracotta);
+  content: "";
+  pointer-events: none;
+  transform: translateX(-50%) rotate(calc(var(--tilt, 0deg) * -1.4 - 2deg));
+  mix-blend-mode: multiply;
+}
+.item:nth-child(even) .polaroid::before { background: var(--tape-sage); }
+
+@media (hover: hover) and (pointer: fine) {
+  .polaroid:hover {
+    z-index: 2;
+    box-shadow: var(--polaroid-shadow-lifted);
+    transform: rotate(0deg) translateY(-0.4rem) scale(1.025);
+  }
+}
+
+.polaroid:has(:focus-visible) {
+  outline: 2px solid var(--terracotta-ink, currentColor);
+  outline-offset: 4px;
+}
+
+.photoButton {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--polaroid-well);
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+}
+.photoButton:focus-visible { outline: none; }
+
+/* Toda la polaroid abre el visor, no solo la foto. */
+.photoButton::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  content: "";
+}
+
+.photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+.photo[data-loaded="true"] { opacity: 1; }
+
+.caption {
+  display: block;
+  min-height: clamp(2.7rem, 7vw, 3.4rem);
+  padding: 0.5rem 0.15rem 0.65rem;
+  overflow: hidden;
+  color: var(--polaroid-ink);
+  font-family: var(--font-parisienne), cursive;
+  font-size: clamp(0.95rem, 2.6vw, 1.38rem);
+  line-height: 1.5;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Carga ---------- */
+
+.sentinel { width: 100%; height: 1px; }
+
+.loadMore {
+  margin: 2rem 0 0;
+  font-size: 0.85rem;
+  text-align: center;
+  opacity: 0.75;
+}
+
+.endOfRoll {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.endOfRoll::before,
+.endOfRoll::after {
+  width: 2.5rem;
+  height: 1px;
+  background: currentColor;
+  content: "";
+  opacity: 0.5;
+}
+
+/* ---------- Mesa de la galería y subida ---------- */
+
+/* Entrada de la galería cuando la plantilla no trae la suya. */
+.desk {
+  display: grid;
+  margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+  justify-items: center;
+}
+
+/* La subida vive en el modal del muro (guest-wall.module.css) y hereda de él
+   acento, líneas y tipografías. */
+.uploader {
+  display: grid;
+  gap: clamp(1.5rem, 3.5vw, 2rem);
+  text-align: center;
+}
+
+.creditChoice {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+}
+
+/* Zona para soltar: el papel de la mesa marcado con una línea discontinua. */
+.dropzone {
+  display: grid;
+  padding: clamp(1.75rem, 5vw, 2.5rem) clamp(1rem, 4vw, 2rem);
+  justify-items: center;
+  gap: 0.75rem;
+  border: 1px dashed var(--rule);
+  border-radius: calc(var(--radius) * 0.75);
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease;
+}
+.dropzone[data-dragging] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.dropIcon {
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--muted);
+}
+
+.dropText {
+  max-width: 24rem;
+  margin: 0;
+  font-family: var(--body-font);
+  font-size: clamp(1.1rem, 2.4vw, 1.25rem);
+  line-height: 1.55;
+  text-wrap: balance;
+}
+
+.dragHint { display: block; }
+
+/* Arrastrar solo tiene sentido con ratón. */
+@media (hover: none) {
+  .dragHint { display: none; }
+}
+
+.pickButton { margin-top: 0.5rem; }
+input:focus-visible + .pickButton {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.uploaderMeta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+/* Nombre escrito por el invitado: misma línea fina que el teléfono del muro. */
+.customCredit {
+  width: min(22rem, 100%);
+  margin-top: 0.15rem;
+}
+
+.customCreditInput {
+  width: 100%;
+  padding: 0.15rem 0.25rem 0.4rem;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-family: var(--body-font);
+  font-size: 1.3rem;
+  line-height: 1.35;
+  text-align: center;
+  transition: border-color 0.2s ease;
+}
+.customCreditInput::placeholder { color: var(--muted); opacity: 0.55; }
+/* Más específico que el foco global del template (.site :focus-visible): aquí
+   basta con la línea inferior, como en el teléfono del muro. */
+.uploader .customCreditInput:focus-visible {
+  outline: none;
+  border-bottom-color: var(--accent);
+  box-shadow: 0 1px 0 var(--accent);
+}
+
+/* Hoja de contactos: lo elegido se revisa aquí antes de pulsar Enviar. */
+.selection {
+  display: grid;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  justify-items: center;
+  gap: 1rem;
+  border: 1px dashed var(--rule);
+  border-radius: calc(var(--radius) * 0.75);
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease;
+}
+.selection[data-dragging] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.selectionSummary {
+  margin: 0;
+  font-family: var(--body-font);
+  font-size: 1.15rem;
+}
+
+.tiles {
+  display: grid;
+  width: 100%;
+  max-height: min(22rem, 45dvh);
+  margin: 0;
+  /* Hueco para el botón de quitar, que asoma por la esquina. */
+  padding: 0.6rem;
+  overflow-y: auto;
+  gap: 0.9rem 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(5.25rem, 1fr));
+  list-style: none;
+}
+
+.tile {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+}
+
+.tilePhoto {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.tileImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+  transition:
+    opacity 200ms ease,
+    filter 200ms ease;
+}
+.tile[data-status="uploading"] .tileImage,
+.tile[data-status="processing"] .tileImage { opacity: 0.55; }
+.tile[data-status="error"] .tileImage { filter: grayscale(1); opacity: 0.45; }
+
+.tileRemove {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: var(--paper);
+  color: inherit;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.tileRemove svg { width: 0.85rem; height: 0.85rem; }
+.tileRemove:hover { border-color: var(--accent); color: var(--accent); }
+/* Área táctil más grande que el círculo que se ve. */
+.tileRemove::after {
+  position: absolute;
+  inset: -0.45rem;
+  content: "";
+}
+
+.tileProgress {
+  position: absolute;
+  inset: auto 0.35rem 0.35rem;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 60%);
+}
+.tileProgress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent, currentColor);
+  transform-origin: left;
+  transition: transform 200ms linear;
+}
+
+/* Mientras el servidor revela la foto no hay porcentaje: barra que respira. */
+.tileProgress[data-indeterminate] > span {
+  animation: progress-breathe 1.3s ease-in-out infinite;
+}
+
+@keyframes progress-breathe {
+  50% { opacity: 0.35; }
+}
+
+.tileDone {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.tileDone svg { width: 0.9rem; height: 0.9rem; }
+
+.tileLabel {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile[data-status="error"] .tileLabel { color: var(--accent); }
+
+.selectionHint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.selectionErrors {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 0.3rem;
+  color: var(--accent);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  list-style: none;
+  text-align: center;
+}
+
+.selectionActions {
+  display: grid;
+  margin: 0.25rem 0 0;
+  justify-items: center;
+  gap: 0.85rem;
+}
+
+.selectionLinks {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.selectionActions label { cursor: pointer; }
+.selectionActions input:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ---------- Visor ---------- */
+
+/* Sin scroll de fondo mientras el visor está abierto. */
+:global(html):has(.lightbox[open]) { overflow: hidden; }
+
+.lightbox {
+  --lightbox-ink: #fbf4ea;
+  --lightbox-side: clamp(0.75rem, 6vw, 5.5rem);
+
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: var(--lightbox-ink);
+  opacity: 0;
+  transition:
+    opacity 280ms ease,
+    display 280ms allow-discrete,
+    overlay 280ms allow-discrete;
+}
+
+.lightbox[open] {
+  opacity: 1;
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+.lightbox::backdrop {
+  background: rgb(30 24 21 / 0);
+  backdrop-filter: blur(6px);
+  transition:
+    background-color 280ms ease,
+    display 280ms allow-discrete,
+    overlay 280ms allow-discrete;
+}
+
+.lightbox[open]::backdrop {
+  background: rgb(30 24 21 / 0.92);
+
+  @starting-style {
+    background: rgb(30 24 21 / 0);
+  }
+}
+
+.lightboxStage {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  padding:
+    max(3.75rem, env(safe-area-inset-top))
+    var(--lightbox-side)
+    max(1.5rem, env(safe-area-inset-bottom));
+  place-items: center;
+}
+
+.lightboxFrame {
+  display: grid;
+  max-width: 100%;
+  margin: 0;
+  padding: clamp(0.4rem, 1vw, 0.75rem) clamp(0.4rem, 1vw, 0.75rem) 0;
+  background: #fffdf8;
+  box-shadow: 0 40px 80px -40px rgb(0 0 0 / 70%);
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  animation: frame-in 420ms var(--ease-out, ease) both;
+}
+
+@keyframes frame-in {
+  from { opacity: 0; transform: translateY(0.75rem) scale(0.985); }
+}
+
+.lightboxImage {
+  display: block;
+  width: auto;
+  max-width: min(calc(100vw - 2 * var(--lightbox-side) - 1.5rem), 76rem);
+  height: auto;
+  max-height: calc(100dvh - 10.5rem);
+  background: #ede4d8;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 360ms ease;
+}
+.lightboxImage[data-loaded] { opacity: 1; }
+
+.lightboxCaption {
+  display: flex;
+  min-height: 3.2rem;
+  padding: 0.45rem 0.35rem 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #4b3f3a;
+}
+
+.lightboxCredit {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-parisienne), cursive;
+  font-size: clamp(1.3rem, 3vw, 1.75rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lightboxCounter {
+  flex: none;
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.lightboxNav,
+.lightboxClose {
+  position: absolute;
+  display: grid;
+  width: 2.9rem;
+  height: 2.9rem;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgb(251 244 234 / 28%);
+  border-radius: 50%;
+  background: rgb(30 24 21 / 40%);
+  color: var(--lightbox-ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 200ms ease,
+    opacity 200ms ease;
+}
+.lightboxNav svg,
+.lightboxClose svg { width: 1.35rem; height: 1.35rem; }
+.lightboxNav:hover:not(:disabled),
+.lightboxClose:hover { background: rgb(251 244 234 / 16%); }
+.lightboxNav:disabled { opacity: 0; pointer-events: none; }
+.lightboxNav:focus-visible,
+.lightboxClose:focus-visible {
+  outline: 2px solid var(--lightbox-ink);
+  outline-offset: 3px;
+}
+
+.lightboxNav { top: 50%; translate: 0 -50%; }
+.lightboxPrevious { left: max(0.6rem, env(safe-area-inset-left)); }
+.lightboxNext { right: max(0.6rem, env(safe-area-inset-right)); }
+.lightboxClose {
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+}
+
+/* En móvil la foto ocupa casi todo el ancho: flechas abajo, a los lados del
+   pie, para no tapar la imagen. Deslizar también cambia de foto. */
+@media (max-width: 640px) {
+  .lightboxStage { padding-bottom: max(5rem, env(safe-area-inset-bottom)); }
+  .lightboxImage { max-height: calc(100dvh - 13rem); }
+  .lightboxNav { top: auto; bottom: max(1rem, env(safe-area-inset-bottom)); translate: none; }
+  .lightboxPrevious { left: calc(50% - 3.6rem); }
+  .lightboxNext { right: calc(50% - 3.6rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item,
+  .lightboxFrame { animation: none; }
+  .polaroid,
+  .photo,
+  .lightboxImage { transition: none; }
+  .tileProgress[data-indeterminate] > span { animation: none; }
+  .lightbox,
+  .lightbox::backdrop { transition-duration: 0.1s; }
+}

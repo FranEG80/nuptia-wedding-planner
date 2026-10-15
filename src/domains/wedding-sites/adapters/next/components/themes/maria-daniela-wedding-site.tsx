@@ -1,14 +1,17 @@
 import Image from "next/image"
-import { Fragment, useEffect, useRef } from "react"
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react"
 import { flushSync } from "react-dom"
 
 import { CopyIbanButton } from "@/domains/wedding-sites/adapters/next/components/copy-iban-button"
+import { GuestPhotoGallery } from "@/domains/wedding-sites/adapters/next/components/guest-photos/guest-photo-gallery"
+import { GuestbookSigning } from "@/domains/wedding-sites/adapters/next/components/guestbook-composer"
+import { GuestbookPagination } from "@/domains/wedding-sites/adapters/next/components/guestbook-pagination"
 import { MariaDanielaCountdown } from "@/domains/invitations/adapters/next/components/maria-daniela-countdown"
 import { mariaDanielaAssets } from "@/domains/wedding-sites/adapters/next/components/maria-daniela-assets"
 import type { WeddingSiteThemeProps } from "@/domains/wedding-sites/adapters/next/components/themes/wedding-site-theme-props"
+import { useGuestbook } from "@/domains/wedding-sites/adapters/next/components/use-guestbook"
 import {
   SAMPLE_GALLERY_PHOTOS,
-  SAMPLE_GUESTBOOK_SIGNATURES,
   spotifyEmbedUrl,
   type WeddingExperienceContent,
 } from "@/domains/wedding-sites/application/dtos/wedding-experience.dto"
@@ -41,6 +44,85 @@ const registryLink =
 
 /** Píxeles de aproximación al borde en los que la sombra pasa de 0 a 1. */
 const RAMP = 220
+
+function MusicToggle() {
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [hasError, setHasError] = useState(false)
+
+  async function togglePlayback() {
+    const audio = audioRef.current
+
+    if (!audio) {
+      return
+    }
+
+    if (!audio.paused) {
+      audio.pause()
+      return
+    }
+
+    setHasError(false)
+
+    try {
+      await audio.play()
+    } catch {
+      setIsPlaying(false)
+      setHasError(true)
+    }
+  }
+
+  return (
+    <>
+      <audio
+        ref={audioRef}
+        className={styles.musicAudio}
+        src="/music/templates/maria-daniela/me-enamoro-de-ella.m4a"
+        loop
+        preload="none"
+        onPlay={() => {
+          setIsPlaying(true)
+          setHasError(false)
+        }}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => setIsPlaying(false)}
+        onError={() => {
+          setIsPlaying(false)
+          setHasError(true)
+        }}
+      />
+      <div className={styles.musicToggleContainer}>
+        <button
+          type="button"
+          className={styles.musicToggle}
+          onClick={() => void togglePlayback()}
+          aria-label={
+            isPlaying
+              ? "Pausar la canción Me enamoro de ella"
+              : "Reproducir la canción Me enamoro de ella"
+          }
+          aria-pressed={isPlaying}
+          title={isPlaying ? "Pausar la música" : "Reproducir la música"}
+        >
+          <Image
+            draggable="false"
+            src={isPlaying ? mariaDanielaAssets.musicPauseWatercolor : mariaDanielaAssets.musicPlayWatercolor}
+            alt=""
+            width={128}
+            height={128}
+            sizes="92px"
+            className={styles.musicToggleArt}
+          />
+        </button>
+        {hasError && (
+          <p className={styles.musicToggleFeedback} role="status">
+            No se ha podido cargar la canción.
+          </p>
+        )}
+      </div>
+    </>
+  )
+}
 
 export function MariaDanielaWeddingSite({
   content,
@@ -148,69 +230,75 @@ export function MariaDanielaWeddingSite({
   // sin navegación, sin subpáginas, sin pie y sin scroll.
   if (!showFullSite) {
     return (
-      <div className={cn(styles.site, styles.siteLocked)} ref={siteRef}>
-        <CountdownHero content={content} preview={preview} />
-      </div>
+      <>
+        <div className={cn(styles.site, styles.siteLocked)} ref={siteRef}>
+          <CountdownHero content={content} preview={preview} />
+        </div>
+        <MusicToggle />
+      </>
     )
   }
 
   return (
-    <div className={styles.site} ref={siteRef}>
-      {/* Remontar por página reinicia las animaciones de scroll de cada sección. */}
-      <EditorialMotion key={currentPage}>
-        {currentPage === "inicio" && <Hero content={content} preview={preview} />}
+    <>
+      <div className={styles.site} ref={siteRef}>
+        {/* Remontar por página reinicia las animaciones de scroll de cada sección. */}
+        <EditorialMotion key={currentPage} className={styles.siteLayout}>
+          {currentPage === "inicio" && <Hero content={content} preview={preview} />}
 
-        {/* La navegación vive debajo de la portada y se queda pegada arriba al
-            subir: en el resto de subpáginas, sin portada, ya nace en el borde. */}
-        <header className={styles.nav} ref={navRef}>
-          <div className={styles.navInner}>
-            <button
-              type="button"
-              className={styles.navBrand}
-              onClick={() => navigateWithTransition("inicio")}
-            >
-              {firstName} <i aria-hidden="true">&amp;</i> {secondName}
-            </button>
-            <nav className={styles.navLinks} aria-label="Secciones de la web">
-              {pages.map((page) => {
-                const isActive = page.id === currentPage
+          {/* La navegación vive debajo de la portada y se queda pegada arriba al
+              subir: en el resto de subpáginas, sin portada, ya nace en el borde. */}
+          <header className={styles.nav} ref={navRef}>
+            <div className={styles.navInner}>
+              <button
+                type="button"
+                className={styles.navBrand}
+                onClick={() => navigateWithTransition("inicio")}
+              >
+                {firstName} <i aria-hidden="true">&amp;</i> {secondName}
+              </button>
+              <nav className={styles.navLinks} aria-label="Secciones de la web">
+                {pages.map((page) => {
+                  const isActive = page.id === currentPage
 
-                return (
-                  <button
-                    key={page.id}
-                    type="button"
-                    ref={isActive ? activeLinkRef : undefined}
-                    onClick={() => navigateWithTransition(page.id)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={isActive ? styles.navLinkActive : undefined}
-                  >
-                    {page.label}
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
-        </header>
+                  return (
+                    <button
+                      key={page.id}
+                      type="button"
+                      ref={isActive ? activeLinkRef : undefined}
+                      onClick={() => navigateWithTransition(page.id)}
+                      aria-current={isActive ? "page" : undefined}
+                      className={isActive ? styles.navLinkActive : undefined}
+                    >
+                      {page.label}
+                    </button>
+                  )
+                })}
+              </nav>
+            </div>
+          </header>
 
-        <main>
-          {currentPage === "inicio" && <HomePage content={content} preview={preview} />}
-          {currentPage === "historia" && <StoryPage content={content} preview={preview} />}
-          {currentPage === "menu" && <MenuPage content={content} />}
-          {currentPage === "musica" && <MusicPage content={content} />}
-          {currentPage === "galeria" && <GalleryPage content={content} preview={preview} />}
-          {currentPage === "firmas" && <GuestbookPage content={content} preview={preview} />}
-        </main>
+          <main className={currentPage === "inicio" ? undefined : styles.subpage}>
+            {currentPage === "inicio" && <HomePage content={content} preview={preview} />}
+            {currentPage === "historia" && <StoryPage content={content} preview={preview} />}
+            {currentPage === "menu" && <MenuPage content={content} />}
+            {currentPage === "musica" && <MusicPage content={content} />}
+            {currentPage === "galeria" && <GalleryPage content={content} preview={preview} />}
+            {currentPage === "firmas" && <GuestbookPage content={content} preview={preview} />}
+          </main>
 
-        <footer className={styles.footer}>
-          <p className={styles.footerLine}>Gracias por acompañarnos en este día</p>
-          <p className={styles.footerMeta}>
-            <time dateTime={content.dateIso}>{content.dateLabel}</time>
-            <span aria-hidden="true">·</span>
-            <span>{content.city}</span>
-          </p>
-        </footer>
-      </EditorialMotion>
-    </div>
+          <footer className={styles.footer}>
+            <p className={styles.footerLine}>Gracias por acompañarnos en este día</p>
+            <p className={styles.footerMeta}>
+              <time dateTime={content.dateIso}>{content.dateLabel}</time>
+              <span aria-hidden="true">·</span>
+              <span>{content.city}</span>
+            </p>
+          </footer>
+        </EditorialMotion>
+      </div>
+      <MusicToggle />
+    </>
   )
 }
 
@@ -241,7 +329,7 @@ function Hero({
         width={280}
         height={450}
         sizes="(max-width: 720px) 48vw, 23rem"
-        className="absolute right-[-2rem] bottom-4 z-[-1] h-auto w-[clamp(10rem,24vw,21rem)]"
+        className="absolute right-[-2rem] bottom-0 z-[-1] h-auto w-[clamp(10rem,24vw,21rem)]"
       />
       <div>
         <p className="my-0 py-6 text-md font-extrabold tracking-[0.34em] uppercase md:text-xl">
@@ -609,8 +697,7 @@ function MenuPage({ content }: { content: WeddingExperienceContent }) {
         ))}
       </article>
       <p className={styles.menuNote}>
-        Menú provisional: lo cerraremos con el hotel unas semanas antes de la boda. Las alergias e
-        intolerancias se recogen de forma privada en cada invitación.
+        Las alergias e intolerancias se recogen de forma privada en cada invitación.
       </p>
     </section>
   )
@@ -782,92 +869,103 @@ function GuestbookPage({
   content: WeddingExperienceContent
   preview: boolean
 }) {
-  const signatures = content.guestbook.length
-    ? content.guestbook
-    : preview
-      ? SAMPLE_GUESTBOOK_SIGNATURES
-      : []
+  const {
+    guestbook,
+    boardRef,
+    goToPage,
+    showSignature,
+    highlightId,
+    hasNavigated,
+    hasPageError,
+    isPaging,
+  } = useGuestbook({ slug: content.slug, initial: content.guestbook, preview })
+  const { signatures, page, pageCount, total } = guestbook
 
   return (
     <section className={styles.guestbook}>
       <ScriptHeading brush="terracotta">Firmas y felicitaciones</ScriptHeading>
-      {signatures.length > 0 ? (
-        <>
-          <div className={styles.signatures}>
-            {signatures.map((signature) => (
-              <figure key={signature.id} data-reveal>
-                <blockquote>{signature.message}</blockquote>
-                <figcaption>{signature.name}</figcaption>
-              </figure>
-            ))}
+
+      <div className={styles.wallDesk} data-reveal>
+        <p className={styles.wallKicker}>Deja tu firma</p>
+        <p className={styles.wallLead}>
+          Una dedicatoria, un consejo, un recuerdo… Lo colgaremos en el tablón para leerlo siempre.
+        </p>
+        <GuestbookSigning slug={content.slug} preview={preview} onSigned={showSignature} />
+      </div>
+
+      <div className={styles.guestbookBoard} ref={boardRef}>
+        {signatures.length > 0 ? (
+          <>
+            <p className={cn(styles.wallKicker, styles.guestbookBoardTitle)}>En el tablón</p>
+            {/* Cada página monta su propia rejilla para que sus firmas entren de nuevo. */}
+            <div className={styles.signatures} key={page} aria-busy={isPaging || undefined}>
+              {signatures.map((signature, index) => (
+                <figure
+                  key={signature.id}
+                  data-reveal={hasNavigated ? undefined : ""}
+                  className={cn(
+                    hasNavigated && styles.signatureEnter,
+                    signature.id === highlightId && styles.signatureNew,
+                  )}
+                  style={{ "--signature-index": index } as CSSProperties}
+                >
+                  <blockquote>{signature.message}</blockquote>
+                  <figcaption>{signature.name}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className={styles.wallEmpty} data-reveal>
+            <p>El tablón todavía está en blanco.</p>
+            <p>Estrénalo tú: la primera firma siempre hace especial ilusión.</p>
           </div>
-          <p className={styles.guestbookNote}>
-            Puedes dejarnos tu mensaje desde el enlace privado de tu invitación.
+        )}
+        {hasPageError && (
+          <p className={styles.guestbookError} role="alert">
+            No se ha podido cargar esa página. Inténtalo de nuevo.
           </p>
-        </>
-      ) : (
-        <div className={styles.guestbookEmpty} data-reveal>
-          <Image
-            draggable="false"
-            src={mariaDanielaAssets.botanicalSprig}
-            alt=""
-            width={343}
-            height={750}
-            sizes="10rem"
-          />
-          <p>El tablón todavía está en blanco.</p>
-          <p>
-            El día de la boda podrás escribirnos dedicatorias, consejos o lo que quieras. Iremos colgando aquí cada mensaje.
-          </p>
-        </div>
-      )}
+        )}
+        <GuestbookPagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          onPageChange={goToPage}
+          isPending={isPaging}
+        />
+      </div>
     </section>
   )
 }
 
 function GalleryPage({ content, preview }: { content: WeddingExperienceContent; preview: boolean }) {
-  // La web publicada no enseña fotos de ejemplo: solo las que suban los novios.
-  const photos = content.gallery.length ? content.gallery : preview ? SAMPLE_GALLERY_PHOTOS : []
-
   return (
     <section className={styles.gallery}>
       <ScriptHeading brush="sage">Galería</ScriptHeading>
-      {photos.length > 0 ? (
-        <>
-          <div className={styles.galleryGrid}>
-            {photos.map((photo) => (
-              <figure key={photo.id} data-reveal>
-                <Image
-                  draggable="false"
-                  src={photo.src}
-                  alt={photo.alt}
-                  fill
-                  sizes="(max-width: 760px) 45vw, 16rem"
-                />
-              </figure>
-            ))}
+      {/* En el editor se ven fotos de ejemplo; la web publicada carga las
+          que suben invitados y fotógrafos. */}
+      <GuestPhotoGallery
+        slug={content.slug}
+        preview={preview}
+        previewPhotos={content.gallery.length ? content.gallery : SAMPLE_GALLERY_PHOTOS}
+        desk={(uploadAction) => (
+          <div className={styles.wallDesk} data-reveal>
+            <p className={styles.wallKicker}>Comparte tus fotos</p>
+            <p className={styles.wallLead}>
+              La ceremonia, el baile, los momentos que nadie más vio… Súbelas y las veremos todos.
+            </p>
+            {uploadAction}
           </div>
-          <p className={styles.galleryNote}>
-            Podréis subir vuestras fotos del gran día desde vuestra invitación.
-          </p>
-        </>
-      ) : (
-        <div className={styles.galleryEmpty} data-reveal>
-          <Image
-            draggable="false"
-            src={mariaDanielaAssets.botanicalSprig}
-            alt=""
-            width={343}
-            height={750}
-            sizes="10rem"
-          />
-          <p>Todavía no hay fotos que enseñaros.</p>
-          <p>
-            Después de la boda aparecerán aquí: las nuestras y las que subáis vosotros desde
-            vuestra invitación.
-          </p>
-        </div>
-      )}
+        )}
+        emptyState={
+          <div className={styles.wallEmpty}>
+            <p>Todavía no hay fotos que enseñaros.</p>
+            <p>
+              Después de la boda aparecerán aquí: las nuestras y las que suban los invitados.
+            </p>
+          </div>
+        }
+      />
     </section>
   )
 }

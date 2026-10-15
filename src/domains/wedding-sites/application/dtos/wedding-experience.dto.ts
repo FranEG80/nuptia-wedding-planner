@@ -1,5 +1,10 @@
 import nachoData from "../../../../../DATA/nacho.json"
 
+import {
+  EMPTY_GUESTBOOK_PAGE,
+  type GuestbookPageDto,
+  type GuestbookSignatureDto,
+} from "@/domains/wedding-sites/application/dtos/guestbook.dto"
 import type { PublicWeddingSiteDto } from "@/domains/wedding-sites/application/dtos/public-wedding-site.dto"
 import type { WeddingSiteModuleDto } from "@/domains/wedding-sites/application/dtos/wedding-site-module.dto"
 import type { WeddingSiteModuleType } from "@/domains/wedding-sites/domain/wedding-site-module"
@@ -45,13 +50,27 @@ export interface WeddingExperienceGalleryPhoto {
   id: string
   src: string
   alt: string
+  /** Texto que se muestra sobre la foto. Vacío o ausente = sin texto. */
+  credit?: string | null
 }
 
-export interface WeddingExperienceSignature {
-  id: string
-  name: string
-  message: string
+/**
+ * Qué se muestra sobre las fotos que suben los fotógrafos. "couple" pone los
+ * nombres de los novios; "none" no pone nada. Para quitarlo, cambia el valor a
+ * "none" y no hace falta tocar nada más.
+ */
+export const PHOTOGRAPHER_PHOTO_CREDIT: "couple" | "none" = "couple"
+
+/** Texto para una foto de fotógrafo, según PHOTOGRAPHER_PHOTO_CREDIT. */
+export function photographerPhotoCredit(
+  partnerNames: readonly [string, string],
+): string | null {
+  return PHOTOGRAPHER_PHOTO_CREDIT === "couple"
+    ? `${partnerNames[0]} y ${partnerNames[1]}`
+    : null
 }
+
+export type WeddingExperienceSignature = GuestbookSignatureDto
 
 export interface WeddingExperienceTrack {
   id: string
@@ -108,6 +127,40 @@ const DEFAULT_MENU_COURSES: WeddingExperienceMenuCourse[] = [
   },
 ]
 
+/** Menú cerrado con el catering para la boda de Nacho y María Daniela. */
+const NACHO_MENU_COURSES: WeddingExperienceMenuCourse[] = [
+  {
+    id: "sorbet",
+    course: "Sorbete",
+    name: "Para refrescar",
+    items: ["Sorbete de Cítricos con Menta"],
+  },
+  {
+    id: "main",
+    course: "Plato Principal",
+    name: "El plato de la noche",
+    items: ["Solomillo de Ternera asado en Salsa Satay"],
+    imageSrc: "/images/dish-main.webp",
+  },
+  {
+    id: "dessert",
+    course: "Postre",
+    name: "El dulce final",
+    items: ["Lingote de Yogur y Mango"],
+    imageSrc: "/images/dish-dessert.webp",
+  },
+  {
+    id: "wine",
+    course: "Bodega",
+    name: "Para brindar",
+    items: [
+      "Vino Blanco \"Navesur\" D.O. Rueda",
+      "Vino Blanco Frizzante \"Amatista\"",
+      "Vino Tinto \"Cueva de Lobos\" D.O. Rioja",
+    ],
+  },
+]
+
 /**
  * Contenido de ejemplo: solo para la vista previa del editor. La web publicada
  * no muestra galería ni firmas hasta que existen las reales.
@@ -131,11 +184,33 @@ export const SAMPLE_GUESTBOOK_SIGNATURES: WeddingExperienceSignature[] = [
   },
 ]
 
+// Fotos de ejemplo del editor, con nombres inventados para ver cómo queda
+// la firma de cada polaroid (individual o de una invitación de grupo).
 export const SAMPLE_GALLERY_PHOTOS: WeddingExperienceGalleryPhoto[] = [
-  { id: "gallery-1", src: "/images/gallery-1.webp", alt: "Detalle floral de la celebración" },
-  { id: "gallery-2", src: "/images/gallery-2.webp", alt: "Mesa preparada para el banquete" },
-  { id: "couple", src: "/images/couple-hero.webp", alt: "La pareja el día de la boda" },
-  { id: "venue", src: "/images/venue.webp", alt: "El lugar de la celebración" },
+  {
+    id: "gallery-1",
+    src: "/images/gallery-1.webp",
+    alt: "Detalle floral de la celebración",
+    credit: "Lucía Fernández",
+  },
+  {
+    id: "gallery-2",
+    src: "/images/gallery-2.webp",
+    alt: "Mesa preparada para el banquete",
+    credit: "Javier y Marta",
+  },
+  {
+    id: "couple",
+    src: "/images/couple-hero.webp",
+    alt: "La pareja el día de la boda",
+    credit: "Carmen Ruiz",
+  },
+  {
+    id: "venue",
+    src: "/images/venue.webp",
+    alt: "El lugar de la celebración",
+    credit: "Pablo Martín",
+  },
 ]
 
 const DEFAULT_PLAYLIST: WeddingExperienceTrack[] = [
@@ -168,8 +243,11 @@ export interface WeddingExperienceContent {
   menu: WeddingExperienceMenuCourse[]
   /** Fotos reales subidas por los novios. Vacío hasta que las suban. */
   gallery: WeddingExperienceGalleryPhoto[]
-  /** Firmas y felicitaciones dejadas por los invitados desde su invitación. */
-  guestbook: WeddingExperienceSignature[]
+  /**
+   * Primera página de firmas y felicitaciones dejadas por los invitados desde
+   * la web. El resto de páginas se piden al navegar por el tablón.
+   */
+  guestbook: GuestbookPageDto
   playlist: WeddingExperienceTrack[]
   /** Playlist pública de Spotify. Cuando existe, se incrusta en la subpágina de música. */
   spotifyPlaylistUrl: string | null
@@ -293,9 +371,9 @@ export function createNachoWeddingExperience(
       phone: person.phone,
       whatsappUrl: whatsappUrl(person.phone),
     })),
-    menu: DEFAULT_MENU_COURSES,
+    menu: NACHO_MENU_COURSES,
     gallery: [],
-    guestbook: [],
+    guestbook: EMPTY_GUESTBOOK_PAGE,
     playlist: DEFAULT_PLAYLIST,
     spotifyPlaylistUrl: DEMO_SPOTIFY_PLAYLIST,
     accommodation: {
@@ -364,7 +442,7 @@ function genericExperience(
     contacts: [],
     menu: DEFAULT_MENU_COURSES,
     gallery: [],
-    guestbook: [],
+    guestbook: EMPTY_GUESTBOOK_PAGE,
     playlist: DEFAULT_PLAYLIST,
     spotifyPlaylistUrl: DEMO_SPOTIFY_PLAYLIST,
     accommodation: null,
