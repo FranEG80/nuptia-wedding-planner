@@ -7,12 +7,17 @@ nombre de quien la subió.
 
 ## Cómo funciona
 
-1. El navegador pide permiso (`requestGuestPhotoUploadAction`). El servidor
+1. Si el selector entrega HEIC/HEIF, el navegador lo convierte a JPEG (calidad
+   92) con `heic-to`, cargado bajo demanda y con decodificación en un worker.
+   Las conversiones se hacen en serie; se muestra «Preparando…». Se comprueba
+   el contenido para no reconvertir los JPEG que iOS entregue con nombre HEIC.
+2. El navegador pide permiso (`requestGuestPhotoUploadAction`). El servidor
    valida el `guestId` guardado en el navegador (o el teléfono del fotógrafo)
    y devuelve una URL firmada de R2 válida 15 minutos.
-2. El navegador sube el **original** directamente a R2 con `PUT`. No pasa por
+3. El navegador sube el **original** (el JPEG convertido en el caso HEIC)
+   directamente a R2 con `PUT`. No pasa por
    Vercel, así que no le afecta el límite de 4,5 MB por petición.
-3. El navegador avisa (`completeGuestPhotoUploadAction`). El servidor descarga
+4. El navegador avisa (`completeGuestPhotoUploadAction`). El servidor descarga
    el original, y con `sharp` genera:
    - `optimized.webp`: lado largo máx. 2048 px, calidad 82, para el visor.
    - `thumbnail.webp`: cuadrada de 640 px, calidad 74, para la parrilla.
@@ -130,8 +135,14 @@ pnpm db:migrate:remote
 
 ## Formatos
 
-JPG, PNG, WebP y AVIF hasta 25 MB. HEIC no: el iPhone lo convierte a JPEG al
-elegir la foto desde la web (`accept="image/*"`).
+JPG, PNG, WebP y AVIF hasta 25 MB. También se pueden elegir HEIC/HEIF: se
+convierten automáticamente a JPEG en el dispositivo antes de subir a R2.
+No se depende de la conversión del selector de iOS ni del soporte HEIC de
+`sharp` en Vercel. El límite se aplica tanto al archivo elegido como al JPEG
+resultante. La conversión no añade trabajo de Vercel; `sharp` sigue generando
+las dos versiones WebP. En el caso HEIC, el original almacenado es el JPEG
+convertido, sin los metadatos originales. Si falla una conversión, esa foto
+se marca con un error y las demás se pueden enviar.
 
 
 ## Diagnóstico de producción

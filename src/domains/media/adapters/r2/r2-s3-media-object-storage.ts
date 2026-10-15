@@ -58,7 +58,12 @@ export class R2S3MediaObjectStorage implements DirectUploadMediaObjectStorage {
       input.body instanceof ReadableStream
         ? await new Response(input.body).arrayBuffer()
         : input.body
-    const headers: Record<string, string> = { "Content-Type": input.contentType }
+    // aws4fetch entrega a fetch un Request cuyo body ya es un stream. En
+    // Node/Vercel se pierde la longitud inferida y R2 rechaza el PUT con 411.
+    const headers: Record<string, string> = {
+      "Content-Type": input.contentType,
+      "Content-Length": String(body.byteLength),
+    }
 
     if (input.cacheControl) {
       headers["Cache-Control"] = input.cacheControl

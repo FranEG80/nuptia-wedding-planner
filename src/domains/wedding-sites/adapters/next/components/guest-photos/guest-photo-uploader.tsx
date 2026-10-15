@@ -23,6 +23,10 @@ import {
   type StoredGuestAccess,
 } from "@/domains/wedding-sites/adapters/next/components/guest-access-storage"
 import { putFileWithProgress } from "@/domains/wedding-sites/adapters/next/components/guest-photos/put-file-with-progress"
+import {
+  GuestPhotoPreparationError,
+  prepareGuestPhoto,
+} from "@/domains/wedding-sites/adapters/next/components/guest-photos/prepare-guest-photo"
 import { cn } from "@/shared/lib/utils"
 
 import wall from "../guest-wall.module.css"
@@ -36,7 +40,7 @@ const MAX_SIZE_LABEL = `${Math.round(GUEST_PHOTO_MAX_BYTES / (1024 * 1024))} MB`
  * selected: elegida, esperando a que el invitado pulse Enviar.
  * error: falló; si `canRetry`, Enviar la vuelve a intentar.
  */
-type UploadStatus = "selected" | "uploading" | "processing" | "done" | "error"
+type UploadStatus = "preparing" | "selected" | "uploading" | "processing" | "done" | "error"
 
 interface UploadItem {
   id: string
@@ -55,7 +59,7 @@ type FailedStatus = Exclude<
 >
 
 const GENERIC_ERROR = "No se pudo subir la foto. Revisa la conexión e inténtalo de nuevo."
-const HEIC_ERROR = "Las fotos HEIC no se pueden subir: guárdalas como JPG y vuelve a elegirlas."
+const HEIC_ERROR = "No se pudo convertir una foto HEIC. Expórtala como JPG desde Fotos y vuelve a elegirla."
 
 const ERROR_MESSAGES: Record<FailedStatus, string> = {
   unknown_uploader: "No te encontramos en la lista. Pulsa «No soy yo» y vuelve a identificarte.",
@@ -74,22 +78,6 @@ const NOT_RETRYABLE: ReadonlySet<FailedStatus> = new Set([
   "invalid_image",
 ])
 
-function validateFile(file: File): string | null {
-  if (/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name)) {
-    return HEIC_ERROR
-  }
-
-  if (!guestPhotoExtension(file.type)) {
-    return ERROR_MESSAGES.unsupported_type
-  }
-
-  if (file.size === 0 || file.size > GUEST_PHOTO_MAX_BYTES) {
-    return ERROR_MESSAGES.too_large
-  }
-
-  return null
-}
-
 function formatSize(bytes: number) {
   return bytes >= 1024 * 1024
     ? `${(bytes / (1024 * 1024)).toLocaleString("es-ES", { maximumFractionDigits: 1 })} MB`
@@ -99,6 +87,8 @@ function formatSize(bytes: number) {
 /** Texto corto bajo cada miniatura; el detalle de los errores va debajo. */
 function tileLabel(item: UploadItem) {
   switch (item.status) {
+    case "preparing":
+      return "Preparando…"
     case "selected":
       return formatSize(item.file.size)
     case "uploading":
@@ -121,7 +111,7 @@ function isSendable(item: UploadItem) {
 }
 
 function isActive(item: UploadItem) {
-  return item.status === "uploading" || item.status === "processing"
+  return item.status === "preparing" || item.status === "uploading" || item.status === "processing"
 }
 
 /**
@@ -150,6 +140,7 @@ export function GuestPhotoUploader({
   const [items, setItems] = useState<UploadItem[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const itemsRef = useRef(items)
+  const preparationRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     itemsRef.current = items
@@ -157,7 +148,10 @@ export function GuestPhotoUploader({
 
   // Las vistas previas son object URLs: se liberan al desmontar.
   useEffect(
-    () => () => itemsRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl)),
+    () => () => {
+      preparationRef.current?.abort()
+      itemsRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl))
+    },
     [],
   )
 
@@ -166,6 +160,7 @@ export function GuestPhotoUploader({
   const activeCount = items.filter(isActive).length
   const doneCount = items.filter((item) => item.status === "done").length
   const isSending = activeCount > 0
+  const isPreparing = items.some((item) => item.status === "preparing")
   const allDone = items.length > 0 && doneCount === items.length
   // Con "Otro nombre" hay que escribir algo antes de poder enviar.
   const isMissingCustomCredit = creditChoice === "custom" && !normalizeCustomCredit(customCredit)
@@ -241,6 +236,7 @@ export function GuestPhotoUploader({
   }
 
   async function send() {
+    if (preparationRef.current || isSending) return
     const queue = items.filter(isSendable)
     // La firma elegida al pulsar Enviar vale para toda la tanda.
     const choice = creditChoice
@@ -260,22 +256,26 @@ export function GuestPhotoUploader({
     )
   }
 
-  function addFiles(files: FileList | File[] | null) {
+  async function addFiles(files: FileList | File[] | null) {
     const selected = files ? Array.from(files) : []
 
-    if (!selected.length) {
+    if (!selected.length || preparationRef.current) {
       return
     }
+    const controller = new AbortController()
+    preparationRef.current = controller
 
     // Lo que no se puede subir se marca al elegirlo, antes de pulsar Enviar.
     const added: UploadItem[] = selected.map((file) => {
-      const validationError = validateFile(file)
+      const validationError = file.size === 0 || file.size > GUEST_PHOTO_MAX_BYTES
+        ? ERROR_MESSAGES.too_large
+        : null
 
       return {
         id: crypto.randomUUID(),
         file,
         previewUrl: URL.createObjectURL(file),
-        status: validationError ? "error" : "selected",
+        status: validationError ? "error" : "preparing",
         progress: 0,
         error: validationError,
         canRetry: !validationError,
@@ -287,6 +287,34 @@ export function GuestPhotoUploader({
       .filter((item) => item.status === "done")
       .forEach((item) => URL.revokeObjectURL(item.previewUrl))
     setItems((current) => [...current.filter((item) => item.status !== "done"), ...added])
+
+    try {
+      // Una conversión cada vez, incluso al elegir muchas fotos desde el móvil.
+      for (const item of added) {
+        if (controller.signal.aborted) return
+        if (item.status === "error") continue
+        try {
+          const file = await prepareGuestPhoto(item.file)
+          if (controller.signal.aborted) return
+          let previewUrl = item.previewUrl
+          if (file !== item.file) {
+            previewUrl = URL.createObjectURL(file)
+            URL.revokeObjectURL(item.previewUrl)
+          }
+          updateItem(item.id, { file, previewUrl, status: "selected" })
+        } catch (error) {
+          if (controller.signal.aborted) return
+          const message = error instanceof GuestPhotoPreparationError
+            ? error.reason === "conversion_failed"
+              ? HEIC_ERROR
+              : ERROR_MESSAGES[error.reason]
+            : "No se pudo preparar una foto. Vuelve a elegirla e inténtalo de nuevo."
+          updateItem(item.id, { status: "error", error: message, canRetry: false })
+        }
+      }
+    } finally {
+      if (preparationRef.current === controller) preparationRef.current = null
+    }
   }
 
   function remove(item: UploadItem) {
@@ -305,7 +333,7 @@ export function GuestPhotoUploader({
     setIsDragging(false)
 
     if (!isSending) {
-      addFiles(event.dataTransfer.files)
+      void addFiles(event.dataTransfer.files)
     }
   }
 
@@ -313,13 +341,13 @@ export function GuestPhotoUploader({
     <input
       id={inputId}
       type="file"
-      // image/* hace que el iPhone convierta HEIC a JPEG al elegir la foto.
+      // Si el selector entrega HEIC, prepareGuestPhoto lo convierte en el navegador.
       accept="image/*"
       multiple
       disabled={isSending}
       className={wall.srOnly}
       onChange={(event) => {
-        addFiles(event.target.files)
+        void addFiles(event.target.files)
         event.target.value = ""
       }}
       data-autofocus
@@ -411,7 +439,10 @@ export function GuestPhotoUploader({
           <label htmlFor={inputId} className={cn(wall.primary, styles.pickButton)}>
             Elegir fotos
           </label>
-          <p className={styles.uploaderMeta}>JPG, PNG o WebP · hasta {MAX_SIZE_LABEL} por foto</p>
+          <p className={styles.uploaderMeta}>
+            JPG, HEIC, PNG o WebP · hasta {MAX_SIZE_LABEL} por foto
+            <br />Los HEIC se convierten automáticamente a JPG.
+          </p>
         </div>
       ) : (
         <div className={styles.selection} data-dragging={isDragging || undefined}>
@@ -420,6 +451,8 @@ export function GuestPhotoUploader({
               ? doneCount === 1
                 ? "Foto subida. ¡Gracias!"
                 : `${doneCount} fotos subidas. ¡Gracias!`
+              : isPreparing
+                ? "Preparando fotos… Las HEIC se convierten a JPG."
               : isSending
                 ? `Enviando… ${doneCount} de ${doneCount + activeCount + sendable.length} listas`
                 : doneCount > 0
@@ -433,7 +466,7 @@ export function GuestPhotoUploader({
             {items.map((item) => (
               <li key={item.id} className={styles.tile} data-status={item.status}>
                 <div className={styles.tilePhoto}>
-                  {guestPhotoExtension(item.file.type) ? (
+                  {item.status !== "preparing" && guestPhotoExtension(item.file.type) ? (
                     <Image
                       src={item.previewUrl}
                       alt={item.file.name}
@@ -453,8 +486,8 @@ export function GuestPhotoUploader({
                       aria-label={`Progreso de ${item.file.name}`}
                       aria-valuemin={0}
                       aria-valuemax={100}
-                      aria-valuenow={Math.round(item.progress * 100)}
-                      data-indeterminate={item.status === "processing" || undefined}
+                      aria-valuenow={item.status === "uploading" ? Math.round(item.progress * 100) : undefined}
+                      data-indeterminate={item.status !== "uploading" || undefined}
                     >
                       <span style={{ transform: `scaleX(${item.progress})` }} />
                     </span>
@@ -511,7 +544,9 @@ export function GuestPhotoUploader({
                 onClick={() => void send()}
                 disabled={isSending || sendable.length === 0 || isMissingCustomCredit}
               >
-                {isSending
+                {isPreparing
+                  ? "Preparando…"
+                  : isSending
                   ? "Enviando…"
                   : sendable.every((item) => item.status === "error")
                     ? `Reintentar ${photosLabel(sendable.length)}`

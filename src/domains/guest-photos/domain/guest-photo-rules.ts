@@ -17,8 +17,8 @@ export const GUEST_PHOTO_PAGE_SIZE = 24
 export const GUEST_PHOTO_MAX_PAGE_SIZE = 60
 
 /**
- * Formatos que se aceptan como original. HEIC no: el iPhone lo convierte a JPEG
- * al elegir la foto desde la web, y sharp no sabe leerlo.
+ * Formatos que acepta el servidor como original. Si el selector entrega HEIC,
+ * el navegador lo convierte a JPEG antes de pedir la URL de subida.
  */
 const GUEST_PHOTO_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
