@@ -2,7 +2,6 @@ import Image from "next/image"
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react"
 import { flushSync } from "react-dom"
 
-import { CopyIbanButton } from "@/domains/wedding-sites/adapters/next/components/copy-iban-button"
 import { GuestPhotoGallery } from "@/domains/wedding-sites/adapters/next/components/guest-photos/guest-photo-gallery"
 import { GuestbookSigning } from "@/domains/wedding-sites/adapters/next/components/guestbook-composer"
 import { GuestbookPagination } from "@/domains/wedding-sites/adapters/next/components/guestbook-pagination"
@@ -39,16 +38,77 @@ const scriptHeading =
 const scheduleMeta =
   "block my-[0.35rem] text-[rgba(91,77,71,0.72)] text-[0.76rem] leading-[1.5]"
 const venueCopy = "my-0 text-[rgba(48,61,56,0.68)] text-[0.85rem] leading-[1.6]"
-const registryLink =
-  "block w-fit mx-auto text-inherit [font-family:var(--font-cormorant),serif] text-[clamp(1rem,3vw,1.35rem)] tracking-[0.08em] no-underline"
 
 /** Píxeles de aproximación al borde en los que la sombra pasa de 0 a 1. */
 const RAMP = 220
 
-function MusicToggle() {
+const MUSIC_SRC = "/music/templates/maria-daniela/me-enamoro-de-ella.m4a"
+
+/**
+ * `preload` no basta: Safari en iOS lo ignora y no baja nada hasta el primer
+ * play. Por eso, terminada la carga de la página, la canción se descarga entera
+ * a memoria y el reproductor pasa a leerla de ahí: al pulsar suena casi al
+ * instante. Si se pulsa antes de que acabe, se cancela y suena desde la red.
+ */
+function MusicToggle({ prefetch }: { prefetch: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null)
+  const prefetchRef = useRef<AbortController | null>(null)
+  const [source, setSource] = useState(MUSIC_SRC)
   const [isPlaying, setIsPlaying] = useState(false)
   const [hasError, setHasError] = useState(false)
+
+  useEffect(() => {
+    if (!prefetch) {
+      return
+    }
+
+    const controller = new AbortController()
+    let objectUrl: string | null = null
+
+    function download() {
+      prefetchRef.current = controller
+
+      fetch(MUSIC_SRC, { signal: controller.signal, priority: "low" })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
+          }
+
+          return response.blob()
+        })
+        .then((blob) => {
+          if (controller.signal.aborted) {
+            return
+          }
+
+          objectUrl = URL.createObjectURL(new Blob([blob], { type: "audio/mp4" }))
+          setSource(objectUrl)
+        })
+        // Sin precarga el botón sigue funcionando: carga la canción al pulsar.
+        .catch(() => {})
+        .finally(() => {
+          if (prefetchRef.current === controller) {
+            prefetchRef.current = null
+          }
+        })
+    }
+
+    // Después del evento load, para no competir con las imágenes de la portada.
+    if (document.readyState === "complete") {
+      download()
+    } else {
+      window.addEventListener("load", download, { once: true })
+    }
+
+    return () => {
+      window.removeEventListener("load", download)
+      controller.abort()
+
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl)
+      }
+    }
+  }, [prefetch])
 
   async function togglePlayback() {
     const audio = audioRef.current
@@ -62,6 +122,8 @@ function MusicToggle() {
       return
     }
 
+    // Pulsado a mitad de descarga: se cancela para no bajar la canción dos veces.
+    prefetchRef.current?.abort()
     setHasError(false)
 
     try {
@@ -77,9 +139,9 @@ function MusicToggle() {
       <audio
         ref={audioRef}
         className={styles.musicAudio}
-        src="/music/templates/maria-daniela/me-enamoro-de-ella.m4a"
+        src={source}
         loop
-        preload="none"
+        preload={source === MUSIC_SRC ? "none" : "auto"}
         onPlay={() => {
           setIsPlaying(true)
           setHasError(false)
@@ -234,7 +296,8 @@ export function MariaDanielaWeddingSite({
         <div className={cn(styles.site, styles.siteLocked)} ref={siteRef}>
           <CountdownHero content={content} preview={preview} />
         </div>
-        <MusicToggle />
+        {/* En el editor la vista previa se recarga con cada cambio: sin precarga. */}
+        <MusicToggle prefetch={!preview} />
       </>
     )
   }
@@ -297,7 +360,7 @@ export function MariaDanielaWeddingSite({
           </footer>
         </EditorialMotion>
       </div>
-      <MusicToggle />
+      <MusicToggle prefetch={!preview} />
     </>
   )
 }
@@ -521,7 +584,6 @@ function StoryPage({ content, preview }: { content: WeddingExperienceContent; pr
 function HomePage({ content, preview }: { content: WeddingExperienceContent; preview: boolean }) {
   const hasLocation = content.enabledModules.includes("location")
   const hasTimeline = content.enabledModules.includes("timeline")
-  const hasGifts = content.enabledModules.includes("gifts")
 
   return (
     <>
@@ -532,8 +594,6 @@ function HomePage({ content, preview }: { content: WeddingExperienceContent; pre
       <div className="my-32 " >
         <MariaDanielaCountdown weddingDate={content.dateIso}  />
       </div>
-
-      {hasGifts && <GiftsSection content={content} />}
 
       <PracticalInfoSection content={content} />
 
@@ -742,63 +802,6 @@ function TimelineSection({ content, preview }: { content: WeddingExperienceConte
           </li>
         ))}
       </ol>
-    </section>
-  )
-}
-
-/** Misma composición que la sección de regalos de la invitación. */
-function GiftsSection({ content }: { content: WeddingExperienceContent }) {
-  return (
-    <section className="relative grid min-h-[48rem] place-items-center overflow-hidden px-6 py-28 text-center">
-      <Image
-        draggable="false"
-        src={mariaDanielaAssets.watercolorBlobs}
-        alt=""
-        width={420}
-        height={230}
-        className="absolute top-8 right-[-3rem] h-auto w-[min(30rem,65vw)] opacity-70"
-      />
-      <Image
-        draggable="false"
-        src={mariaDanielaAssets.watercolorBlobsAlternative}
-        alt=""
-        width={420}
-        height={230}
-        className="absolute bottom-8 left-[-7rem] h-auto w-[min(30rem,65vw)] opacity-70"
-      />
-      <div
-        className="relative flex w-[min(1050px,100%)] flex-col md:flex-row md:items-center md:gap-14"
-        data-reveal
-      >
-        <h2 className={cn(scriptHeading, "px-4")} data-script-reveal>
-          Vuestra presencia es el mayor regalo
-        </h2>
-        <div className="mt-8 w-full mx-auto [font-family:var(--font-cormorant),serif] text-[1.3rem]">
-          <p>Lo importante es que vengáis con ilusión, alegría y ganas de pasarlo bien.</p>
-          <p>Pero como algunos nos habéis preguntado…</p>
-          {content.gifts && (
-            <div className="relative isolate mt-8 mx-auto flex w-[min(38rem,100%)] min-h-[12rem] flex-col items-center justify-center gap-[0.8rem] py-[2.4rem] px-[clamp(1.5rem,5vw,3rem)]">
-              <Image
-                draggable="false"
-                src={mariaDanielaAssets.ibanPencilFrame}
-                alt=""
-                fill
-                sizes="(max-width: 720px) 88vw, 610px"
-                className="z-[-1] w-full! h-full! object-fill"
-                unoptimized
-              />
-              <strong className={registryLink}>{content.gifts.iban}</strong>
-              <small className="block text-[rgba(48,61,56,0.62)]">
-                Titular: {content.gifts.accountHolder}
-              </small>
-              <CopyIbanButton
-                iban={content.gifts.iban}
-                className="mt-1 cursor-pointer border-b border-current pb-[2px] text-[0.62rem] font-extrabold tracking-[0.18em] uppercase [font-family:var(--font-manrope),sans-serif] transition-colors hover:text-[#a04e28]"
-              />
-            </div>
-          )}
-        </div>
-      </div>
     </section>
   )
 }

@@ -126,9 +126,9 @@ pnpm db:migrate:remote
 
 ## Nombres en las polaroids
 
-- Invitado: nombre y apellido. Si su invitación es de varias personas, al
-  subir elige firmar solo o con el nombre de la invitación ("Ana y Juan").
-  El nombre se guarda en `credit` al subir.
+- Invitado: al subir elige con qué firmar: solo su nombre ("Ana"), el nombre
+  de su invitación si es de varias personas ("Ana y Juan") u otro nombre que
+  escribe él (máx. 60 caracteres; vacío = su nombre). Se guarda en `credit`.
 - Fotógrafo: no es invitado (`guestId` null, se guarda su teléfono). El nombre
   se calcula al mostrar la foto con `PHOTOGRAPHER_PHOTO_CREDIT` en
   `wedding-experience.dto.ts`: `"couple"` (nombres de los novios) o `"none"`.
